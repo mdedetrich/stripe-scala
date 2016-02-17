@@ -1,5 +1,7 @@
 # stripe-scala, API for Stripe Using Scala
 
+[![Build Status](https://travis-ci.org/mdedetrich/stripe-scala.svg?branch=master)](https://travis-ci.org/mdedetrich/stripe-scala)
+
 stripe-scala is a wrapper over the [Stripe](https://stripe.com/) [REST api](https://stripe.com/docs/api/curl#intro). Unlike
 [stripe-java](https://github.com/stripe/stripe-java), stripe-scala binds JSON response to the stripe object models (using Scala
 case classes) and lets you create requests from typed case classes (rather than just using Java `Map<String,Object>`)
