@@ -1,22 +1,22 @@
 package org.mdedetrich.stripe.v1
 
-import jawn.support.play.Parser
-import org.mdedetrich.stripe.{InvalidJsonModelException, Endpoint, ApiKey}
-import org.mdedetrich.stripe.v1.Shippings.Shipping
-import org.mdedetrich.utforsca.SealedContents
 import com.typesafe.scalalogging.LazyLogging
+import dispatch.Defaults._
+import dispatch._
 import org.joda.time.DateTime
-import Refunds.RefundsData
+import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.Cards._
 import org.mdedetrich.stripe.v1.Disputes._
 import org.mdedetrich.stripe.v1.Errors._
+import org.mdedetrich.stripe.v1.Refunds.RefundsData
+import org.mdedetrich.stripe.v1.Shippings.Shipping
+import org.mdedetrich.stripe.{ApiKey, Endpoint, InvalidJsonModelException}
+import org.mdedetrich.utforsca.SealedContents
 import play.api.data.validation.ValidationError
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import org.mdedetrich.playjson.Utils._
-import scala.concurrent.Future
-import dispatch._, Defaults._
+import play.api.libs.json._
 
+import scala.concurrent.Future
 import scala.util.Try
 
 object Charges extends LazyLogging {
