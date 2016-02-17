@@ -349,7 +349,7 @@ object Charges extends LazyLogging {
   
   def create(chargeInput: ChargeInput)(implicit stripeKey: ApiKey, endpoint: Endpoint): Future[Try[Charge]] = {
     
-    val inputMap: Map[String,String] = {
+    val postFormParameters: Map[String,String] = {
       Map(
         "amount" -> Option(chargeInput.amount.toString),
         "currency" -> Option(chargeInput.currency.iso.toLowerCase),
@@ -402,11 +402,11 @@ object Charges extends LazyLogging {
       
     }
     
-    logger.debug(s"Generated input map is $inputMap")
+    logger.debug(s"Generated POST form parameters is $postFormParameters")
     
     val finalUrl = endpoint.url + "/v1/charges"
 
-    val req = (url(finalUrl) << inputMap).POST
+    val req = (url(finalUrl) << postFormParameters).POST.as(stripeKey.apiKey,"")
     
     Http(req > as.String).map { responseString  =>
       val response = Parser.parseFromString(responseString).flatMap{jsValue =>
@@ -414,7 +414,7 @@ object Charges extends LazyLogging {
         
         jsResult.fold(
           errors => {
-            val error = InvalidJsonModelException(finalUrl,Option(inputMap),None,jsValue,errors)
+            val error = InvalidJsonModelException(finalUrl,Option(postFormParameters),None,jsValue,errors)
             scala.util.Failure(error)
           }, charge =>
             scala.util.Success(charge)

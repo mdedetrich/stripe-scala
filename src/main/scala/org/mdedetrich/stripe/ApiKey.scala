@@ -1,3 +1,3 @@
 package org.mdedetrich.stripe
 
-case class ApiKey(val id: String) extends AnyVal
+case class ApiKey(val apiKey: String) extends AnyVal

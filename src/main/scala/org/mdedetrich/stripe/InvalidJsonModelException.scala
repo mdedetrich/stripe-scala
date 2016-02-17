@@ -17,5 +17,5 @@ case class InvalidJsonModelException(val url: String,
                                      val postJson: Option[JsValue],
                                      val jsonResponse: JsValue,
                                      val errors: Seq[(JsPath, Seq[ValidationError])]) extends Exception {
-  override def getMessage = s"Invalid Json model, errors are $errors"
+  override def getMessage = s"Invalid JSON model, errors are $errors"
 }
