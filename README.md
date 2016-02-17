@@ -21,7 +21,7 @@ stripe-scala was intentionally designed to use bare minimum external dependencie
 Currently, stripe-scala is in alpha stage. The models are being completed, and very few endpoints have been coded. It is being uploaded
 frequently as a SNAPSHOT on sonatype
 
-```
+```scala
 resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots")
 )
