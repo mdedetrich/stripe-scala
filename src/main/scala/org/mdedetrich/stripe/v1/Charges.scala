@@ -414,14 +414,12 @@ object Charges extends LazyLogging {
       
       parseStripeServerError(response, finalUrl, Option(postFormParameters), None) match {
         case Right(triedJsValue) =>
-          triedJsValue.flatMap { jsValue =>
+          triedJsValue.map { jsValue =>
             val jsResult = Json.fromJson[Charge](jsValue)
             jsResult.fold(
               errors => {
-                val error = InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
-                scala.util.Failure(error)
-              }, charge =>
-                scala.util.Success(charge)
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
+              }, charge => charge
             )
           }
         case Left(error) =>
