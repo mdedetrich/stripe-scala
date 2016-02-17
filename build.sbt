@@ -10,7 +10,8 @@ version := "1.0.0-SNAPSHOT"
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,
-  Resolver.sonatypeRepo("snapshots")
+  Resolver.sonatypeRepo("snapshots"),
+  "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 )
 
 val jawnVersion = "0.8.3"
