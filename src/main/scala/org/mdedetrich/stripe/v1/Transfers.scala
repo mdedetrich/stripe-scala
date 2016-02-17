@@ -178,7 +178,7 @@ object Transfers {
                       failureCode: Option[FailureCode],
                       failureMessage: Option[String],
                       livemode: Boolean,
-                      metadata: Option[Map[String,String]],
+                      metadata: Option[Map[String, String]],
                       recipient: String,
                       reversals: Reversals,
                       reversed: Boolean,
@@ -206,7 +206,7 @@ object Transfers {
       (__ \ "failure_code").readNullable[FailureCode] ~
       (__ \ "failure_message").readNullable[String] ~
       (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "recipient").read[String] ~
       (__ \ "reversals").read[Reversals] ~
       (__ \ "reversed").read[Boolean] ~
@@ -262,7 +262,7 @@ object Transfers {
                            currency: Currency,
                            destination: String,
                            description: Option[String],
-                           metadata: Option[Map[String,String]],
+                           metadata: Option[Map[String, String]],
                            sourceTransaction: Option[String],
                            statementDescriptor: Option[String],
                            sourceType: Option[SourceType]

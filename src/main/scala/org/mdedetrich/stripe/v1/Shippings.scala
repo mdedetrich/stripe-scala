@@ -4,6 +4,7 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
 object Shippings {
+
   case class Address(city: String,
                      country: String,
                      line1: String,

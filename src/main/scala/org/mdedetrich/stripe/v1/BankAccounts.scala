@@ -73,7 +73,7 @@ object BankAccounts {
                          defaultForCurrency: Boolean,
                          fingerprint: String,
                          last4: String,
-                         metadata: Option[Map[String,String]],
+                         metadata: Option[Map[String, String]],
                          name: String,
                          routingNumber: String,
                          status: Status) extends StripeObject
@@ -88,7 +88,7 @@ object BankAccounts {
       (__ \ "default_for_currency").read[Boolean] ~
       (__ \ "fingerprint").read[String] ~
       (__ \ "last4").read[String] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "name").read[String] ~
       (__ \ "routing_number").read[String] ~
       (__ \ "status").read[Status]

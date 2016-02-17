@@ -73,7 +73,7 @@ object Plans {
                   interval: Interval,
                   intervalCount: Long,
                   livemode: Boolean,
-                  metadata: Option[Map[String,String]],
+                  metadata: Option[Map[String, String]],
                   name: String,
                   quantity: Long,
                   start: DateTime,
@@ -91,7 +91,7 @@ object Plans {
       (__ \ "interval").read[Interval] ~
       (__ \ "interval_count").read[Long] ~
       (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "name").read[String] ~
       (__ \ "quantity").read[Long] ~
       (__ \ "start").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~

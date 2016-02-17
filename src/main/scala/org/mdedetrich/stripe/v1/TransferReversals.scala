@@ -12,7 +12,7 @@ object TransferReversals {
                               balanceTransaction: String,
                               created: DateTime,
                               currency: Currency,
-                              metadata: Option[Map[String,String]],
+                              metadata: Option[Map[String, String]],
                               transfer: String) extends StripeObject
 
   implicit val transferReversalReads: Reads[TransferReversal] = (
@@ -21,7 +21,7 @@ object TransferReversals {
       (__ \ "balance_transaction").read[String] ~
       (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
       (__ \ "currency").read[Currency] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "transfer").read[String]
     ).tupled.map(TransferReversal.tupled)
 

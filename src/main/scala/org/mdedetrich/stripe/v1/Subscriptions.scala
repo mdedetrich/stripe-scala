@@ -49,7 +49,7 @@ object Subscriptions {
                           customer: String,
                           discount: Option[Discount],
                           endedAt: Option[DateTime],
-                          metadata: Option[Map[String,String]],
+                          metadata: Option[Map[String, String]],
                           plan: Plan,
                           quantity: Long,
                           start: DateTime,
@@ -73,7 +73,7 @@ object Subscriptions {
       (__ \ "ended_at").readNullable[Long].map {
         _.map { timestamp => new DateTime(timestamp * 1000) }
       } ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "plan").read[Plan] ~
       (__ \ "quantity").read[Long] ~
       (__ \ "start").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~

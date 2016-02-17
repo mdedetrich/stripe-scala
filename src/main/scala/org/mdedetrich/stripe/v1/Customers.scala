@@ -41,7 +41,7 @@ object Customers {
                       discount: Option[Discount],
                       email: String,
                       livemode: Boolean,
-                      metadata: Option[Map[String,String]],
+                      metadata: Option[Map[String, String]],
                       shipping: Shipping,
                       sources: Sources,
                       subscriptions: List[Subscription]) extends StripeObject
@@ -57,7 +57,7 @@ object Customers {
       (__ \ "discount").readNullable[Discount] ~
       (__ \ "email").read[String] ~
       (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "shipping").read[Shipping] ~
       (__ \ "sources").read[Sources] ~
       (__ \ "subscriptions").read[List[Subscription]]

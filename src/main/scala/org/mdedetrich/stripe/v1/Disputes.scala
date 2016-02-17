@@ -281,7 +281,7 @@ object Disputes {
                      evidenceDetails: EvidenceDetails,
                      isChargeRefundable: Boolean,
                      livemode: Boolean,
-                     metadata: Option[Map[String,String]],
+                     metadata: Option[Map[String, String]],
                      reason: Reason,
                      status: Status)
 
@@ -296,7 +296,7 @@ object Disputes {
       (__ \ "evidence_details").read[EvidenceDetails] ~
       (__ \ "is_charge_refundable").read[Boolean] ~
       (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "reason").read[Reason] ~
       (__ \ "status").read[Status]
     ).tupled.map(Dispute.tupled)

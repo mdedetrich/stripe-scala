@@ -7,6 +7,7 @@ object Errors {
 
   /**
     * Errors taken from https://stripe.com/docs/api#errors
+    *
     * @param id
     */
   sealed abstract class Error(val id: String)
@@ -44,6 +45,7 @@ object Errors {
 
   /**
     * Codes taken from https://stripe.com/docs/api#errors
+    *
     * @param id
     */
   sealed abstract class Code(val id: String)
@@ -51,30 +53,31 @@ object Errors {
   case class UnknownCode(val id: String) extends Exception {
     override def getMessage = "Unknown Error code, received $id"
   }
-  
+
   object Code {
+
     case object InvalidNumber extends Code("invalid_number")
-    
+
     case object InvalidExpiryMonth extends Code("invalid_expiry_month")
-    
+
     case object InvalidExpiryYear extends Code("invalid_expiry_year")
-    
+
     case object InvalidCVC extends Code("invalid_cvc")
-    
+
     case object IncorrectNumber extends Code("incorrect_number")
-    
+
     case object ExpiredCard extends Code("expired_card")
-    
+
     case object IncorrectCVC extends Code("incorrect_cvc")
-    
+
     case object IncorrectZip extends Code("incorrect_zip")
-    
+
     case object CardDeclined extends Code("card_declined")
-    
+
     case object Missing extends Code("missing")
-    
+
     case object ProcessingError extends Code("processing_error")
-    
+
     lazy val all: Set[Code] = SealedContents.values[Code]
   }
 
@@ -83,10 +86,10 @@ object Errors {
       throw UnknownCode(codeId)
     }
   }
-  
+
   implicit val codeWrites: Writes[Code] =
     Writes((code: Code) => JsString(code.id))
-  
+
 }
 
 

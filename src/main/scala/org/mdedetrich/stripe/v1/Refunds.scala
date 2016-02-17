@@ -45,7 +45,7 @@ object Refunds {
                         charge: String,
                         created: DateTime,
                         currency: Currency,
-                        metadata: Option[Map[String,String]],
+                        metadata: Option[Map[String, String]],
                         reason: Reason,
                         receiptNumber: String
                        )
@@ -57,7 +57,7 @@ object Refunds {
       (__ \ "charge").read[String] ~
       (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
       (__ \ "currency").read[Currency] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "reason").read[Reason] ~
       (__ \ "receipt_number").read[String]
     ).tupled.map(RefundData.tupled)
@@ -103,7 +103,7 @@ object Refunds {
 
   case class RefundInput(charge: String,
                          amount: BigDecimal,
-                         metadata: Option[Map[String,String]] = None,
+                         metadata: Option[Map[String, String]] = None,
                          reason: Reason,
                          refundApplicationFee: Boolean,
                          reverseTransfer: Boolean
@@ -112,7 +112,7 @@ object Refunds {
   implicit val refundInputReads: Reads[RefundInput] = (
     (__ \ "charge").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "reason").read[Reason] ~
       (__ \ "refund_application_fee").read[Boolean] ~
       (__ \ "reverse_transfer").read[Boolean]

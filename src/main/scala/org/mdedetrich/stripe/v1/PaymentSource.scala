@@ -12,23 +12,23 @@ import org.mdedetrich.playjson.Utils._
 sealed trait PaymentSource
 
 object PaymentSource {
-  
+
   implicit val paymentSourcesReads: Reads[PaymentSource] =
     __.read[JsObject].flatMap { o =>
       (__ \ "type").read[String].flatMap {
-        case "card" => __.read[Card].map(x => x:PaymentSource)
-        case "bitcoin_receiver" => __.read[BitcoinReceiver].map(x => x:PaymentSource)
+        case "card" => __.read[Card].map(x => x: PaymentSource)
+        case "bitcoin_receiver" => __.read[BitcoinReceiver].map(x => x: PaymentSource)
         case _ => Reads[PaymentSource](_ => JsError(ValidationError("UnknownPaymentSource")))
       }
     }
-  
+
   implicit val paymentSourceWrites: Writes[PaymentSource] =
     Writes((paymentSource: PaymentSource) =>
-        paymentSource match {
-          case c: Card => Json.toJson(c)
-          case b: BitcoinReceiver => Json.toJson(b)
-        }
-      )
+      paymentSource match {
+        case c: Card => Json.toJson(c)
+        case b: BitcoinReceiver => Json.toJson(b)
+      }
+    )
 }
 
 case class UnknownPaymentSource(val id: String) extends Exception {
@@ -171,7 +171,7 @@ object Cards {
                   expYear: Int,
                   funding: Funding,
                   last4: String,
-                  metadata: Option[Map[String,String]],
+                  metadata: Option[Map[String, String]],
                   name: Option[String],
                   tokenizationMethod: Option[TokenizationMethod]) extends StripeObject with PaymentSource
 
@@ -194,7 +194,7 @@ object Cards {
       (__ \ "exp_year").read[Int] ~
       (__ \ "funding").read[Funding] ~
       (__ \ "last4").read[String] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "name").readNullable[String] ~
       (__ \ "tokenization_method").readNullable[TokenizationMethod]
     ).tupled.map(Card.tupled)
@@ -299,7 +299,7 @@ object BitcoinReceivers {
                              filled: Boolean,
                              inboundAddress: String,
                              livemode: Boolean,
-                             metadata: Option[Map[String,String]],
+                             metadata: Option[Map[String, String]],
                              payment: Option[String],
                              refundAddress: Option[String],
                              transactions: Option[BitcoinTransactions],
@@ -323,7 +323,7 @@ object BitcoinReceivers {
       (__ \ "filled").read[Boolean] ~
       (__ \ "inbound_address").read[String] ~
       (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "payment").readNullable[String] ~
       (__ \ "refund_address").readNullable[String] ~
       (__ \ "transactions").readNullable[BitcoinTransactions] ~

@@ -81,7 +81,7 @@ object Charges extends LazyLogging {
                     fraudDetails: Option[FraudDetails],
                     invoice: Option[String],
                     livemode: Boolean,
-                    metadata: Option[Map[String,String]],
+                    metadata: Option[Map[String, String]],
                     order: Option[String],
                     paid: Boolean,
                     receiptEmail: Option[String],
@@ -111,7 +111,7 @@ object Charges extends LazyLogging {
       (__ \ "fraud_details").readNullableOrEmptyJsObject[FraudDetails] ~
       (__ \ "invoice").readNullable[String] ~
       (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "order").readNullable[String] ~
       (__ \ "paid").read[Boolean] ~
       (__ \ "receipt_email").readNullable[String]
@@ -240,65 +240,65 @@ object Charges extends LazyLogging {
                            ) extends Source
 
   }
-  
+
   implicit val sourceReads: Reads[Source] = {
     __.read[JsValue].flatMap {
       case jsObject: JsObject =>
         (
           (__ \ "exp_month").read[Long] ~
-          (__ \ "exp_year").read[Long] ~
-          (__ \ "number").read[String] ~
-          (__ \ "cvc").read[String] ~
-          (__ \ "address_city").readNullable[String] ~
-          (__ \ "address_country").readNullable[String] ~
-          (__ \ "address_line1").readNullable[String] ~
-          (__ \ "address_line2").readNullable[String] ~
-          (__ \ "name").read[String] ~
-          (__ \ "address_state").readNullable[String] ~
-          (__ \ "address_zip").readNullable[String]
-        ).tupled.map(Source.PaymentInput.tupled)
+            (__ \ "exp_year").read[Long] ~
+            (__ \ "number").read[String] ~
+            (__ \ "cvc").read[String] ~
+            (__ \ "address_city").readNullable[String] ~
+            (__ \ "address_country").readNullable[String] ~
+            (__ \ "address_line1").readNullable[String] ~
+            (__ \ "address_line2").readNullable[String] ~
+            (__ \ "name").read[String] ~
+            (__ \ "address_state").readNullable[String] ~
+            (__ \ "address_zip").readNullable[String]
+          ).tupled.map(Source.PaymentInput.tupled)
       case jsString: JsString =>
         __.read[String].map { customerId => Source.Customer(customerId) }
       case _ =>
         Reads[Source](_ => JsError(ValidationError("InvalidSource")))
     }
   }
-  
+
   implicit val sourceWrites: Writes[Source] =
-    Writes((source:Source) => {
-        source match {
-          case Source.Customer(id) =>
-            JsString(id)
-          case Source.PaymentInput
-            (expMonth,
-            expYear,
-            number,
-            cvc,
-            addressCity,
-            addressCountry,
-            addressLine1,
-            addressLine2,
-            name,
-            addressState,
-            addressZip
-            ) =>
-            
-            Json.obj(
-              "exp_month" -> expMonth,
-              "exp_year" -> expYear,
-              "number" -> number,
-              "object" -> "card",
-              "cvc" -> cvc,
-              "address_city" -> addressCity,
-              "address_country" -> addressCountry,
-              "address_line1" -> addressLine1,
-              "address_line2" -> addressLine2,
-              "name" -> name,
-              "address_state" -> addressState,
-              "address_zip" -> addressZip
-            )
-        }
+    Writes((source: Source) => {
+      source match {
+        case Source.Customer(id) =>
+          JsString(id)
+        case Source.PaymentInput
+          (expMonth,
+          expYear,
+          number,
+          cvc,
+          addressCity,
+          addressCountry,
+          addressLine1,
+          addressLine2,
+          name,
+          addressState,
+          addressZip
+          ) =>
+
+          Json.obj(
+            "exp_month" -> expMonth,
+            "exp_year" -> expYear,
+            "number" -> number,
+            "object" -> "card",
+            "cvc" -> cvc,
+            "address_city" -> addressCity,
+            "address_country" -> addressCountry,
+            "address_line1" -> addressLine1,
+            "address_line2" -> addressLine2,
+            "name" -> name,
+            "address_state" -> addressState,
+            "address_zip" -> addressZip
+          )
       }
+    }
     )
 
   case class ChargeInput(amount: BigDecimal,
@@ -307,7 +307,7 @@ object Charges extends LazyLogging {
                          capture: Boolean,
                          description: Option[String],
                          destination: String,
-                         metadata: Option[Map[String,String]],
+                         metadata: Option[Map[String, String]],
                          receiptEmail: Option[String],
                          shipping: Option[Shipping],
                          customer: Option[String],
@@ -321,7 +321,7 @@ object Charges extends LazyLogging {
       (__ \ "capture").read[Boolean] ~
       (__ \ "description").readNullable[String] ~
       (__ \ "destination").read[String] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "receipt_email").readNullable[String] ~
       (__ \ "shipping").readNullableOrEmptyJsObject[Shipping] ~
       (__ \ "customer").readNullable[String] ~
@@ -346,10 +346,10 @@ object Charges extends LazyLogging {
         "statement_descriptor" -> chargeInput.statementDescriptor
       )
     )
-  
+
   def create(chargeInput: ChargeInput)(implicit stripeKey: ApiKey, endpoint: Endpoint): Future[Try[Charge]] = {
-    
-    val postFormParameters: Map[String,String] = {
+
+    val postFormParameters: Map[String, String] = {
       Map(
         "amount" -> Option(chargeInput.amount.toString),
         "currency" -> Option(chargeInput.currency.iso.toLowerCase),
@@ -360,12 +360,12 @@ object Charges extends LazyLogging {
         "receipt_email" -> chargeInput.receiptEmail,
         "customer" -> chargeInput.customer,
         "statement_descriptor" -> chargeInput.statementDescriptor
-      ).collect{
-        case (k,Some(v)) => (k,v)
+      ).collect {
+        case (k, Some(v)) => (k, v)
       }
-    } ++ mapToPostParams(chargeInput.metadata,"metadata") ++ {
+    } ++ mapToPostParams(chargeInput.metadata, "metadata") ++ {
       chargeInput.source match {
-        case Source.Customer(id) => 
+        case Source.Customer(id) =>
           Map("source" -> id.toString)
         case Source.PaymentInput
           (expMonth,
@@ -380,7 +380,7 @@ object Charges extends LazyLogging {
           addressState,
           addressZip
           ) =>
-          val map: Map[String,String] = Map(
+          val map: Map[String, String] = Map(
             "exp_month" -> Option(expMonth.toString),
             "exp_year" -> Option(expYear.toString),
             "object" -> Option("card"),
@@ -393,36 +393,38 @@ object Charges extends LazyLogging {
             "name" -> Option(name),
             "address_state" -> addressState,
             "address_zip" -> addressZip
-          ).collect{
-            case (k,Some(v)) => (k,v)
+          ).collect {
+            case (k, Some(v)) => (k, v)
           }
 
-          mapToPostParams(Option(map),"source")
+          mapToPostParams(Option(map), "source")
       }
-      
+
     }
-    
+
     logger.debug(s"Generated POST form parameters is $postFormParameters")
-    
+
     val finalUrl = endpoint.url + "/v1/charges"
 
-    val req = (url(finalUrl) << postFormParameters).POST.as(stripeKey.apiKey,"")
-    
-    Http(req > as.String).map { responseString  =>
-      val response = Parser.parseFromString(responseString).flatMap{jsValue =>
+    val req = (url(finalUrl) << postFormParameters).POST.as(stripeKey.apiKey, "")
+
+    Http(req > as.String).map { responseString =>
+      val response = Parser.parseFromString(responseString).flatMap { jsValue =>
         val jsResult = Json.fromJson[Charge](jsValue)
-        
+
         jsResult.fold(
           errors => {
-            val error = InvalidJsonModelException(finalUrl,Option(postFormParameters),None,jsValue,errors)
+            val error = InvalidJsonModelException(finalUrl, Option(postFormParameters), None, jsValue, errors)
             scala.util.Failure(error)
           }, charge =>
             scala.util.Success(charge)
         )
       }
-      
+
       response match {
-        case scala.util.Success(charge) => Try { charge }
+        case scala.util.Success(charge) => Try {
+          charge
+        }
         case scala.util.Failure(t) => throw t
       }
     }

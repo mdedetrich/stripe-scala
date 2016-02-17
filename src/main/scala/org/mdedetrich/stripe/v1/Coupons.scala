@@ -43,7 +43,7 @@ object Coupons {
                     durationInMonths: Option[Long],
                     livemode: Boolean,
                     maxRedemptions: Option[Long],
-                    metadata: Option[Map[String,String]],
+                    metadata: Option[Map[String, String]],
                     percentOff: Option[BigDecimal],
                     redeemBy: Option[DateTime],
                     timesRedeemed: Long,
@@ -59,7 +59,7 @@ object Coupons {
       (__ \ "duration_in_months").readNullable[Long] ~
       (__ \ "livemode").read[Boolean] ~
       (__ \ "max_redemptions").readNullable[Long] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "percent_off").readNullable[BigDecimal] ~
       (__ \ "redeem_by").readNullable[Long].map {
         maybeTimestamp => maybeTimestamp.map { timestamp =>
