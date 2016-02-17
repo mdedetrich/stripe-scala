@@ -76,7 +76,7 @@ object Charges extends LazyLogging {
                     description: String,
                     destination: Option[String],
                     dispute: Option[Dispute],
-                    failureCode: Option[Error],
+                    failureCode: Option[Type],
                     failureMessage: Option[String],
                     fraudDetails: Option[FraudDetails],
                     invoice: Option[String],
@@ -106,7 +106,7 @@ object Charges extends LazyLogging {
       (__ \ "description").read[String] ~
       (__ \ "destination").readNullable[String] ~
       (__ \ "dispute").readNullable[Dispute] ~
-      (__ \ "failure_code").readNullable[Error] ~
+      (__ \ "failure_code").readNullable[Type] ~
       (__ \ "failure_message").readNullable[String] ~
       (__ \ "fraud_details").readNullableOrEmptyJsObject[FraudDetails] ~
       (__ \ "invoice").readNullable[String] ~
@@ -347,7 +347,9 @@ object Charges extends LazyLogging {
       )
     )
 
-  def create(chargeInput: ChargeInput)(implicit stripeKey: ApiKey, endpoint: Endpoint): Future[Try[Charge]] = {
+  def create(chargeInput: ChargeInput)
+            (implicit apiKey: ApiKey,
+             endpoint: Endpoint): Future[Try[Charge]] = {
 
     val postFormParameters: Map[String, String] = {
       Map(
@@ -406,26 +408,24 @@ object Charges extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/charges"
 
-    val req = (url(finalUrl) << postFormParameters).POST.as(stripeKey.apiKey, "")
+    val req = (url(finalUrl) << postFormParameters).POST.as(apiKey.apiKey, "")
 
-    Http(req > as.String).map { responseString =>
-      val response = Parser.parseFromString(responseString).flatMap { jsValue =>
-        val jsResult = Json.fromJson[Charge](jsValue)
-
-        jsResult.fold(
-          errors => {
-            val error = InvalidJsonModelException(finalUrl, Option(postFormParameters), None, jsValue, errors)
-            scala.util.Failure(error)
-          }, charge =>
-            scala.util.Success(charge)
-        )
-      }
-
-      response match {
-        case scala.util.Success(charge) => Try {
-          charge
-        }
-        case scala.util.Failure(t) => throw t
+    Http(req).map { response =>
+      
+      parseStripeServerError(response, finalUrl, Option(postFormParameters), None) match {
+        case Right(triedJsValue) =>
+          triedJsValue.flatMap { jsValue =>
+            val jsResult = Json.fromJson[Charge](jsValue)
+            jsResult.fold(
+              errors => {
+                val error = InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
+                scala.util.Failure(error)
+              }, charge =>
+                scala.util.Success(charge)
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
       }
     }
   }
