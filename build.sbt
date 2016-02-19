@@ -28,7 +28,7 @@ scalacOptions ++= Seq(
   "-Ywarn-dead-code"
 )
 
-val jawnVersion = "0.8.3"
+val jawnVersion = "0.8.4"
 
 libraryDependencies ++= Seq(
   "net.databinder.dispatch" %% "dispatch-core" % "0.11.3",
