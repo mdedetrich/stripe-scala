@@ -4,7 +4,7 @@ import com.typesafe.config.ConfigFactory
 import net.ceedubs.ficus.Ficus._
 
 object Config {
-  val conf = ConfigFactory.load
+  lazy val conf = ConfigFactory.load
   
   implicit lazy val endpoint = Endpoint(conf.as[String]("stripe-scala.endpoint"))
   
