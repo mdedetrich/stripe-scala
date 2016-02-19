@@ -10,6 +10,7 @@ import org.mdedetrich.stripe.v1.Disputes._
 import org.mdedetrich.stripe.v1.Errors._
 import org.mdedetrich.stripe.v1.Refunds.RefundsData
 import org.mdedetrich.stripe.v1.Shippings.Shipping
+import org.mdedetrich.stripe.v1.Sources.BaseCardSource
 import org.mdedetrich.stripe.{ApiKey, Endpoint, InvalidJsonModelException}
 import org.mdedetrich.utforsca.SealedContents
 import play.api.data.validation.ValidationError
@@ -226,18 +227,18 @@ object Charges extends LazyLogging {
 
     case class Customer(val id: String) extends Source
 
-    case class PaymentInput(expMonth: Long,
-                            expYear: Long,
-                            number: String,
-                            cvc: String,
-                            addressCity: Option[String],
-                            addressCountry: Option[String],
-                            addressLine1: Option[String],
-                            addressLine2: Option[String],
-                            name: String,
-                            addressState: Option[String],
-                            addressZip: Option[String]
-                           ) extends Source
+    case class Card(val expMonth: Long,
+                    val expYear: Long,
+                    val number: String,
+                    val cvc: Option[String],
+                    val addressCity: Option[String],
+                    val addressCountry: Option[String],
+                    val addressLine1: Option[String],
+                    val addressLine2: Option[String],
+                    val name: Option[String],
+                    val addressState: Option[String],
+                    val addressZip: Option[String]
+                   ) extends Source with BaseCardSource
 
   }
 
@@ -248,15 +249,15 @@ object Charges extends LazyLogging {
           (__ \ "exp_month").read[Long] ~
             (__ \ "exp_year").read[Long] ~
             (__ \ "number").read[String] ~
-            (__ \ "cvc").read[String] ~
+            (__ \ "cvc").readNullable[String] ~
             (__ \ "address_city").readNullable[String] ~
             (__ \ "address_country").readNullable[String] ~
             (__ \ "address_line1").readNullable[String] ~
             (__ \ "address_line2").readNullable[String] ~
-            (__ \ "name").read[String] ~
+            (__ \ "name").readNullable[String] ~
             (__ \ "address_state").readNullable[String] ~
             (__ \ "address_zip").readNullable[String]
-          ).tupled.map(Source.PaymentInput.tupled)
+          ).tupled.map(Source.Card.tupled)
       case jsString: JsString =>
         __.read[String].map { customerId => Source.Customer(customerId) }
       case _ =>
@@ -269,7 +270,7 @@ object Charges extends LazyLogging {
       source match {
         case Source.Customer(id) =>
           JsString(id)
-        case Source.PaymentInput
+        case Source.Card
           (expMonth,
           expYear,
           number,
@@ -368,8 +369,8 @@ object Charges extends LazyLogging {
     } ++ mapToPostParams(chargeInput.metadata, "metadata") ++ {
       chargeInput.source match {
         case Source.Customer(id) =>
-          Map("source" -> id.toString)
-        case Source.PaymentInput
+          Map("source" -> id)
+        case Source.Card
           (expMonth,
           expYear,
           number,
@@ -383,16 +384,16 @@ object Charges extends LazyLogging {
           addressZip
           ) =>
           val map: Map[String, String] = Map(
+            "object" -> Option("card"),
             "exp_month" -> Option(expMonth.toString),
             "exp_year" -> Option(expYear.toString),
-            "object" -> Option("card"),
             "number" -> Option(number),
-            "cvc" -> Option(cvc),
+            "cvc" -> cvc,
             "address_city" -> addressCity,
             "address_country" -> addressCountry,
             "address_line1" -> addressLine1,
             "address_line2" -> addressLine2,
-            "name" -> Option(name),
+            "name" -> name,
             "address_state" -> addressState,
             "address_zip" -> addressZip
           ).collect {
@@ -408,11 +409,15 @@ object Charges extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/charges"
 
-    val req = (url(finalUrl) << postFormParameters).POST.as(apiKey.apiKey, "")
+    val req = (
+      url(finalUrl)
+        .addHeader("Content-Type", "application/x-www-form-urlencoded")
+        << postFormParameters
+      ).POST.as(apiKey.apiKey, "")
 
     Http(req).map { response =>
-      
-      parseStripeServerError(response, finalUrl, Option(postFormParameters), None) match {
+
+      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
         case Right(triedJsValue) =>
           triedJsValue.map { jsValue =>
             val jsResult = Json.fromJson[Charge](jsValue)

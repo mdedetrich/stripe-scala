@@ -1,8 +1,9 @@
 package org.mdedetrich.stripe
 
 import com.ning.http.client.Response
+import com.typesafe.scalalogging.Logger
 import jawn.support.play.Parser
-import org.mdedetrich.stripe.v1.Errors.{UnhandledServerError, StripeServerError, Error}
+import org.mdedetrich.stripe.v1.Errors.{Error, StripeServerError, UnhandledServerError}
 import play.api.libs.json.{JsResult, JsValue, Json}
 
 import scala.util.Try
@@ -11,6 +12,7 @@ package object v1 {
 
   /**
     * Parses a response from dispatch and attempts to do error process handling specific for stripe
+    *
     * @param response
     * @param finalUrl
     * @param postFormParameters
@@ -23,8 +25,13 @@ package object v1 {
   def parseStripeServerError(response: Response,
                        finalUrl: String,
                        postFormParameters: Option[Map[String, String]],
-                       postJsonParameters: Option[JsValue]): Either[Errors.Error,Try[JsValue]] = {
+                       postJsonParameters: Option[JsValue])
+                            (implicit logger: Logger): Either[Errors.Error,Try[JsValue]] = {
     val httpCode = response.getStatusCode
+    
+    logger.debug(s"Response retrieved from $finalUrl is \n${
+      response.getResponseBody
+    }")
     
     httpCode match {
       case code if code / 100 == 2 =>
