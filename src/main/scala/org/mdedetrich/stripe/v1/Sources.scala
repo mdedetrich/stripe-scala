@@ -15,8 +15,6 @@ object Sources {
 
     def cvc: Option[String]
 
-    def addressCity: Option[String]
-
     def addressCountry: Option[String]
 
     def addressLine1: Option[String]
