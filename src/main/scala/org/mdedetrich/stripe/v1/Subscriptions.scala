@@ -277,7 +277,7 @@ object Subscriptions extends LazyLogging {
             jsResult.fold(
               errors => {
                 throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
-              }, customer => customer
+              }, subscription => subscription
             )
           }
         case Left(error) =>
