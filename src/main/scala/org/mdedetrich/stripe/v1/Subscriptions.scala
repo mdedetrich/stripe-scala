@@ -1,14 +1,23 @@
 package org.mdedetrich.stripe.v1
 
+import com.typesafe.scalalogging.LazyLogging
+import dispatch.Defaults._
+import dispatch._
 import org.joda.time.DateTime
+import org.mdedetrich.stripe.{InvalidJsonModelException, Endpoint, ApiKey}
 import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.Plans.Plan
+import org.mdedetrich.stripe.v1.Sources.BaseCardSource
 import org.mdedetrich.utforsca.SealedContents
+import play.api.data.validation.ValidationError
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import org.mdedetrich.playjson.Utils._
 
-object Subscriptions {
+import scala.concurrent.Future
+import scala.util.Try
+
+object Subscriptions extends LazyLogging {
 
   sealed abstract class Status(val id: String)
 
@@ -110,5 +119,171 @@ object Subscriptions {
         "trial_start" -> subscription.trialStart.map(_.getMillis / 1000)
       )
     )
+
+  sealed abstract class Source
+
+  object Source {
+
+    case class Token(val id: String) extends Source
+
+    case class Card(val expMonth: Long,
+                    val expYear: Long,
+                    val number: String,
+                    val addressCountry: Option[String],
+                    val addressLine1: Option[String],
+                    val addressLine2: Option[String],
+                    val addressState: Option[String],
+                    val addressZip: Option[String],
+                    val cvc: Option[String],
+                    val name: Option[String]
+                   ) extends Source with BaseCardSource
+
+  }
+
+  implicit val sourceReads: Reads[Source] = {
+    __.read[JsValue].flatMap {
+      case jsObject: JsObject => (
+        (__ \ "exp_month").read[Long] ~
+          (__ \ "exp_year").read[Long] ~
+          (__ \ "number").read[String] ~
+          (__ \ "address_country").readNullable[String] ~
+          (__ \ "address_line1").readNullable[String] ~
+          (__ \ "address_line2").readNullable[String] ~
+          (__ \ "address_state").readNullable[String] ~
+          (__ \ "address_zip").readNullable[String] ~
+          (__ \ "cvc").readNullable[String] ~
+          (__ \ "name").readNullable[String]
+        ).tupled.map(Source.Card.tupled)
+      case jsString: JsString =>
+        __.read[String].map { tokenId => Source.Token(tokenId) }
+      case _ =>
+        Reads[Source](_ => JsError(ValidationError("InvalidSource")))
+    }
+  }
+
+  implicit val sourceWrites: Writes[Source] =
+    Writes((source: Source) =>
+      source match {
+        case Source.Token(id) =>
+          JsString(id)
+        case Source.Card(
+        expMonth,
+        expYear,
+        number,
+        addressCountry,
+        addressLine1,
+        addressLine2,
+        addressState,
+        addressZip,
+        cvc,
+        name
+        ) =>
+          Json.obj(
+            "object" -> "card",
+            "exp_month" -> expMonth,
+            "exp_year" -> expYear,
+            "number" -> number,
+            "address_country" -> addressCountry,
+            "address_line1" -> addressLine1,
+            "address_line2" -> addressLine2,
+            "address_state" -> addressState,
+            "address_zip" -> addressZip,
+            "cvc" -> cvc,
+            "name" -> name
+          )
+      }
+    )
+
+  case class SubscriptionInput(applicationFeePercent: Option[BigDecimal],
+                               coupon: Option[String],
+                               plan: String,
+                               source: Option[Source],
+                               quantity: Option[Long],
+                               metadata: Option[Map[String, String]],
+                               taxPercent: Option[BigDecimal],
+                               trialEnd: Option[DateTime]
+                              )
+
+  def create(subscriptionInput: SubscriptionInput)
+            (implicit apiKey: ApiKey,
+             endpoint: Endpoint): Future[Try[Subscription]] = {
+
+    val postFormParameters: Map[String, String] = {
+      Map(
+        "application_fee_percent" -> subscriptionInput.applicationFeePercent.map(_.toString()),
+        "coupon" -> subscriptionInput.coupon,
+        "plan" -> Option(subscriptionInput.plan),
+        "quantity" -> subscriptionInput.quantity.map(_.toString),
+        "tax_percent" -> subscriptionInput.taxPercent.map(_.toString()),
+        "trial_end" -> subscriptionInput.trialEnd.map(dateTime => (dateTime.getMillis / 1000).toString)
+      ).collect {
+        case (k, Some(v)) => (k, v)
+      }
+
+    } ++ mapToPostParams(subscriptionInput.metadata, "metadata") ++ {
+      subscriptionInput.source match {
+        case Some(Source.Card(
+        expMonth,
+        expYear,
+        number,
+        addressCountry,
+        addressLine1,
+        addressLine2,
+        addressState,
+        addressZip,
+        cvc,
+        name
+        )) =>
+          val map = Map(
+            "object" -> Option("card"),
+            "exp_month" -> Option(expMonth.toString),
+            "exp_year" -> Option(expYear.toString),
+            "number" -> Option(number),
+            "address_country" -> addressCountry,
+            "address_line1" -> addressLine1,
+            "address_line2" -> addressLine2,
+            "address_state" -> addressState,
+            "address_zip" -> addressZip,
+            "cvc" -> cvc,
+            "name" -> name
+          ).collect {
+            case (k, Some(v)) => (k, v)
+          }
+
+          mapToPostParams(Option(map), "source")
+        case Some(Source.Token(id)) =>
+          Map("source" -> id)
+        case None =>
+          Map.empty
+      }
+    }
+
+    logger.debug(s"Generated POST form parameters is $postFormParameters")
+
+    val finalUrl = endpoint.url + "/v1/customers"
+
+    val req = (
+      url(finalUrl)
+        .addHeader("Content-Type", "application/x-www-form-urlencoded")
+        << postFormParameters
+      ).POST.as(apiKey.apiKey, "")
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[Subscription](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
+              }, customer => customer
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
 
 }
