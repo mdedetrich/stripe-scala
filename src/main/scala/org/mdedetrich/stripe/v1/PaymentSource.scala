@@ -430,7 +430,7 @@ object BitcoinReceivers extends LazyLogging {
             jsResult.fold(
               errors => {
                 throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
-              }, charge => charge
+              }, bitcoinReceiver => bitcoinReceiver
             )
           }
         case Left(error) =>
