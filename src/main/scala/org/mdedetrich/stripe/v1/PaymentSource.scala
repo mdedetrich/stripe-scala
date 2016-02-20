@@ -1,6 +1,10 @@
 package org.mdedetrich.stripe.v1
 
+import com.typesafe.scalalogging.LazyLogging
+import dispatch.Defaults._
+import dispatch._
 import org.joda.time.DateTime
+import org.mdedetrich.stripe.{InvalidJsonModelException, Endpoint, ApiKey}
 import org.mdedetrich.stripe.v1.BitcoinReceivers.BitcoinReceiver
 import org.mdedetrich.stripe.v1.Cards.Card
 import org.mdedetrich.utforsca.SealedContents
@@ -9,9 +13,12 @@ import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import org.mdedetrich.playjson.Utils._
 
+import scala.concurrent.Future
+import scala.util.Try
+
 sealed trait PaymentSource
 
-object PaymentSource {
+object PaymentSource extends LazyLogging {
 
   implicit val paymentSourcesReads: Reads[PaymentSource] =
     __.read[JsObject].flatMap { o =>
@@ -229,7 +236,7 @@ object Cards {
 
 }
 
-object BitcoinReceivers {
+object BitcoinReceivers extends LazyLogging {
 
   case class Transaction(id: String,
                          amount: BigDecimal,
@@ -358,4 +365,78 @@ object BitcoinReceivers {
         "used_for_payment" -> bitcoinReceiver.usedForPayment
       )
     )
+  
+  case class BitcoinReceiverInput(amount: BigDecimal,
+                                  currency: Currency,
+                                  email: String,
+                                  description: Option[String],
+                                  metadata: Option[Map[String,String]],
+                                  refundMispayments: Boolean
+                                 )
+  
+  implicit val bitcoinReceiverInputReads: Reads[BitcoinReceiverInput] = (
+    (__ \ "amount").read[BigDecimal] ~
+    (__ \ "currency").read[Currency] ~
+    (__ \ "email").read[String] ~
+    (__ \ "description").readNullable[String] ~
+    (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+    (__ \ "refund_mispayments").read[Boolean]
+    ).tupled.map(BitcoinReceiverInput.tupled)
+  
+  implicit val bitcoinReceiverInputWrites: Writes[BitcoinReceiverInput] =
+    Writes ((bitcoinReceiverInput: BitcoinReceiverInput) =>
+      Json.obj(
+        "amount" -> bitcoinReceiverInput.amount,
+        "currency" -> bitcoinReceiverInput.currency,
+        "email" -> bitcoinReceiverInput.email,
+        "description" -> bitcoinReceiverInput.description,
+        "metadata" -> bitcoinReceiverInput.metadata,
+        "refund_mispayments" -> bitcoinReceiverInput.refundMispayments
+      )
+    )
+  
+  def create(bitcoinReceiverInput: BitcoinReceiverInput)
+            (implicit apiKey: ApiKey,
+             endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
+    
+    val postFormParameters: Map[String,String] = {
+      Map(
+        "amount" -> Option(bitcoinReceiverInput.amount.toString()),
+        "currency" -> Option(bitcoinReceiverInput.currency.iso.toLowerCase()),
+        "email" -> Option(bitcoinReceiverInput.email),
+        "description" -> bitcoinReceiverInput.description,
+        "refund_mispayments" -> Option(bitcoinReceiverInput.refundMispayments.toString)
+      ).collect {
+        case (k, Some(v)) => (k, v)
+      }
+    } ++ mapToPostParams(bitcoinReceiverInput.metadata, "metadata")
+
+    logger.debug(s"Generated POST form parameters is $postFormParameters")
+
+    val finalUrl = endpoint.url + "/v1/bitcoin/receivers"
+
+    val req = (
+      url(finalUrl)
+        .addHeader("Content-Type", "application/x-www-form-urlencoded")
+        << postFormParameters
+      ).POST.as(apiKey.apiKey, "")
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[BitcoinReceiver](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
+              }, charge => charge
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
+  
 }
