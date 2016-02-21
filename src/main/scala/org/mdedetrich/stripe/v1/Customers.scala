@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.DateTime
 import dispatch.Defaults._
 import dispatch._
-import org.mdedetrich.stripe.{InvalidJsonModelException, Endpoint, ApiKey}
+import org.mdedetrich.stripe.{IdempotencyKey, InvalidJsonModelException, Endpoint, ApiKey}
 import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.Shippings.Shipping
 import org.mdedetrich.stripe.v1.Sources.BaseCardSource
@@ -229,7 +229,9 @@ object Customers extends LazyLogging {
       )
     )
 
-  def create(customerInput: CustomerInput)
+  def create(customerInput: CustomerInput,
+             idempotencyKey: Option[IdempotencyKey] = None
+            )
             (implicit apiKey: ApiKey,
              endpoint: Endpoint): Future[Try[Customer]] = {
     val postFormParameters: Map[String, String] = {
@@ -301,11 +303,20 @@ object Customers extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/customers"
 
-    val req = (
-      url(finalUrl)
-        .addHeader("Content-Type", "application/x-www-form-urlencoded")
-        << postFormParameters
-      ).POST.as(apiKey.apiKey, "")
+    val req = {
+      val r = (
+        url(finalUrl)
+          .addHeader("Content-Type", "application/x-www-form-urlencoded")
+          << postFormParameters
+        ).POST.as(apiKey.apiKey, "")
+
+      idempotencyKey match {
+        case Some(key) =>
+          r.addHeader("Idempotency-Key", key.key)
+        case None =>
+          r
+      }
+    }
 
     Http(req).map { response =>
 

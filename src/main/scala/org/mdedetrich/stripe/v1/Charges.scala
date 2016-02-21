@@ -11,7 +11,7 @@ import org.mdedetrich.stripe.v1.Errors._
 import org.mdedetrich.stripe.v1.Refunds.RefundsData
 import org.mdedetrich.stripe.v1.Shippings.Shipping
 import org.mdedetrich.stripe.v1.Sources.BaseCardSource
-import org.mdedetrich.stripe.{ApiKey, Endpoint, InvalidJsonModelException}
+import org.mdedetrich.stripe.{IdempotencyKey, ApiKey, Endpoint, InvalidJsonModelException}
 import org.mdedetrich.utforsca.SealedContents
 import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
@@ -348,7 +348,9 @@ object Charges extends LazyLogging {
       )
     )
 
-  def create(chargeInput: ChargeInput)
+  def create(chargeInput: ChargeInput,
+             idempotencyKey: Option[IdempotencyKey] = None
+            )
             (implicit apiKey: ApiKey,
              endpoint: Endpoint): Future[Try[Charge]] = {
 
@@ -409,11 +411,20 @@ object Charges extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/charges"
 
-    val req = (
-      url(finalUrl)
-        .addHeader("Content-Type", "application/x-www-form-urlencoded")
-        << postFormParameters
-      ).POST.as(apiKey.apiKey, "")
+    val req = {
+      val r = (
+        url(finalUrl)
+          .addHeader("Content-Type", "application/x-www-form-urlencoded")
+          << postFormParameters
+        ).POST.as(apiKey.apiKey, "")
+
+      idempotencyKey match {
+        case Some(key) =>
+          r.addHeader("Idempotency-Key", key.key)
+        case None =>
+          r
+      }
+    }
 
     Http(req).map { response =>
 

@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import dispatch.Defaults._
 import dispatch._
 import org.joda.time.DateTime
-import org.mdedetrich.stripe.{InvalidJsonModelException, Endpoint, ApiKey}
+import org.mdedetrich.stripe.{IdempotencyKey, InvalidJsonModelException, Endpoint, ApiKey}
 import org.mdedetrich.stripe.v1.BitcoinReceivers.BitcoinReceiver
 import org.mdedetrich.stripe.v1.Cards.Card
 import org.mdedetrich.utforsca.SealedContents
@@ -395,7 +395,9 @@ object BitcoinReceivers extends LazyLogging {
       )
     )
   
-  def create(bitcoinReceiverInput: BitcoinReceiverInput)
+  def create(bitcoinReceiverInput: BitcoinReceiverInput,
+             idempotencyKey: Option[IdempotencyKey] = None
+            )
             (implicit apiKey: ApiKey,
              endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
     
@@ -415,11 +417,20 @@ object BitcoinReceivers extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/bitcoin/receivers"
 
-    val req = (
-      url(finalUrl)
-        .addHeader("Content-Type", "application/x-www-form-urlencoded")
-        << postFormParameters
-      ).POST.as(apiKey.apiKey, "")
+    val req = {
+      val r = (
+        url(finalUrl)
+          .addHeader("Content-Type", "application/x-www-form-urlencoded")
+          << postFormParameters
+        ).POST.as(apiKey.apiKey, "")
+
+      idempotencyKey match {
+        case Some(key) =>
+          r.addHeader("Idempotency-Key", key.key)
+        case None =>
+          r
+      }
+    }
 
     Http(req).map { response =>
 
