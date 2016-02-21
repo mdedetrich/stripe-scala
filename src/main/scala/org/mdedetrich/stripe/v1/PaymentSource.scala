@@ -365,26 +365,26 @@ object BitcoinReceivers extends LazyLogging {
         "used_for_payment" -> bitcoinReceiver.usedForPayment
       )
     )
-  
+
   case class BitcoinReceiverInput(amount: BigDecimal,
                                   currency: Currency,
                                   email: String,
                                   description: Option[String],
-                                  metadata: Option[Map[String,String]],
+                                  metadata: Option[Map[String, String]],
                                   refundMispayments: Boolean
                                  )
-  
+
   implicit val bitcoinReceiverInputReads: Reads[BitcoinReceiverInput] = (
     (__ \ "amount").read[BigDecimal] ~
-    (__ \ "currency").read[Currency] ~
-    (__ \ "email").read[String] ~
-    (__ \ "description").readNullable[String] ~
-    (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
-    (__ \ "refund_mispayments").read[Boolean]
+      (__ \ "currency").read[Currency] ~
+      (__ \ "email").read[String] ~
+      (__ \ "description").readNullable[String] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
+      (__ \ "refund_mispayments").read[Boolean]
     ).tupled.map(BitcoinReceiverInput.tupled)
-  
+
   implicit val bitcoinReceiverInputWrites: Writes[BitcoinReceiverInput] =
-    Writes ((bitcoinReceiverInput: BitcoinReceiverInput) =>
+    Writes((bitcoinReceiverInput: BitcoinReceiverInput) =>
       Json.obj(
         "amount" -> bitcoinReceiverInput.amount,
         "currency" -> bitcoinReceiverInput.currency,
@@ -394,14 +394,14 @@ object BitcoinReceivers extends LazyLogging {
         "refund_mispayments" -> bitcoinReceiverInput.refundMispayments
       )
     )
-  
+
   def create(bitcoinReceiverInput: BitcoinReceiverInput,
              idempotencyKey: Option[IdempotencyKey] = None
             )
             (implicit apiKey: ApiKey,
              endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
-    
-    val postFormParameters: Map[String,String] = {
+
+    val postFormParameters: Map[String, String] = {
       Map(
         "amount" -> Option(bitcoinReceiverInput.amount.toString()),
         "currency" -> Option(bitcoinReceiverInput.currency.iso.toLowerCase()),
@@ -449,5 +449,5 @@ object BitcoinReceivers extends LazyLogging {
       }
     }
   }
-  
+
 }

@@ -141,7 +141,7 @@ object Errors {
   implicit val requestFailedReads: Reads[Error.RequestFailed] = tupledErrorReads.map(Error.RequestFailed.tupled)
   implicit val notFoundReads: Reads[Error.NotFound] = tupledErrorReads.map(Error.NotFound.tupled)
   implicit val tooManyRequestsReads: Reads[Error.TooManyRequests] = tupledErrorReads.map(Error.TooManyRequests.tupled)
-  
+
   private def errorWrites(error: Error) =
     Json.obj(
       "type" -> error.`type`,
@@ -149,7 +149,7 @@ object Errors {
       "message" -> error.message,
       "param" -> error.param
     )
-  
+
   implicit val badRequestWrites: Writes[Error.BadRequest] =
     Writes((badRequest: Error.BadRequest) =>
       errorWrites(badRequest)
@@ -164,7 +164,7 @@ object Errors {
     Writes((requestFailed: Error.RequestFailed) =>
       errorWrites(requestFailed)
     )
-  
+
   implicit val notFoundWrites: Writes[Error.NotFound] =
     Writes((notFound: Error.NotFound) =>
       errorWrites(notFound)
@@ -177,14 +177,16 @@ object Errors {
 
   /**
     * This is thrown when you receive either a 500, 502, 503 or 504
+    *
     * @param response
     */
-  
+
   case class StripeServerError(val response: Response) extends Exception {
     override def getMessage = s"Stripe server error, status code is ${response.getStatusCode}"
   }
-  
+
   case class UnhandledServerError(val response: Response) extends Exception {
     override def getMessage = s"Unhandled server error, status code is ${response.getStatusCode}"
   }
+
 }

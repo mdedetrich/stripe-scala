@@ -5,6 +5,7 @@ package org.mdedetrich.stripe
   * requests (so you don't accidentally charge a customer twice in
   * case of network failures).
   * https://stripe.com/docs/api#idempotent_requests
+  *
   * @param key
   */
-case class IdempotencyKey(key:String) extends AnyVal
+case class IdempotencyKey(key: String) extends AnyVal

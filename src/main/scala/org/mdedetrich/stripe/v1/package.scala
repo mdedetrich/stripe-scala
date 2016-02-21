@@ -23,16 +23,16 @@ package object v1 {
     */
 
   def parseStripeServerError(response: Response,
-                       finalUrl: String,
-                       postFormParameters: Option[Map[String, String]],
-                       postJsonParameters: Option[JsValue])
-                            (implicit logger: Logger): Either[Errors.Error,Try[JsValue]] = {
+                             finalUrl: String,
+                             postFormParameters: Option[Map[String, String]],
+                             postJsonParameters: Option[JsValue])
+                            (implicit logger: Logger): Either[Errors.Error, Try[JsValue]] = {
     val httpCode = response.getStatusCode
-    
+
     logger.debug(s"Response retrieved from $finalUrl is \n${
       response.getResponseBody
     }")
-    
+
     httpCode match {
       case code if code / 100 == 2 =>
         Right(Parser.parseFromByteBuffer(response.getResponseBodyAsByteBuffer))
@@ -45,30 +45,30 @@ package object v1 {
             case 404 => Json.fromJson[Error.NotFound](jsValue)
             case 429 => Json.fromJson[Error.TooManyRequests](jsValue)
           }
-          
+
           val error = jsResult.fold(
             errors => {
               val error = InvalidJsonModelException(httpCode, finalUrl, postFormParameters, postJsonParameters, jsValue, errors)
               throw error
             }, error => error
           )
-          
+
           error
         }
-        
-        Left{
+
+        Left {
           jsonResponse match {
             case scala.util.Success(error) => error
             case scala.util.Failure(throwable) => throw throwable
           }
         }
-        
-      case 500 | 502 | 503 | 504 => 
+
+      case 500 | 502 | 503 | 504 =>
         throw StripeServerError(response)
-      case _ => 
+      case _ =>
         throw UnhandledServerError(response)
     }
-    
+
   }
 
   def mapToPostParams(optionalMap: Option[Map[String, String]], parentKey: String) = {
