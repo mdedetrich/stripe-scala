@@ -43,3 +43,6 @@ in mapping the JSON to the models  `case class`, this will throw an exception wh
 
 If there however is a checked error (such as an invalid API key) this will not throw an exception, 
 instead it will be contained within the `Try` monad (i.e. you will get a `scala.util.Failure`)
+
+The last parameter for stripe POST requests (often named as create in stripe-scala) has an optional idempotencyKey as the last 
+parameter which defaults to null. You can specify a IdempotencyKey to make sure that you don't create duplicate post requets.
