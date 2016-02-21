@@ -168,7 +168,7 @@ object Coupons extends LazyLogging {
 
       idempotencyKey match {
         case Some(key) =>
-          r.addHeader("Idempotency-Key", key.key)
+          r.addHeader(idempotencyKeyHeader, key.key)
         case None =>
           r
       }

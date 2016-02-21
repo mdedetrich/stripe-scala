@@ -9,6 +9,9 @@ import play.api.libs.json.{JsResult, JsValue, Json}
 import scala.util.Try
 
 package object v1 {
+  
+  val idempotencyKeyHeader = "Idempotency-Key"
+  
 
   /**
     * Parses a response from dispatch and attempts to do error process handling specific for stripe
