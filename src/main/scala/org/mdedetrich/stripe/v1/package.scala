@@ -9,6 +9,10 @@ import play.api.libs.json.{JsResult, JsValue, Json}
 import scala.util.Try
 
 package object v1 {
+
+  /**
+    * This is a header constat to specify a Idempotency-Key
+    */
   
   val idempotencyKeyHeader = "Idempotency-Key"
   
