@@ -46,9 +46,9 @@ object Customers extends LazyLogging {
                       currency: Currency,
                       defaultSource: String,
                       delinquent: Boolean,
-                      description: String,
+                      description: Option[String],
                       discount: Option[Discount],
-                      email: String,
+                      email: Option[String],
                       livemode: Boolean,
                       metadata: Option[Map[String, String]],
                       shipping: Shipping,
@@ -62,14 +62,14 @@ object Customers extends LazyLogging {
       (__ \ "currency").read[Currency] ~
       (__ \ "default_source").read[String] ~
       (__ \ "delinquent").read[Boolean] ~
-      (__ \ "description").read[String] ~
+      (__ \ "description").readNullable[String] ~
       (__ \ "discount").readNullable[Discount] ~
-      (__ \ "email").read[String] ~
+      (__ \ "email").readNullable[String] ~
       (__ \ "livemode").read[Boolean] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "shipping").read[Shipping] ~
       (__ \ "sources").read[Sources] ~
-      (__ \ "subscriptions").read[List[Subscription]]
+      (__ \ "subscriptions" \ "data").read[List[Subscription]]
     ).tupled.map(Customer.tupled)
 
   implicit val customerWrites: Writes[Customer] =

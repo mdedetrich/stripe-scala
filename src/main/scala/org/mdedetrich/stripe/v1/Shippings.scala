@@ -5,21 +5,21 @@ import play.api.libs.functional.syntax._
 
 object Shippings {
 
-  case class Address(city: String,
-                     country: String,
-                     line1: String,
-                     line2: String,
-                     postalCode: String,
-                     state: String
+  case class Address(city: Option[String],
+                     country: Option[String],
+                     line1: Option[String],
+                     line2: Option[String],
+                     postalCode: Option[String],
+                     state: Option[String]
                     )
 
   implicit val addressReads: Reads[Address] = (
-    (__ \ "city").read[String] ~
-      (__ \ "country").read[String] ~
-      (__ \ "line1").read[String] ~
-      (__ \ "line2").read[String] ~
-      (__ \ "postal_code").read[String] ~
-      (__ \ "state").read[String]
+    (__ \ "city").readNullable[String] ~
+      (__ \ "country").readNullable[String] ~
+      (__ \ "line1").readNullable[String] ~
+      (__ \ "line2").readNullable[String] ~
+      (__ \ "postal_code").readNullable[String] ~
+      (__ \ "state").readNullable[String]
     ).tupled.map(Address.tupled)
 
   implicit val addressWrites: Writes[Address] =
@@ -34,18 +34,18 @@ object Shippings {
       )
     )
 
-  case class Shipping(address: Address,
+  case class Shipping(address: Option[Address],
                       carrier: Option[String],
-                      name: String,
-                      phone: String,
+                      name: Option[String],
+                      phone: Option[String],
                       trackingNumber: Option[String]
                      )
 
   implicit val shippingReads: Reads[Shipping] = (
-    (__ \ "address").read[Address] ~
+    (__ \ "address").readNullable[Address] ~
       (__ \ "carrier").readNullable[String] ~
-      (__ \ "name").read[String] ~
-      (__ \ "phone").read[String] ~
+      (__ \ "name").readNullable[String] ~
+      (__ \ "phone").readNullable[String] ~
       (__ \ "tracking_number").readNullable[String]
     ).tupled.map(Shipping.tupled)
 

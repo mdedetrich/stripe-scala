@@ -22,7 +22,7 @@ object PaymentSource extends LazyLogging {
 
   implicit val paymentSourcesReads: Reads[PaymentSource] =
     __.read[JsObject].flatMap { o =>
-      (__ \ "type").read[String].flatMap {
+      (__ \ "object").read[String].flatMap {
         case "card" => __.read[Card].map(x => x: PaymentSource)
         case "bitcoin_receiver" => __.read[BitcoinReceiver].map(x => x: PaymentSource)
         case _ => Reads[PaymentSource](_ => JsError(ValidationError("UnknownPaymentSource")))
@@ -52,7 +52,7 @@ object Cards {
 
   object Brand {
 
-    case object Visa extends Brand("visa")
+    case object Visa extends Brand("Visa")
 
     case object `American Express` extends Brand("American Express")
 

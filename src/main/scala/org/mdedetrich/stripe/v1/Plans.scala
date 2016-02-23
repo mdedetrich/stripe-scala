@@ -75,12 +75,12 @@ object Plans {
                   livemode: Boolean,
                   metadata: Option[Map[String, String]],
                   name: String,
-                  quantity: Long,
-                  start: DateTime,
-                  status: Status,
-                  taxPercent: BigDecimal,
-                  trialEnd: DateTime,
-                  trialStart: DateTime
+                  quantity: Option[Long],
+                  start: Option[DateTime],
+                  status: Option[Status],
+                  taxPercent: Option[BigDecimal],
+                  trialEnd: Option[DateTime],
+                  trialStart: Option[DateTime]
                  )
 
   implicit val planReads: Reads[Plan] = (
@@ -93,12 +93,12 @@ object Plans {
       (__ \ "livemode").read[Boolean] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "name").read[String] ~
-      (__ \ "quantity").read[Long] ~
-      (__ \ "start").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
-      (__ \ "status").read[Status] ~
-      (__ \ "tax_percent").read[BigDecimal] ~
-      (__ \ "trial_end").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
-      (__ \ "trial_start").read[Long].map { timestamp => new DateTime(timestamp * 1000) }
+      (__ \ "quantity").readNullable[Long] ~
+      (__ \ "start").readNullable[Long].map(_.map { timestamp => new DateTime(timestamp * 1000) }) ~
+      (__ \ "status").readNullable[Status] ~
+      (__ \ "tax_percent").readNullable[BigDecimal] ~
+      (__ \ "trial_end").readNullable[Long].map(_.map { timestamp => new DateTime(timestamp * 1000) }) ~
+      (__ \ "trial_start").readNullable[Long].map(_.map { timestamp => new DateTime(timestamp * 1000) })
     ).tupled.map(Plan.tupled)
 
   implicit val planWrites: Writes[Plan] =
@@ -114,10 +114,10 @@ object Plans {
       "metadata" -> plan.metadata,
       "name" -> plan.name,
       "quantity" -> plan.quantity,
-      "start" -> plan.start,
+      "start" -> plan.start.map(datetime => datetime.getMillis / 1000),
       "status" -> plan.status,
       "tax_percent" -> plan.taxPercent,
-      "trial_end" -> plan.trialEnd,
-      "trial_start" -> plan.trialStart
+      "trial_end" -> plan.trialEnd.map(datetime => datetime.getMillis / 1000),
+      "trial_start" -> plan.trialStart.map(datetime => datetime.getMillis / 1000)
     ))
 }
