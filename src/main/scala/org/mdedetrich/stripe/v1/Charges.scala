@@ -386,7 +386,6 @@ object Charges extends LazyLogging {
           addressZip
           ) =>
           val map: Map[String, String] = Map(
-            "object" -> Option("card"),
             "exp_month" -> Option(expMonth.toString),
             "exp_year" -> Option(expYear.toString),
             "number" -> Option(number),
@@ -402,7 +401,7 @@ object Charges extends LazyLogging {
             case (k, Some(v)) => (k, v)
           }
 
-          mapToPostParams(Option(map), "source")
+          mapToPostParams(Option(map), "card")
       }
 
     }

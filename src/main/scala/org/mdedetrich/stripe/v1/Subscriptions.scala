@@ -237,7 +237,6 @@ object Subscriptions extends LazyLogging {
         name
         )) =>
           val map = Map(
-            "object" -> Option("card"),
             "exp_month" -> Option(expMonth.toString),
             "exp_year" -> Option(expYear.toString),
             "number" -> Option(number),
@@ -252,7 +251,7 @@ object Subscriptions extends LazyLogging {
             case (k, Some(v)) => (k, v)
           }
 
-          mapToPostParams(Option(map), "source")
+          mapToPostParams(Option(map), "card")
         case Some(Source.Token(id)) =>
           Map("source" -> id)
         case None =>
