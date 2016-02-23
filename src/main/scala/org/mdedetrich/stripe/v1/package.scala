@@ -4,7 +4,8 @@ import com.ning.http.client.Response
 import com.typesafe.scalalogging.Logger
 import jawn.support.play.Parser
 import org.mdedetrich.stripe.v1.Errors.{Error, StripeServerError, UnhandledServerError}
-import play.api.libs.json.{JsResult, JsValue, Json}
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
 
 import scala.util.Try
 
@@ -36,6 +37,8 @@ package object v1 {
                             (implicit logger: Logger): Either[Errors.Error, Try[JsValue]] = {
     val httpCode = response.getStatusCode
 
+    logger.debug(s"Response status code is $httpCode")
+
     logger.debug(s"Response retrieved from $finalUrl is \n${
       response.getResponseBody
     }")
@@ -46,11 +49,16 @@ package object v1 {
       case 400 | 401 | 402 | 404 | 429 =>
         val jsonResponse = Parser.parseFromByteBuffer(response.getResponseBodyAsByteBuffer).map { jsValue =>
           val jsResult: JsResult[Error] = httpCode match {
-            case 400 => Json.fromJson[Error.BadRequest](jsValue)
-            case 401 => Json.fromJson[Error.Unauthorized](jsValue)
-            case 402 => Json.fromJson[Error.RequestFailed](jsValue)
-            case 404 => Json.fromJson[Error.NotFound](jsValue)
-            case 429 => Json.fromJson[Error.TooManyRequests](jsValue)
+            case 400 =>
+              (__ \ "error").read[Error.BadRequest].reads(jsValue)
+            case 401 =>
+              (__ \ "error").read[Error.Unauthorized].reads(jsValue)
+            case 402 =>
+              (__ \ "error").read[Error.RequestFailed].reads(jsValue)
+            case 404 =>
+              (__ \ "error").read[Error.NotFound].reads(jsValue)
+            case 429 =>
+              (__ \ "error").read[Error.TooManyRequests].reads(jsValue)
           }
 
           val error = jsResult.fold(
