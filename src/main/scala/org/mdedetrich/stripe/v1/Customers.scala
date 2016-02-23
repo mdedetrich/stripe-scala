@@ -183,7 +183,7 @@ object Customers extends LazyLogging {
     })
   }
 
-  case class CustomerInput(accountBalance: BigDecimal,
+  case class CustomerInput(accountBalance: Option[BigDecimal],
                            coupon: Option[String],
                            description: Option[String],
                            email: Option[String],
@@ -197,7 +197,7 @@ object Customers extends LazyLogging {
                           )
 
   implicit val customerInputReads: Reads[CustomerInput] = (
-    (__ \ "account_balance").read[BigDecimal] ~
+    (__ \ "account_balance").readNullable[BigDecimal] ~
       (__ \ "coupon").readNullable[String] ~
       (__ \ "description").readNullable[String] ~
       (__ \ "email").readNullable[String] ~
@@ -236,7 +236,7 @@ object Customers extends LazyLogging {
              endpoint: Endpoint): Future[Try[Customer]] = {
     val postFormParameters: Map[String, String] = {
       Map(
-        "account_balance" -> Option(customerInput.accountBalance.toString()),
+        "account_balance" -> customerInput.accountBalance.map(_.toString()),
         "coupon" -> customerInput.coupon,
         "description" -> customerInput.description,
         "email" -> customerInput.email,
