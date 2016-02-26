@@ -348,9 +348,8 @@ object Charges extends LazyLogging {
       )
     )
 
-  def create(chargeInput: ChargeInput,
-             idempotencyKey: Option[IdempotencyKey] = None
-            )
+  def create(chargeInput: ChargeInput)
+            (idempotencyKey: Option[IdempotencyKey] = None)
             (implicit apiKey: ApiKey,
              endpoint: Endpoint): Future[Try[Charge]] = {
 

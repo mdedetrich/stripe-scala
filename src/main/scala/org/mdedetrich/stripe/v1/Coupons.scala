@@ -107,19 +107,19 @@ object Coupons extends LazyLogging {
                          percentOff: Option[BigDecimal],
                          redeemBy: Option[DateTime]
                         )
-  
+
   implicit val couponInputReads: Reads[CouponInput] = (
     (__ \ "id").readNullable[String] ~
-    (__ \ "duration").read[Duration] ~
-    (__ \ "amount_off").readNullable[Long] ~
-    (__ \ "currency").readNullable[Currency] ~
-    (__ \ "duration_in_months").readNullable[Long] ~
-    (__ \ "max_redemptions").readNullable[Long] ~
-    (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
-    (__ \ "percent_off").readNullable[BigDecimal] ~
-    (__ \ "redeemBy").readNullable[Long].map(_.map{timestamp => new DateTime(timestamp * 1000)})
+      (__ \ "duration").read[Duration] ~
+      (__ \ "amount_off").readNullable[Long] ~
+      (__ \ "currency").readNullable[Currency] ~
+      (__ \ "duration_in_months").readNullable[Long] ~
+      (__ \ "max_redemptions").readNullable[Long] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
+      (__ \ "percent_off").readNullable[BigDecimal] ~
+      (__ \ "redeemBy").readNullable[Long].map(_.map { timestamp => new DateTime(timestamp * 1000) })
     ).tupled.map(CouponInput.tupled)
-  
+
   implicit val couponInputWrites: Writes[CouponInput] =
     Writes((couponInput: CouponInput) =>
       Json.obj(
@@ -134,13 +134,12 @@ object Coupons extends LazyLogging {
         "redeemBy" -> couponInput.redeemBy.map(_.getMillis / 1000)
       )
     )
-  
-  def create(couponInput: CouponInput,
-             idempotencyKey: Option[IdempotencyKey] = None
-            )
+
+  def create(couponInput: CouponInput)
+            (idempotencyKey: Option[IdempotencyKey] = None)
             (implicit apiKey: ApiKey,
              endpoint: Endpoint): Future[Try[Coupon]] = {
-    val postFormParameters: Map[String,String] = {
+    val postFormParameters: Map[String, String] = {
       Map(
         "id" -> couponInput.id,
         "duration" -> Option(couponInput.duration.id),

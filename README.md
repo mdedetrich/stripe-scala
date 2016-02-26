@@ -36,13 +36,28 @@ Stripe Api key and url endpoint are provided implicitly by using the `org.mdedet
 types. The `org.mdedetrich.stripe.Config` object provides these keys through environment variables/system settings (see `application.conf`
 for more details), although you can manually provide your own implicit `ApiKey` and `Endpoint` instances.
  
-All responses made are in the format of `Future[Try[T]]` where `T` is the model for the object being returned (i.e. creating a charge
+All base responses made are in the format of `Future[Try[T]]` where `T` is the model for the object being returned (i.e. creating a charge
 will return a `Future[Try[Charges.Charge]]`). If there is an error in making the response that involves either invalid JSON or an error
 in mapping the JSON to the models  `case class`, this will throw an exception which you need to catch 
-(it is by design that the models defined in stripe-scala are correct and that stripe does actually return valid JSON).
+as a failed `Future` (it is by design that the models defined in stripe-scala are correct and that stripe does actually return valid JSON).
 
 If there however is a checked error (such as an invalid API key) this will not throw an exception, 
 instead it will be contained within the `Try` monad (i.e. you will get a `scala.util.Failure`)
 
-The last parameter for stripe POST requests (often named as create in stripe-scala) has an optional idempotencyKey as the last 
-parameter which defaults to null. You can specify a IdempotencyKey to make sure that you don't create duplicate post requets.
+The second parameter for stripe POST requests (often named as create in stripe-scala) has an optional idempotencyKey which defaults
+to None. You can specify a IdempotencyKey to make sure that you don't create duplicate POST requests with the same input.
+
+stripe-scala provides a `handleCreate` function which provides the typical way of dealing with stripe-errors.
+It will attempt to retry the original request (using the IdempotencyKey to prevent duplicate side effects) for
+errors which are deemed to be network related errors, else it will return a failed `Future`. If it
+fails due to going over the retry limit, `handleCreate` will also return a failed `Future` with `MaxNumberOfRetries`
+
+```scala
+import org.mdedetrich.stripe.v1.Customers._
+
+val customerInput: Customers.CustomerInput = ??? // Some customer input
+val response: Future[Customers.Customer] = handleCreate(Customers.create(customerInput))
+```
+
+For the most part you will want to use `handleCreate` and other related methods, however if you want 
+more fine grained control over potential errors then you can use the various `.create`/`.get` methods 

@@ -5,21 +5,86 @@ import com.typesafe.scalalogging.Logger
 import jawn.support.play.Parser
 import org.mdedetrich.stripe.v1.Errors.{Error, StripeServerError, UnhandledServerError}
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
-
-import scala.util.Try
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util._
 
 package object v1 {
 
   /**
-    * This is a header constat to specify a Idempotency-Key
+    * A function which does the simplest ideal handling for making a stripe request.
+    * It handles specific stripe errors, and will retry the request for errors that
+    * indicate some sought of network error. It uses the Stripe idempotency key to make
+    * sure that duplicate side effects (such as creating multiple charges) do not happen
+    *
+    * @param request         The request that you are making with Stripe
+    * @param numberOfRetries Number of retries, provided by default in [[org.mdedetrich.stripe.Config]]
+    * @tparam T The returning Stripe object for the request
+    * @return
     */
-  
-  val idempotencyKeyHeader = "Idempotency-Key"
-  
+
+  def handleCreate[T](request: => Option[IdempotencyKey] => Future[Try[T]],
+                      numberOfRetries: Int = Config.numberOfRetries
+                     )
+                     (implicit executionContext: ExecutionContext): Future[T] = {
+
+    val idempotencyKey = Option(IdempotencyKey(java.util.UUID.randomUUID.toString))
+
+    def responseBlock = request(idempotencyKey)
+
+    def responseBlockWithRetries(currentRetryCount: Int): Future[Try[T]] = {
+      if (currentRetryCount > numberOfRetries) {
+        Future.failed {
+          MaxNumberOfRetries(currentRetryCount)
+        }
+      } else {
+        responseBlock.flatMap {
+          case scala.util.Success(customer) => Future {
+            Success {
+              customer
+            }
+          }
+          case scala.util.Failure(failure) =>
+            failure match {
+              case Errors.Error.RequestFailed(error, _, _, _) =>
+
+                /**
+                  * According to documentation, these errors imply some sought of network error
+                  * so we should retry
+                  */
+                error match {
+                  case Errors.Type.ApiError => responseBlockWithRetries(currentRetryCount + 1)
+                  case Errors.Type.ApiConnectionError => responseBlockWithRetries(currentRetryCount + 1)
+                  case _ => Future.failed {
+                    failure
+                  }
+                }
+              case Errors.Error.TooManyRequests(_, _, _, _) =>
+                responseBlockWithRetries(currentRetryCount + 1)
+              case _ => Future.failed {
+                failure
+              }
+            }
+        }
+      }
+    }
+
+    responseBlockWithRetries(0).flatMap {
+      case Success(success) => Future {
+        success
+      }
+      case Failure(throwable) => Future.failed(throwable)
+    }
+  }
 
   /**
-    * Parses a response from dispatch and attempts to do error process handling specific for stripe
+    * This is a header constat to specify a Idempotency-Key
+    */
+
+  val idempotencyKeyHeader = "Idempotency-Key"
+
+
+  /**
+    * Parses a response from dispatch and attempts to do error process handling for specific stripe errors
     *
     * @param response
     * @param finalUrl

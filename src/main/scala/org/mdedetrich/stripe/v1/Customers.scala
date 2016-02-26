@@ -229,9 +229,8 @@ object Customers extends LazyLogging {
       )
     )
 
-  def create(customerInput: CustomerInput,
-             idempotencyKey: Option[IdempotencyKey] = None
-            )
+  def create(customerInput: CustomerInput)
+            (idempotencyKey: Option[IdempotencyKey] = None)
             (implicit apiKey: ApiKey,
              endpoint: Endpoint): Future[Try[Customer]] = {
     val postFormParameters: Map[String, String] = {

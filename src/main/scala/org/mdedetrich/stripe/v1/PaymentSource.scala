@@ -395,9 +395,8 @@ object BitcoinReceivers extends LazyLogging {
       )
     )
 
-  def create(bitcoinReceiverInput: BitcoinReceiverInput,
-             idempotencyKey: Option[IdempotencyKey] = None
-            )
+  def create(bitcoinReceiverInput: BitcoinReceiverInput)
+            (idempotencyKey: Option[IdempotencyKey] = None)
             (implicit apiKey: ApiKey,
              endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
 

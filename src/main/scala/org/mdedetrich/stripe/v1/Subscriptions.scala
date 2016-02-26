@@ -204,9 +204,8 @@ object Subscriptions extends LazyLogging {
                                trialEnd: Option[DateTime]
                               )
 
-  def create(subscriptionInput: SubscriptionInput,
-             idempotencyKey: Option[IdempotencyKey] = None
-            )
+  def create(subscriptionInput: SubscriptionInput)
+            (idempotencyKey: Option[IdempotencyKey] = None)
             (implicit apiKey: ApiKey,
              endpoint: Endpoint): Future[Try[Subscription]] = {
 

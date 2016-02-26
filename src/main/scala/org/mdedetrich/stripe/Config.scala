@@ -9,4 +9,6 @@ object Config {
   implicit lazy val endpoint = Endpoint(conf.as[String]("stripe-scala.endpoint"))
 
   implicit lazy val apiKey = ApiKey(conf.as[String]("stripe-scala.apiKey"))
+
+  val numberOfRetries = conf.as[Int]("stripe-scala.numberOfRetries")
 }
