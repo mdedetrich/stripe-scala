@@ -1,10 +1,10 @@
 package org.mdedetrich.stripe.v1
 
 import com.typesafe.scalalogging.LazyLogging
+import enumeratum._
 import org.mdedetrich.stripe.{InvalidJsonModelException, Endpoint, ApiKey, IdempotencyKey}
 import dispatch.Defaults._
 import dispatch._
-import org.mdedetrich.utforsca.SealedContents
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -15,13 +15,13 @@ import scala.util.Try
 
 object Coupons extends LazyLogging {
 
-  sealed abstract class Duration(val id: String)
-
-  case class UnknownDuration(val id: String) extends Exception {
-    override def getMessage = s"Unknown Coupon Duration, received $id"
+  sealed abstract class Duration(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Duration {
+  object Duration extends Enum[Duration] {
+
+    val values = findValues
 
     case object Forever extends Duration("forever")
 
@@ -29,18 +29,9 @@ object Coupons extends LazyLogging {
 
     case object Repeating extends Duration("repeating")
 
-    lazy val all: Set[Duration] = SealedContents.values[Duration]
-
   }
 
-  implicit val durationReads: Reads[Duration] = Reads.of[String].map { durationId =>
-    Duration.all.find(_.id == durationId).getOrElse {
-      throw UnknownDuration(durationId)
-    }
-  }
-
-  implicit val durationWrites: Writes[Duration] =
-    Writes((duration: Duration) => JsString(duration.id))
+  implicit val durationFormats = EnumFormats.formats(Duration, insensitive = true)
 
   case class Coupon(id: String,
                     amountOff: Option[Long],
@@ -142,7 +133,7 @@ object Coupons extends LazyLogging {
     val postFormParameters: Map[String, String] = {
       Map(
         "id" -> couponInput.id,
-        "duration" -> Option(couponInput.duration.id),
+        "duration" -> Option(couponInput.duration.entryName),
         "amount_off" -> couponInput.amountOff.map(_.toString),
         "currency" -> couponInput.currency.map(_.iso.toLowerCase),
         "duration_in_months" -> couponInput.durationInMonths.map(_.toString),

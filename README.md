@@ -13,6 +13,7 @@ reading/writing JSON from/to scala case classes). It also provides a very powerf
 - [jawn](https://github.com/non/jawn) for parsing the response from dispatch to a play-json
 - [ficus](https://github.com/iheartradio/ficus) for providing config (via [typesafe-config](https://github.com/typesafehub/config))
 - [nscala-time](https://github.com/nscala-time/nscala-time) for date/time handling (via [JodaTime](http://www.joda.org/joda-time/))
+- [enumeratum](https://github.com/lloydmeta/enumeratum) for providing typesafe enumerations on stripe enum models as well play-json formats
 
 stripe-scala was intentionally designed to use bare minimum external dependencies so its easier to integrate with scala codebases
 
@@ -48,12 +49,12 @@ The second parameter for stripe POST requests (often named as create in stripe-s
 to None. You can specify a IdempotencyKey to make sure that you don't create duplicate POST requests with the same input.
 
 stripe-scala provides a `handleCreate` function which provides the typical way of dealing with stripe-errors.
-It will attempt to retry the original request (using the IdempotencyKey to prevent duplicate side effects) for
+It will attempt to retry the original request (using the `IdempotencyKey` to prevent duplicate side effects) for
 errors which are deemed to be network related errors, else it will return a failed `Future`. If it
 fails due to going over the retry limit, `handleCreate` will also return a failed `Future` with `MaxNumberOfRetries`
 
 ```scala
-import org.mdedetrich.stripe.v1.Customers._
+import org.mdedetrich.stripe.v1.{Customers, handleCreate}
 
 val customerInput: Customers.CustomerInput = ??? // Some customer input
 val response: Future[Customers.Customer] = handleCreate(Customers.create(customerInput))

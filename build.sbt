@@ -29,14 +29,16 @@ scalacOptions ++= Seq(
 )
 
 val jawnVersion = "0.8.4"
+val enumeratumVersion = "1.3.7"
 
 libraryDependencies ++= Seq(
   "net.databinder.dispatch" %% "dispatch-core" % "0.11.3",
   "com.github.nscala-time" %% "nscala-time" % "2.8.0",
+  "com.beachape" %% "enumeratum" % enumeratumVersion,
+  "com.beachape" %% "enumeratum-play-json" % enumeratumVersion,
   "org.spire-math" %% "jawn-parser" % jawnVersion,
   "org.spire-math" %% "jawn-play" % jawnVersion,
-  "com.iheart" %% "ficus" % "1.2.0",
+  "com.iheart" %% "ficus" % "1.2.2",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-  "org.mdedetrich" %% "play-json-utils" % "1.0.0-SNAPSHOT",
-  "org.mdedetrich" %% "utforsca" % "2.2.0"
+  "org.mdedetrich" %% "play-json-utils" % "1.0.0-SNAPSHOT"
 )

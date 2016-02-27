@@ -1,10 +1,10 @@
 package org.mdedetrich.stripe.v1
 
 import com.github.nscala_time.time.Imports._
-import org.mdedetrich.utforsca.SealedContents
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import org.mdedetrich.playjson.Utils._
+import enumeratum._
 
 /**
   * Taken from https://stripe.com/docs/api/curl#refunds
@@ -12,9 +12,12 @@ import org.mdedetrich.playjson.Utils._
 
 object Refunds {
 
-  sealed abstract class Reason(val id: String)
+  sealed abstract class Reason(val id: String) extends EnumEntry {
+    override val entryName = id
+  }
 
-  object Reason {
+  object Reason extends Enum[Reason] {
+    val values = findValues
 
     case object Duplicate extends Reason("duplicate")
 
@@ -22,22 +25,9 @@ object Refunds {
 
     case object RequestedByCustomer extends Reason("requested_by_customer")
 
-    lazy val all: Set[Reason] = SealedContents.values[Reason]
-
   }
 
-  case class UnknownReason(val id: String) extends Exception {
-    override def getMessage = s"Unknown Refund Reason, received $id"
-  }
-
-  implicit val reasonReads: Reads[Reason] =
-    Reads.of[String].map { stringId => Reason.all.find(_.id == stringId).getOrElse {
-      throw UnknownReason(stringId)
-    }
-    }
-
-  implicit val reasonWrites: Writes[Reason] =
-    Writes { (reason: Reason) => JsString(reason.id) }
+  implicit val reasonFormats = EnumFormats.formats(Reason, insensitive = true)
 
   case class RefundData(id: String,
                         amount: BigDecimal,

@@ -3,12 +3,12 @@ package org.mdedetrich.stripe.v1
 import com.typesafe.scalalogging.LazyLogging
 import dispatch.Defaults._
 import dispatch._
+import enumeratum._
 import org.joda.time.DateTime
 import org.mdedetrich.stripe.{IdempotencyKey, InvalidJsonModelException, Endpoint, ApiKey}
 import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.Plans.Plan
 import org.mdedetrich.stripe.v1.Sources.BaseCardSource
-import org.mdedetrich.utforsca.SealedContents
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -19,13 +19,13 @@ import scala.util.Try
 
 object Subscriptions extends LazyLogging {
 
-  sealed abstract class Status(val id: String)
-
-  case class UnknownStatus(val id: String) extends Exception {
-    override def getMessage = s"Unknown Subscription Status Type, received $id"
+  sealed abstract class Status(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Status {
+  object Status extends Enum[Status] {
+
+    val values = findValues
 
     case object Trialing extends Status("trialing")
 
@@ -37,17 +37,9 @@ object Subscriptions extends LazyLogging {
 
     case object Unpaid extends Status("unpaid")
 
-    lazy val all: Set[Status] = SealedContents.values[Status]
   }
 
-  implicit val statusReads: Reads[Status] = Reads.of[String].map { statusId =>
-    Status.all.find(_.id == statusId).getOrElse {
-      throw UnknownStatus(statusId)
-    }
-  }
-
-  implicit val statusWrites: Writes[Status] =
-    Writes((status: Status) => JsString(status.id))
+  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   case class Subscription(id: String,
                           applicationFeePercent: Option[BigDecimal],

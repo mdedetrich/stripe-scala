@@ -3,11 +3,11 @@ package org.mdedetrich.stripe.v1
 import com.typesafe.scalalogging.LazyLogging
 import dispatch.Defaults._
 import dispatch._
+import enumeratum._
 import org.joda.time.DateTime
 import org.mdedetrich.stripe.{IdempotencyKey, InvalidJsonModelException, Endpoint, ApiKey}
 import org.mdedetrich.stripe.v1.BitcoinReceivers.BitcoinReceiver
 import org.mdedetrich.stripe.v1.Cards.Card
-import org.mdedetrich.utforsca.SealedContents
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -38,19 +38,15 @@ object PaymentSource extends LazyLogging {
     )
 }
 
-case class UnknownPaymentSource(val id: String) extends Exception {
-  override def getMessage = s"Unknown Payment Source, received $id"
-}
-
 object Cards {
 
-  sealed abstract class Brand(val id: String)
-
-  case class UnknownBrand(val id: String) extends Exception {
-    override def getMessage = s"Unknown Brand, received $id"
+  sealed abstract class Brand(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Brand {
+  object Brand extends Enum[Brand] {
+
+    val values = findValues
 
     case object Visa extends Brand("Visa")
 
@@ -66,25 +62,16 @@ object Cards {
 
     case object Unknown extends Brand("Unknown")
 
-    lazy val all: Set[Brand] = SealedContents.values[Brand]
-
-    implicit val brandReads: Reads[Brand] = Reads.of[String].map { brandId =>
-      Brand.all.find(_.id == brandId).getOrElse {
-        throw new UnknownBrand(brandId)
-      }
-    }
-
-    implicit val brandWrites: Writes[Brand] =
-      Writes((brand: Brand) => JsString(brand.id))
   }
 
-  sealed abstract class Check(val id: String)
+  implicit val brandFormats = EnumFormats.formats(Brand, insensitive = true)
 
-  case class UnknownCheck(val id: String) extends Exception {
-    override def getMessage = s"Unknown Check, received $id"
+  sealed abstract class Check(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Check {
+  object Check extends Enum[Check] {
+    val values = findValues
 
     case object Pass extends Check("pass")
 
@@ -94,26 +81,16 @@ object Cards {
 
     case object Unchecked extends Check("unchecked")
 
-    lazy val all: Set[Check] = SealedContents.values[Check]
   }
 
-  implicit val addressReads: Reads[Check] =
-    Reads.of[String].map { addressLineCheckId =>
-      Check.all.find(_.id == addressLineCheckId).getOrElse {
-        throw new UnknownCheck(addressLineCheckId)
-      }
-    }
+  implicit val checkFormats = EnumFormats.formats(Check, insensitive = true)
 
-  implicit val addressWrites: Writes[Check] =
-    Writes((addressLineCheck: Check) => JsString(addressLineCheck.id))
-
-  sealed abstract class Funding(val id: String)
-
-  case class UnknownFunding(val id: String) extends Exception {
-    override def getMessage = s"Unknown Funding, received $id"
+  sealed abstract class Funding(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Funding {
+  object Funding extends Enum[Funding] {
+    val values = findValues
 
     case object Credit extends Funding("credit")
 
@@ -123,42 +100,25 @@ object Cards {
 
     case object Unknown extends Funding("unknown")
 
-    lazy val all: Set[Funding] = SealedContents.values[Funding]
   }
 
-  implicit val fundingReads: Reads[Funding] = Reads.of[String]
-    .map { fundingId => Funding.all.find(_.id == fundingId).getOrElse {
-      throw new UnknownFunding(fundingId)
-    }
-    }
+  implicit val fundingFormats = EnumFormats.formats(Funding, insensitive = true)
 
-  implicit val fundingWrites: Writes[Funding] =
-    Writes((funding: Funding) => JsString(funding.id))
-
-  sealed abstract class TokenizationMethod(val id: String)
-
-  case class UnknownTokenizationMethod(val id: String) extends Exception {
-    override def getMessage = s"Unknown Tokenization Method, received $id"
+  sealed abstract class TokenizationMethod(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object TokenizationMethod {
+  object TokenizationMethod extends Enum[TokenizationMethod] {
+
+    val values = findValues
 
     case object ApplePay extends TokenizationMethod("apple_pay")
 
     case object AndroidPay extends TokenizationMethod("android_pay")
 
-    lazy val all: Set[TokenizationMethod] = SealedContents.values[TokenizationMethod]
   }
 
-  implicit val tokenizationMethodReads: Reads[TokenizationMethod] =
-    Reads.of[String].map { tokenizationMethodId => TokenizationMethod.all.find(_.id == tokenizationMethodId)
-      .getOrElse {
-        throw new UnknownTokenizationMethod(tokenizationMethodId)
-      }
-    }
-
-  implicit val tokenizationMethodWrites: Writes[TokenizationMethod] =
-    Writes((tokenizationMethod: TokenizationMethod) => JsString(tokenizationMethod.id))
+  implicit val tokenizationMethodFormats = EnumFormats.formats(TokenizationMethod, insensitive = true)
 
   case class Card(id: String,
                   addressCity: Option[String],

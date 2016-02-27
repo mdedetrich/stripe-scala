@@ -1,6 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import org.mdedetrich.utforsca.SealedContents
+import enumeratum._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import org.mdedetrich.playjson.Utils._
@@ -10,37 +10,29 @@ import org.mdedetrich.playjson.Utils._
   */
 object BankAccounts {
 
-  sealed abstract class AccountHolderType(val id: String)
-
-  case class UnknownAccountHolderType(val id: String) extends Exception {
-    override def getMessage = s"Unknown Account Holder Type, received $id"
+  sealed abstract class AccountHolderType(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object AccountHolderType {
+  object AccountHolderType extends Enum[AccountHolderType] {
+
+    val values = findValues
 
     case object Individual extends AccountHolderType("individual")
 
     case object Company extends AccountHolderType("company")
 
-    lazy val all: Set[AccountHolderType] = SealedContents.values[AccountHolderType]
   }
 
-  implicit val accountHolderTypeReads: Reads[AccountHolderType] = Reads.of[String].map { accountHolderTypeId =>
-    AccountHolderType.all.find(_.id == accountHolderTypeId).getOrElse {
-      throw UnknownAccountHolderType(accountHolderTypeId)
-    }
+  implicit val accountHolderTypeFormats = EnumFormats.formats(AccountHolderType, insensitive = true)
+
+  sealed abstract class Status(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  implicit val accountHolderTypeWrites: Writes[AccountHolderType] =
-    Writes((accountHolderType: AccountHolderType) => JsString(accountHolderType.id))
+  object Status extends Enum[Status] {
 
-  sealed abstract class Status(val id: String)
-
-  case class UnknownStatus(val id: String) extends Exception {
-    override def getMessage = s"Unknown Bank Account Status, received $id"
-  }
-
-  object Status {
+    val values = findValues
 
     case object New extends Status("new")
 
@@ -52,17 +44,9 @@ object BankAccounts {
 
     case object Errored extends Status("errored")
 
-    lazy val all: Set[Status] = SealedContents.values[Status]
   }
 
-  implicit val statusReads: Reads[Status] = Reads.of[String].map { statusId =>
-    Status.all.find(_.id == statusId).getOrElse {
-      throw UnknownStatus(statusId)
-    }
-  }
-
-  implicit val statusWrites: Writes[Status] =
-    Writes((status: Status) => JsString(status.id))
+  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   case class BankAccount(id: String,
                          account: String,

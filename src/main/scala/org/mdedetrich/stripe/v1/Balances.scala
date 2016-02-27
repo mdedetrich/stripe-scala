@@ -1,6 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import org.mdedetrich.utforsca.SealedContents
+import enumeratum._
 import org.joda.time.DateTime
 import org.mdedetrich.stripe.v1.Transfers._
 import play.api.libs.json._
@@ -8,13 +8,13 @@ import play.api.libs.functional.syntax._
 
 object Balances {
 
-  sealed abstract class FeeType(val id: String)
-
-  case class UnknownFeeType(val id: String) extends Exception {
-    override def getMessage = s"Unknown Fee Detail Type, received $id"
+  sealed abstract class FeeType(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object FeeType {
+  object FeeType extends Enum[FeeType] {
+
+    val values = findValues
 
     case object ApplicationFee extends FeeType("application_fee")
 
@@ -22,17 +22,9 @@ object Balances {
 
     case object Tax extends FeeType("tax")
 
-    lazy val all: Set[FeeType] = SealedContents.values[FeeType]
   }
 
-  implicit val feeTypeReads: Reads[FeeType] = Reads.of[String].map { feeTypeId =>
-    FeeType.all.find(_.id == feeTypeId).getOrElse {
-      throw UnknownFeeType(feeTypeId)
-    }
-  }
-
-  implicit val feeTypeWrites: Writes[FeeType] =
-    Writes((feeType: FeeType) => JsString(feeType.id))
+  implicit val feeTypeFormats = EnumFormats.formats(FeeType, insensitive = true)
 
   case class FeeDetails(amount: BigDecimal,
                         application: String,
@@ -85,13 +77,13 @@ object Balances {
       )
     )
 
-  sealed abstract class Type(val id: String)
-
-  case class UnknownType(val id: String) extends Exception {
-    override def getMessage = s"Unknown Balance Transaction Type, received $id"
+  sealed abstract class Type(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Type {
+  object Type extends Enum[Type] {
+
+    val values = findValues
 
     case object Charge extends Type("charge")
 
@@ -111,41 +103,25 @@ object Balances {
 
     case object TransferFailure extends Type("transfer_failure")
 
-    val all: Set[Type] = SealedContents.values[Type]
   }
 
-  implicit val typeReads: Reads[Type] = Reads.of[String].map { typeId =>
-    Type.all.find(_.id == typeId).getOrElse {
-      throw UnknownType(typeId)
-    }
+  implicit val typeFormats = EnumFormats.formats(Type, insensitive = true)
+
+  sealed abstract class Status(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  implicit val typeWrites: Writes[Type] =
-    Writes((`type`: Type) => JsString(`type`.id))
+  object Status extends Enum[Status] {
 
-  sealed abstract class Status(val id: String)
-
-  case class UnknownStatus(val id: String) extends Exception {
-    override def getMessage = s"Unknown Balance Transaction Status, received $id"
-  }
-
-  object Status {
+    val values = findValues
 
     case object Available extends Status("available")
 
     case object Pending extends Status("pending")
 
-    lazy val all: Set[Status] = SealedContents.values[Status]
   }
 
-  implicit val statusReads: Reads[Status] = Reads.of[String].map { statusId =>
-    Status.all.find(_.id == statusId).getOrElse {
-      throw UnknownStatus(statusId)
-    }
-  }
-
-  implicit val statusWrites: Writes[Status] =
-    Writes((status: Status) => JsString(status.id))
+  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   case class BalanceTransaction(id: String,
                                 amount: BigDecimal,

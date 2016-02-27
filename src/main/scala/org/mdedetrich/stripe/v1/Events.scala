@@ -1,13 +1,17 @@
 package org.mdedetrich.stripe.v1
 
+import enumeratum._
 import org.joda.time.DateTime
-import org.mdedetrich.utforsca.SealedContents
 
 object Events {
 
-  sealed abstract class Type(val id: String)
+  sealed abstract class Type(val id: String) extends EnumEntry {
+    override val entryName = id
+  }
 
-  object Type {
+  object Type extends Enum[Type] {
+
+    val values = findValues
 
     case object AccountUpdated extends Type("account.updated")
 
@@ -145,7 +149,6 @@ object Events {
 
     case object Ping extends Type("ping")
 
-    lazy val all: Set[Type] = SealedContents.values[Type]
   }
 
 

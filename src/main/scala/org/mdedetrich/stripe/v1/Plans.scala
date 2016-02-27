@@ -1,20 +1,20 @@
 package org.mdedetrich.stripe.v1
 
+import enumeratum._
 import org.joda.time.DateTime
-import org.mdedetrich.utforsca.SealedContents
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import org.mdedetrich.playjson.Utils._
 
 object Plans {
 
-  sealed abstract class Interval(val id: String)
-
-  case class UnknownInterval(val id: String) extends Exception {
-    override def getMessage = s"Unknown Plan Interval, received $id"
+  sealed abstract class Interval(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Interval {
+  object Interval extends Enum[Interval] {
+
+    val values = findValues
 
     case object Day extends Interval("day")
 
@@ -24,25 +24,17 @@ object Plans {
 
     case object Year extends Interval("year")
 
-    lazy val all: Set[Interval] = SealedContents.values[Interval]
   }
 
-  implicit val intervalReads: Reads[Interval] = Reads.of[String].map { intervalId =>
-    Interval.all.find(_.id == intervalId).getOrElse {
-      throw UnknownInterval(intervalId)
-    }
+  implicit val intervalFormats = EnumFormats.formats(Interval, insensitive = true)
+
+  sealed abstract class Status(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  implicit val intervalWrites: Writes[Interval] =
-    Writes((interval: Interval) => JsString(interval.id))
+  object Status extends Enum[Status] {
 
-  sealed abstract class Status(val id: String)
-
-  case class UnknownStatus(val id: String) extends Exception {
-    override def getMessage = s"Unknown Plan Status, received $id"
-  }
-
-  object Status {
+    val values = findValues
 
     case object Trialing extends Status("trialing")
 
@@ -54,17 +46,9 @@ object Plans {
 
     case object Unpaid extends Status("unpaid")
 
-    lazy val all: Set[Status] = SealedContents.values[Status]
   }
 
-  implicit val statusReads: Reads[Status] = Reads.of[String].map { statusId =>
-    Status.all.find(_.id == statusId).getOrElse {
-      throw UnknownStatus(statusId)
-    }
-  }
-
-  implicit val statusWrites: Writes[Status] =
-    Writes((status: Status) => JsString(status.id))
+  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   case class Plan(id: String,
                   amount: BigDecimal,

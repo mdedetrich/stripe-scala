@@ -1,6 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import org.mdedetrich.utforsca.SealedContents
+import enumeratum._
 import org.joda.time.DateTime
 import org.mdedetrich.stripe.v1.TransferReversals._
 import play.api.libs.json._
@@ -34,13 +34,13 @@ object Transfers {
       )
     )
 
-  sealed abstract class Type(val id: String)
-
-  case class UnknownType(val id: String) extends Exception {
-    override def getMessage = s"Unknown Transfer Type, received $id"
+  sealed abstract class Type(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Type {
+  object Type extends Enum[Type] {
+
+    val values = findValues
 
     case object Card extends Type("card")
 
@@ -48,25 +48,17 @@ object Transfers {
 
     case object StripeAccount extends Type("stripe_account")
 
-    lazy val all: Set[Type] = SealedContents.values[Type]
   }
 
-  implicit val typeReads: Reads[Type] = Reads.of[String].map { typeId =>
-    Type.all.find(_.id == typeId).getOrElse {
-      throw UnknownType(typeId)
-    }
+  implicit val typeFormats = EnumFormats.formats(Type, insensitive = true)
+
+  sealed abstract class Status(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  implicit val typeWrites: Writes[Type] =
-    Writes((`type`: Type) => JsString(`type`.id))
+  object Status extends Enum[Status] {
 
-  sealed abstract class Status(val id: String)
-
-  case class UnknownStatus(val id: String) extends Exception {
-    override def getMessage = s"Unknown Transfer Status, received $id"
-  }
-
-  object Status {
+    val values = findValues
 
     case object Paid extends Status("paid")
 
@@ -78,17 +70,9 @@ object Transfers {
 
     case object Failed extends Status("failed")
 
-    lazy val all: Set[Status] = SealedContents.values[Status]
   }
 
-  implicit val statusReads: Reads[Status] = Reads.of[String].map { statusId =>
-    Status.all.find(_.id == statusId).getOrElse {
-      throw UnknownStatus(statusId)
-    }
-  }
-
-  implicit val statusWrites: Writes[Status] =
-    Writes((status: Status) => JsString(status.id))
+  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   /**
     * Taken from https://stripe.com/docs/api#transfer_failures
@@ -96,13 +80,13 @@ object Transfers {
     * @param id
     */
 
-  sealed abstract class FailureCode(val id: String)
-
-  case class UnknownFailureCode(val id: String) extends Exception {
-    override def getMessage = s"Unknown Failure Code, received $id"
+  sealed abstract class FailureCode(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object FailureCode {
+  object FailureCode extends Enum[FailureCode] {
+
+    val values = findValues
 
     case object InsufficientFunds extends FailureCode("insufficient_funds")
 
@@ -124,26 +108,17 @@ object Transfers {
 
     case object InvalidCurrency extends FailureCode("invalid_currency")
 
-    lazy val all: Set[FailureCode] = SealedContents.values[FailureCode]
-
   }
 
-  implicit val failureCodeReads: Reads[FailureCode] = Reads.of[String].map { failureCodeId =>
-    FailureCode.all.find(_.id == failureCodeId).getOrElse {
-      throw UnknownFailureCode(failureCodeId)
-    }
+  implicit val failureCodeFormats = EnumFormats.formats(FailureCode, insensitive = true)
+
+  sealed abstract class SourceType(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  implicit val failureCodeWrites: Writes[FailureCode] =
-    Writes((failureCode: FailureCode) => JsString(failureCode.id))
+  object SourceType extends Enum[SourceType] {
 
-  sealed abstract class SourceType(val id: String)
-
-  case class UnknownSourceType(val id: String) extends Exception {
-    override def getMessage = s"Unknown Source Type, received $id"
-  }
-
-  object SourceType {
+    val values = findValues
 
     case object Card extends SourceType("card")
 
@@ -151,17 +126,9 @@ object Transfers {
 
     case object BitcoinReceiver extends SourceType("bitcoin_receiver")
 
-    lazy val all: Set[SourceType] = SealedContents.values[SourceType]
   }
 
-  implicit val sourceTypeReads: Reads[SourceType] = Reads.of[String].map { sourceTypeId =>
-    SourceType.all.find(_.id == sourceTypeId).getOrElse {
-      throw UnknownSourceType(sourceTypeId)
-    }
-  }
-
-  implicit val sourceTypeWrites: Writes[SourceType] =
-    Writes((sourceType: SourceType) => JsString(sourceType.id))
+  implicit val sourceTypeFormats = EnumFormats.formats(SourceType, insensitive = true)
 
   case class Transfer(id: String,
                       amount: BigDecimal,

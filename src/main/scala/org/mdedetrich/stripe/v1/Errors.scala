@@ -1,7 +1,7 @@
 package org.mdedetrich.stripe.v1
 
 import com.ning.http.client.Response
-import org.mdedetrich.utforsca.SealedContents
+import enumeratum._
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -12,13 +12,13 @@ object Errors {
     *
     * @param id
     */
-  sealed abstract class Type(val id: String)
-
-  case class UnknownError(val id: String) extends Exception {
-    override def getMessage = "Unknown Error type, received $id"
+  sealed abstract class Type(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Type {
+  object Type extends Enum[Type] {
+
+    val values = findValues
 
     case object ApiConnectionError extends Type("api_connection_error")
 
@@ -32,31 +32,22 @@ object Errors {
 
     case object RateLimitError extends Type("rate_limit_error")
 
-    lazy val all: Set[Type] = SealedContents.values[Type]
-
   }
 
-  implicit val typeReads: Reads[Type] = Reads.of[String].map { errorId =>
-    Type.all.find(_.id == errorId).getOrElse {
-      throw UnknownError(errorId)
-    }
-  }
-
-  implicit val typeWrites: Writes[Type] =
-    Writes((error: Type) => JsString(error.id))
+  implicit val typeFormats = EnumFormats.formats(Type, insensitive = true)
 
   /**
     * Codes taken from https://stripe.com/docs/api#errors
     *
     * @param id
     */
-  sealed abstract class Code(val id: String)
-
-  case class UnknownCode(val id: String) extends Exception {
-    override def getMessage = "Unknown Error code, received $id"
+  sealed abstract class Code(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Code {
+  object Code extends Enum[Code] {
+
+    val values = findValues
 
     case object InvalidNumber extends Code("invalid_number")
 
@@ -80,18 +71,9 @@ object Errors {
 
     case object ProcessingError extends Code("processing_error")
 
-    lazy val all: Set[Code] = SealedContents.values[Code]
   }
 
-  implicit val codeReads: Reads[Code] = Reads.of[String].map { codeId =>
-    Code.all.find(_.id == codeId).getOrElse {
-      throw UnknownCode(codeId)
-    }
-  }
-
-  implicit val codeWrites: Writes[Code] =
-    Writes((code: Code) => JsString(code.id))
-
+  implicit val codeFormats = EnumFormats.formats(Code, insensitive = true)
 
   sealed abstract class Error(val httpCode: Long,
                               val `type`: Type,

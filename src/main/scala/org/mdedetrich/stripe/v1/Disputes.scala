@@ -1,6 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import org.mdedetrich.utforsca.SealedContents
+import enumeratum._
 import org.joda.time.DateTime
 import org.mdedetrich.stripe.v1.Balances._
 import play.api.libs.json._
@@ -189,13 +189,13 @@ object Disputes {
       )
     )
 
-  sealed abstract class Reason(val id: String)
-
-  case class UnknownReason(val id: String) extends Exception {
-    override def getMessage = s"Unknown Dispute Reason, received $id"
+  sealed abstract class Reason(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Reason {
+  object Reason extends Enum[Reason] {
+
+    val values = findValues
 
     case object Duplicate extends Reason("duplicate")
 
@@ -221,25 +221,17 @@ object Disputes {
 
     case object General extends Reason("general")
 
-    lazy val all: Set[Reason] = SealedContents.values[Reason]
   }
 
-  implicit val reasonReads: Reads[Reason] = Reads.of[String].map { reasonId =>
-    Reason.all.find(_.id == reasonId).getOrElse {
-      throw new UnknownReason(reasonId)
-    }
+  implicit val reasonFormats = EnumFormats.formats(Reason, insensitive = true)
+
+  sealed abstract class Status(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  implicit val reasonWrites: Writes[Reason] =
-    Writes((reason: Reason) => JsString(reason.id))
+  object Status extends Enum[Status] {
 
-  sealed abstract class Status(val id: String)
-
-  case class UnknownStatus(val id: String) extends Exception {
-    override def getMessage = s"Unknown Dispute Status, received $id"
-  }
-
-  object Status {
+    val values = findValues
 
     case object WarningNeedsResponse extends Status("warning_needs_response")
 
@@ -259,17 +251,9 @@ object Disputes {
 
     case object Lost extends Status("lost")
 
-    lazy val all: Set[Status] = SealedContents.values[Status]
   }
 
-  implicit val statusReads: Reads[Status] = Reads.of[String].map { statusId =>
-    Status.all.find(_.id == statusId).getOrElse {
-      throw UnknownStatus(statusId)
-    }
-  }
-
-  implicit val statusWrites: Writes[Status] =
-    Writes((status: Status) => JsString(status.id))
+  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   case class Dispute(id: String,
                      amount: BigDecimal,

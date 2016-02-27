@@ -3,6 +3,7 @@ package org.mdedetrich.stripe.v1
 import com.typesafe.scalalogging.LazyLogging
 import dispatch.Defaults._
 import dispatch._
+import enumeratum._
 import org.joda.time.DateTime
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.Cards._
@@ -12,7 +13,6 @@ import org.mdedetrich.stripe.v1.Refunds.RefundsData
 import org.mdedetrich.stripe.v1.Shippings.Shipping
 import org.mdedetrich.stripe.v1.Sources.BaseCardSource
 import org.mdedetrich.stripe.{IdempotencyKey, ApiKey, Endpoint, InvalidJsonModelException}
-import org.mdedetrich.utforsca.SealedContents
 import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -41,29 +41,21 @@ object Charges extends LazyLogging {
       )
     )
 
-  sealed abstract class Status(val id: String)
-
-  case class UnknownStatus(val id: String) extends Exception {
-    override def getMessage = s"Unknown Charge Status, received $id"
+  sealed abstract class Status(val id: String) extends EnumEntry {
+    override val entryName = id
   }
 
-  object Status {
+  object Status extends Enum[Status] {
+
+    val values = findValues
 
     case object Succeeded extends Status("succeeded")
 
     case object Failed extends Status("failed")
 
-    lazy val all: Set[Status] = SealedContents.values[Status]
   }
 
-  implicit val statusReads: Reads[Status] = Reads.of[String].map { statusId =>
-    Status.all.find(_.id == statusId).getOrElse {
-      throw UnknownStatus(statusId)
-    }
-  }
-
-  implicit val statusWrites: Writes[Status] =
-    Writes((status: Status) => JsString(status.id))
+  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   case class Charge(id: String,
                     amount: BigDecimal,

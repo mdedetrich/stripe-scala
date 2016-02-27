@@ -113,17 +113,18 @@ package object v1 {
         Right(Parser.parseFromByteBuffer(response.getResponseBodyAsByteBuffer))
       case 400 | 401 | 402 | 404 | 429 =>
         val jsonResponse = Parser.parseFromByteBuffer(response.getResponseBodyAsByteBuffer).map { jsValue =>
+          val path = __ \ "error"
           val jsResult: JsResult[Error] = httpCode match {
             case 400 =>
-              (__ \ "error").read[Error.BadRequest].reads(jsValue)
+              path.read[Error.BadRequest].reads(jsValue)
             case 401 =>
-              (__ \ "error").read[Error.Unauthorized].reads(jsValue)
+              path.read[Error.Unauthorized].reads(jsValue)
             case 402 =>
-              (__ \ "error").read[Error.RequestFailed].reads(jsValue)
+              path.read[Error.RequestFailed].reads(jsValue)
             case 404 =>
-              (__ \ "error").read[Error.NotFound].reads(jsValue)
+              path.read[Error.NotFound].reads(jsValue)
             case 429 =>
-              (__ \ "error").read[Error.TooManyRequests].reads(jsValue)
+              path.read[Error.TooManyRequests].reads(jsValue)
           }
 
           val error = jsResult.fold(

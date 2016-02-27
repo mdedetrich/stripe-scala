@@ -1,7 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import org.mdedetrich.utforsca.SealedContents
-import play.api.libs.json.{JsString, Reads, Writes}
+import enumeratum._
 
 sealed abstract class CurrencyGroup
 
@@ -17,9 +16,15 @@ case object CurrencyGroup2 extends CurrencyGroup
   * @param americanExpress Whether the code supports American Express on Stripe
   */
 
-sealed abstract class Currency(val iso: String, val currencyGroup: CurrencyGroup, val americanExpress: Boolean = true)
+sealed abstract class Currency(val iso: String,
+                               val currencyGroup: CurrencyGroup,
+                               val americanExpress: Boolean = true) extends EnumEntry {
+  override val entryName = iso
+}
 
-object Currency {
+object Currency extends Enum[Currency] {
+
+  val values = findValues
 
   case object `United Arab Emirates Dirham` extends Currency("AED", CurrencyGroup1)
 
@@ -289,19 +294,6 @@ object Currency {
 
   case object `Zambian Kwacha` extends Currency("ZMW", CurrencyGroup2)
 
-  lazy val all: Set[Currency] = SealedContents.values[Currency]
-
-  case class UnknownCurrency(val iso: String) extends Exception {
-    override def getMessage = s"Unknown Currency, received ${iso.toUpperCase}"
-  }
-
-  implicit val currencyReads: Reads[Currency] = Reads.of[String].map { iso =>
-    all.find(_.iso == iso.toUpperCase).getOrElse {
-      throw UnknownCurrency(iso)
-    }
-  }
-
-  implicit val currencyWrites: Writes[Currency] =
-    Writes { (currency: Currency) => JsString(currency.iso.toLowerCase) }
+  implicit val currencyFormats = EnumFormats.formats(Currency, insensitive = true)
 
 }
