@@ -86,7 +86,7 @@ object Customers extends LazyLogging {
   implicit val customerReads: Reads[Customer] = (
     (__ \ "id").read[String] ~
       (__ \ "account_balance").read[BigDecimal] ~
-      (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "default_source").read[String] ~
       (__ \ "delinquent").read[Boolean] ~
@@ -105,7 +105,7 @@ object Customers extends LazyLogging {
       "id" -> customer.id,
       "object" -> "customer",
       "account_balance" -> customer.accountBalance,
-      "created" -> customer.created.getMillis / 1000,
+      "created" -> Json.toJson(customer.created)(stripeDateTimeWrites),
       "currency" -> customer.currency,
       "default_source" -> customer.defaultSource,
       "delinquent" -> customer.delinquent,
@@ -273,9 +273,7 @@ object Customers extends LazyLogging {
       (__ \ "shipping").readNullable[Shipping] ~
       (__ \ "source").readNullable[Source] ~
       (__ \ "tax_percent").readNullable[BigDecimal] ~
-      (__ \ "trial_end").readNullable[Long].map {
-        _.map { timestamp => new DateTime(timestamp * 1000) }
-      }
+      (__ \ "trial_end").readNullable[DateTime](stripeDateTimeReads)
     ).tupled.map((CustomerInput.apply _).tupled)
 
   implicit val customerInputWrites: Writes[CustomerInput] =
@@ -291,7 +289,7 @@ object Customers extends LazyLogging {
         "shipping" -> customerInput.shipping,
         "source" -> customerInput.source,
         "tax_percent" -> customerInput.taxPercent,
-        "trial_end" -> customerInput.trialEnd.map(_.getMillis / 1000)
+        "trial_end" -> customerInput.trialEnd.map(x => Json.toJson(x)(stripeDateTimeWrites))
       )
     )
 
@@ -308,7 +306,7 @@ object Customers extends LazyLogging {
         "plan" -> customerInput.plan,
         "quantity" -> customerInput.quantity.map(_.toString),
         "tax_percent" -> customerInput.taxPercent.map(_.toString()),
-        "trial_end" -> customerInput.trialEnd.map(dateTime => (dateTime.getMillis / 1000).toString)
+        "trial_end" -> customerInput.trialEnd.map(stripeDateTimeParamWrites)
       ).collect {
         case (k, Some(v)) => (k, v)
       }

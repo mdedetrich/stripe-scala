@@ -164,9 +164,9 @@ object Transfers {
       (__ \ "application_fee").read[BigDecimal] ~
       (__ \ "balance_transaction").read[String] ~
       (__ \ "bank_account").read[BankAccount] ~
-      (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
-      (__ \ "date").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "date").read[DateTime](stripeDateTimeReads) ~
       (__ \ "description").read[String] ~
       (__ \ "destination").read[String] ~
       (__ \ "destination_payment").readNullable[String] ~
@@ -207,9 +207,9 @@ object Transfers {
         "application_fee" -> transfer.applicationFee,
         "balance_transaction" -> transfer.balanceTransaction,
         "bank_account" -> transfer.bankAccount,
-        "created" -> transfer.created.getMillis / 1000,
+        "created" -> Json.toJson(transfer.created)(stripeDateTimeWrites),
         "currency" -> transfer.currency,
-        "date" -> transfer.date.getMillis / 1000,
+        "date" -> Json.toJson(transfer.date)(stripeDateTimeWrites),
         "description" -> transfer.description,
         "destination" -> transfer.destination,
         "destination_payment" -> transfer.destinationPayment,

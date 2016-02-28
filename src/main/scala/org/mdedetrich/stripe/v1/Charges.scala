@@ -139,7 +139,7 @@ object Charges extends LazyLogging {
       (__ \ "application_fee").readNullable[String] ~
       (__ \ "balance_transaction").read[String] ~
       (__ \ "captured").read[Boolean] ~
-      (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "customer").readNullable[String] ~
       (__ \ "description").read[String] ~
@@ -242,7 +242,7 @@ object Charges extends LazyLogging {
         "application_fee" -> charge.applicationFee,
         "balance_transaction" -> charge.balanceTransaction,
         "captured" -> charge.captured,
-        "created" -> charge.created.getMillis / 1000,
+        "created" -> Json.toJson(charge.created)(stripeDateTimeWrites),
         "currency" -> charge.currency,
         "customer" -> charge.customer,
         "description" -> charge.description,

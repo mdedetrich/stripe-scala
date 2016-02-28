@@ -140,8 +140,8 @@ object Balances {
   implicit val balanceTransactionReads: Reads[BalanceTransaction] = (
     (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
-      (__ \ "available_on").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
-      (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "available_on").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "description").read[String] ~
       (__ \ "fee").read[BigDecimal] ~
@@ -160,8 +160,8 @@ object Balances {
         "object" -> "balance_transaction",
         "amount" -> balanceTransaction.amount,
         "currency" -> balanceTransaction.currency,
-        "available_on" -> balanceTransaction.availableOn.getMillis / 1000,
-        "created" -> balanceTransaction.created.getMillis / 1000,
+        "available_on" -> Json.toJson(balanceTransaction.availableOn)(stripeDateTimeWrites),
+        "created" -> Json.toJson(balanceTransaction.created)(stripeDateTimeWrites),
         "description" -> balanceTransaction.description,
         "fee" -> balanceTransaction.fee,
         "fee_details" -> balanceTransaction.feeDetails,

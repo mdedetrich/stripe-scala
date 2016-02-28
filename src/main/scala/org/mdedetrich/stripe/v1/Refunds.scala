@@ -45,7 +45,7 @@ object Refunds {
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "balance_transaction").read[String] ~
       (__ \ "charge").read[String] ~
-      (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "reason").read[Reason] ~
@@ -60,7 +60,7 @@ object Refunds {
         "amount" -> refundData.amount,
         "balanceTransaction" -> refundData.balanceTransaction,
         "charge" -> refundData.charge,
-        "created" -> refundData.created.getMillis / 1000,
+        "created" -> Json.toJson(refundData.created)(stripeDateTimeWrites),
         "currency" -> refundData.currency,
         "metadata" -> refundData.metadata,
         "reason" -> refundData.reason,

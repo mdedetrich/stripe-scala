@@ -74,7 +74,7 @@ object Coupons extends LazyLogging {
   implicit val couponReads: Reads[Coupon] = (
     (__ \ "id").read[String] ~
       (__ \ "amount_off").readNullable[Long] ~
-      (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").readNullable[Currency] ~
       (__ \ "duration").read[Duration] ~
       (__ \ "duration_in_months").readNullable[Long] ~
@@ -82,11 +82,7 @@ object Coupons extends LazyLogging {
       (__ \ "max_redemptions").readNullable[Long] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "percent_off").readNullable[BigDecimal] ~
-      (__ \ "redeem_by").readNullable[Long].map {
-        maybeTimestamp => maybeTimestamp.map { timestamp =>
-          new DateTime(timestamp * 1000)
-        }
-      } ~
+      (__ \ "redeem_by").readNullable[DateTime](stripeDateTimeReads) ~
       (__ \ "times_redeemed").read[Long] ~
       (__ \ "valid").read[Boolean]
     ).tupled.map((Coupon.apply _).tupled)
@@ -97,7 +93,7 @@ object Coupons extends LazyLogging {
         "id" -> coupon.id,
         "object" -> "coupon",
         "amount_off" -> coupon.amountOff,
-        "created" -> coupon.created.getMillis / 1000,
+        "created" -> Json.toJson(coupon.created)(stripeDateTimeWrites),
         "currency" -> coupon.amountOff,
         "duration" -> coupon.duration,
         "duration_in_months" -> coupon.durationInMonths,
@@ -105,7 +101,7 @@ object Coupons extends LazyLogging {
         "max_redemptions" -> coupon.maxRedemptions,
         "metadata" -> coupon.metadata,
         "percent_off" -> coupon.percentOff,
-        "redeem_by" -> coupon.redeemBy.map(_.getMillis / 1000),
+        "redeem_by" -> coupon.redeemBy.map(x => Json.toJson(x)(stripeDateTimeWrites)),
         "times_redeemed" -> coupon.timesRedeemed,
         "valid" -> coupon.valid
       )
@@ -145,7 +141,7 @@ object Coupons extends LazyLogging {
       (__ \ "max_redemptions").readNullable[Long] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "percent_off").readNullable[BigDecimal] ~
-      (__ \ "redeemBy").readNullable[Long].map(_.map { timestamp => new DateTime(timestamp * 1000) })
+      (__ \ "redeemBy").readNullable[DateTime](stripeDateTimeReads)
     ).tupled.map((CouponInput.apply _).tupled)
 
   implicit val couponInputWrites: Writes[CouponInput] =
@@ -159,7 +155,7 @@ object Coupons extends LazyLogging {
         "max_redemptions" -> couponInput.maxRedemptions,
         "metadata" -> couponInput.metadata,
         "percent_off" -> couponInput.percentOff,
-        "redeemBy" -> couponInput.redeemBy.map(_.getMillis / 1000)
+        "redeemBy" -> couponInput.redeemBy.map(x => Json.toJson(x)(stripeDateTimeWrites))
       )
     )
 
@@ -176,7 +172,7 @@ object Coupons extends LazyLogging {
         "duration_in_months" -> couponInput.durationInMonths.map(_.toString),
         "max_redemptions" -> couponInput.maxRedemptions.map(_.toString),
         "percent_off" -> couponInput.percentOff.map(_.toString()),
-        "redeemBy" -> couponInput.redeemBy.map(dateTime => (dateTime.getMillis / 1000).toString)
+        "redeemBy" -> couponInput.redeemBy.map(stripeDateTimeParamWrites)
       ).collect {
         case (k, Some(v)) => (k, v)
       }

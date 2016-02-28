@@ -94,28 +94,20 @@ object Subscriptions extends LazyLogging {
     (__ \ "id").read[String] ~
       (__ \ "application_fee_percent").readNullable[BigDecimal] ~
       (__ \ "cancel_at_period_end").read[Boolean] ~
-      (__ \ "canceled_at").readNullable[Long].map {
-        _.map { timestamp => new DateTime(timestamp * 1000) }
-      } ~
-      (__ \ "current_period_end").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
-      (__ \ "current_period_start").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "canceled_at").readNullable[DateTime](stripeDateTimeReads) ~
+      (__ \ "current_period_end").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "current_period_start").read[DateTime](stripeDateTimeReads) ~
       (__ \ "customer").read[String] ~
       (__ \ "discount").readNullable[Discount] ~
-      (__ \ "ended_at").readNullable[Long].map {
-        _.map { timestamp => new DateTime(timestamp * 1000) }
-      } ~
+      (__ \ "ended_at").readNullable[DateTime](stripeDateTimeReads) ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "plan").read[Plan] ~
       (__ \ "quantity").read[Long] ~
-      (__ \ "start").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "start").read[DateTime](stripeDateTimeReads) ~
       (__ \ "status").read[Status] ~
       (__ \ "tax_percent").readNullable[BigDecimal] ~
-      (__ \ "trial_end").readNullable[Long].map {
-        _.map { timestamp => new DateTime(timestamp * 1000) }
-      } ~
-      (__ \ "trial_start").readNullable[Long].map {
-        _.map { timestamp => new DateTime(timestamp * 1000) }
-      }
+      (__ \ "trial_end").readNullable[DateTime](stripeDateTimeReads) ~
+      (__ \ "trial_start").readNullable[DateTime](stripeDateTimeReads)
     ).tupled.map((Subscription.apply _).tupled)
 
   implicit val subscriptionWrites: Writes[Subscription] =
@@ -125,20 +117,20 @@ object Subscriptions extends LazyLogging {
         "object" -> "subscription",
         "application_fee_percent" -> subscription.applicationFeePercent,
         "cancel_at_period_end" -> subscription.cancelAtPeriodEnd,
-        "canceled_at" -> subscription.canceledAt.map(_.getMillis / 1000),
-        "current_period_end" -> subscription.currentPeriodEnd.getMillis / 1000,
-        "current_period_start" -> subscription.currentPeriodStart.getMillis / 1000,
+        "canceled_at" -> subscription.canceledAt.map(x => Json.toJson(x)(stripeDateTimeWrites)),
+        "current_period_end" -> Json.toJson(subscription.currentPeriodEnd)(stripeDateTimeWrites),
+        "current_period_start" -> Json.toJson(subscription.currentPeriodStart)(stripeDateTimeWrites),
         "customer" -> subscription.customer,
         "discount" -> subscription.discount,
-        "ended_at" -> subscription.endedAt.map(_.getMillis / 1000),
+        "ended_at" -> subscription.endedAt.map(x => Json.toJson(x)(stripeDateTimeWrites)),
         "metadata" -> subscription.metadata,
         "plan" -> subscription.plan,
         "quantity" -> subscription.quantity,
         "start" -> subscription.start,
         "status" -> subscription.status,
         "tax_percent" -> subscription.taxPercent,
-        "trial_end" -> subscription.trialEnd.map(_.getMillis / 1000),
-        "trial_start" -> subscription.trialStart.map(_.getMillis / 1000)
+        "trial_end" -> subscription.trialEnd.map(x => Json.toJson(x)(stripeDateTimeWrites)),
+        "trial_start" -> subscription.trialStart.map(x => Json.toJson(x)(stripeDateTimeWrites))
       )
     )
 
@@ -251,7 +243,7 @@ object Subscriptions extends LazyLogging {
         "plan" -> Option(subscriptionInput.plan),
         "quantity" -> subscriptionInput.quantity.map(_.toString),
         "tax_percent" -> subscriptionInput.taxPercent.map(_.toString()),
-        "trial_end" -> subscriptionInput.trialEnd.map(dateTime => (dateTime.getMillis / 1000).toString)
+        "trial_end" -> subscriptionInput.trialEnd.map(stripeDateTimeParamWrites)
       ).collect {
         case (k, Some(v)) => (k, v)
       }

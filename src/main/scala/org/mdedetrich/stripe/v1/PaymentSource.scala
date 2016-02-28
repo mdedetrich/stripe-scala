@@ -241,7 +241,7 @@ object BitcoinReceivers extends LazyLogging {
     (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "bitcoin_amount").read[BigDecimal] ~
-      (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "receiver").read[String]
     ).tupled.map((Transaction.apply _).tupled)
@@ -253,7 +253,7 @@ object BitcoinReceivers extends LazyLogging {
         "object" -> "list",
         "amount" -> transaction.amount,
         "bitcoin_amount" -> transaction.bitcoinAmount,
-        "created" -> transaction.created.getMillis / 1000,
+        "created" -> Json.toJson(transaction.created)(stripeDateTimeWrites),
         "currency" -> transaction.currency,
         "receiver" -> transaction.receiver
       )
@@ -356,7 +356,7 @@ object BitcoinReceivers extends LazyLogging {
       (__ \ "bitcoin_amount").read[BigDecimal] ~
       (__ \ "bitcoin_amount_received").read[BigDecimal] ~
       (__ \ "bitcoin_uri").read[String] ~
-      (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "customer").read[String] ~
       (__ \ "description").read[String] ~
@@ -383,7 +383,7 @@ object BitcoinReceivers extends LazyLogging {
         "bitcoin_amount" -> bitcoinReceiver.bitcoinAmount,
         "bitcoin_amount_received" -> bitcoinReceiver.bitcoinAmountReceived,
         "bitcoin_uri" -> bitcoinReceiver.bitcoinUri,
-        "created" -> bitcoinReceiver.created.getMillis / 1000,
+        "created" -> Json.toJson(bitcoinReceiver.created)(stripeDateTimeWrites),
         "currency" -> bitcoinReceiver.currency,
         "customer" -> bitcoinReceiver.customer,
         "description" -> bitcoinReceiver.description,

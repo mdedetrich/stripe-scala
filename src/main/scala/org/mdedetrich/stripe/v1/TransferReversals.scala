@@ -19,7 +19,7 @@ object TransferReversals {
     (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "balance_transaction").read[String] ~
-      (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "transfer").read[String]
@@ -32,7 +32,7 @@ object TransferReversals {
         "object" -> "transfer_reversal",
         "amount" -> transferReversal.amount,
         "balance_transaction" -> transferReversal.balanceTransaction,
-        "created" -> transferReversal.created.getMillis / 1000,
+        "created" -> Json.toJson(transferReversal.created)(stripeDateTimeWrites),
         "currency" -> transferReversal.currency,
         "metadata" -> transferReversal.metadata,
         "transfer" -> transferReversal.transfer

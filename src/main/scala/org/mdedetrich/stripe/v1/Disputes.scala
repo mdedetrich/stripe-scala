@@ -173,7 +173,7 @@ object Disputes {
                              submissionCount: Long)
 
   implicit val evidenceDetailsReads: Reads[EvidenceDetails] = (
-    (__ \ "due_by").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+    (__ \ "due_by").read[DateTime](stripeDateTimeReads) ~
       (__ \ "has_evidence").read[Boolean] ~
       (__ \ "past_due").read[Boolean] ~
       (__ \ "submission_count").read[Long]
@@ -182,7 +182,7 @@ object Disputes {
   implicit val evidenceDetailsWrites: Writes[EvidenceDetails] =
     Writes((evidenceDetails: EvidenceDetails) =>
       Json.obj(
-        "due_by" -> evidenceDetails.dueBy.getMillis / 1000,
+        "due_by" -> Json.toJson(evidenceDetails.dueBy)(stripeDateTimeWrites),
         "has_evidence" -> evidenceDetails.hasEvidence,
         "past_due" -> evidenceDetails.pastDue,
         "submission_count" -> evidenceDetails.submissionCount
@@ -274,7 +274,7 @@ object Disputes {
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "balance_transactions").read[List[BalanceTransaction]] ~
       (__ \ "charge").read[String] ~
-      (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "evidence").read[DisputeEvidence] ~
       (__ \ "evidence_details").read[EvidenceDetails] ~
@@ -293,7 +293,7 @@ object Disputes {
         "amount" -> dispute.amount,
         "balance_transactions" -> dispute.balanceTransactions,
         "charge" -> dispute.charge,
-        "created" -> dispute.created.getMillis / 1000,
+        "created" -> Json.toJson(dispute.created)(stripeDateTimeWrites),
         "currency" -> dispute.currency,
         "evidence" -> dispute.evidence,
         "evidence_details" -> dispute.evidenceDetails,

@@ -17,8 +17,8 @@ object Discounts {
   implicit val discountReads: Reads[Discount] = (
     (__ \ "coupon").read[Coupon] ~
       (__ \ "customer").read[String] ~
-      (__ \ "end").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
-      (__ \ "start").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "end").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "start").read[DateTime](stripeDateTimeReads) ~
       (__ \ "subscription").readNullable[String]
     ).tupled.map((Discount.apply _).tupled)
 
@@ -28,8 +28,8 @@ object Discounts {
         "object" -> "discount",
         "coupon" -> discount.coupon,
         "customer" -> discount.customer,
-        "end" -> discount.end.getMillis / 1000,
-        "start" -> discount.start.getMillis / 1000,
+        "end" -> Json.toJson(discount.end)(stripeDateTimeWrites),
+        "start" -> Json.toJson(discount.start)(stripeDateTimeWrites),
         "subscription" -> discount.subscription
       )
     )

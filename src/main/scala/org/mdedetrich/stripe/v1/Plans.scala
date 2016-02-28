@@ -70,7 +70,7 @@ object Plans {
   implicit val planReads: Reads[Plan] = (
     (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
-      (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
+      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "interval").read[Interval] ~
       (__ \ "interval_count").read[Long] ~
@@ -78,11 +78,11 @@ object Plans {
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "name").read[String] ~
       (__ \ "quantity").readNullable[Long] ~
-      (__ \ "start").readNullable[Long].map(_.map { timestamp => new DateTime(timestamp * 1000) }) ~
+      (__ \ "start").readNullable[DateTime](stripeDateTimeReads) ~
       (__ \ "status").readNullable[Status] ~
       (__ \ "tax_percent").readNullable[BigDecimal] ~
-      (__ \ "trial_end").readNullable[Long].map(_.map { timestamp => new DateTime(timestamp * 1000) }) ~
-      (__ \ "trial_start").readNullable[Long].map(_.map { timestamp => new DateTime(timestamp * 1000) })
+      (__ \ "trial_end").readNullable[DateTime](stripeDateTimeReads) ~
+      (__ \ "trial_start").readNullable[DateTime](stripeDateTimeReads)
     ).tupled.map((Plan.apply _).tupled)
 
   implicit val planWrites: Writes[Plan] =
@@ -90,7 +90,7 @@ object Plans {
       "id" -> plan.id,
       "object" -> "plan",
       "amount" -> plan.amount,
-      "created" -> plan.created.getMillis / 1000,
+      "created" -> Json.toJson(plan.created)(stripeDateTimeWrites),
       "currency" -> plan.currency,
       "interval" -> plan.interval,
       "interval_count" -> plan.intervalCount,
@@ -98,10 +98,10 @@ object Plans {
       "metadata" -> plan.metadata,
       "name" -> plan.name,
       "quantity" -> plan.quantity,
-      "start" -> plan.start.map(datetime => datetime.getMillis / 1000),
+      "start" -> plan.start.map(x => Json.toJson(x)(stripeDateTimeWrites)),
       "status" -> plan.status,
       "tax_percent" -> plan.taxPercent,
-      "trial_end" -> plan.trialEnd.map(datetime => datetime.getMillis / 1000),
-      "trial_start" -> plan.trialStart.map(datetime => datetime.getMillis / 1000)
+      "trial_end" -> plan.trialEnd.map(x => Json.toJson(x)(stripeDateTimeWrites)),
+      "trial_start" -> plan.trialStart.map(x => Json.toJson(x)(stripeDateTimeWrites))
     ))
 }

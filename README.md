@@ -13,7 +13,8 @@ reading/writing JSON from/to scala case classes). It also provides a very powerf
 - [jawn](https://github.com/non/jawn) for parsing the response from dispatch to a play-json
 - [ficus](https://github.com/iheartradio/ficus) for providing config (via [typesafe-config](https://github.com/typesafehub/config))
 - [nscala-time](https://github.com/nscala-time/nscala-time) for date/time handling (via [JodaTime](http://www.joda.org/joda-time/))
-- [enumeratum](https://github.com/lloydmeta/enumeratum) for providing typesafe enumerations on stripe enum models as well play-json formats
+- [enumeratum](https://github.com/lloydmeta/enumeratum) for providing typesafe enumerations on stripe enum models as well 
+play-json formats for such models
 
 stripe-scala was intentionally designed to use bare minimum external dependencies so its easier to integrate with scala codebases
 
@@ -93,7 +94,24 @@ val source = Source.Card(expMonth,
                       )
 
 // Efficient way
-val source2 = Source.Card.default(expMonth,expYear,cardNumber).copy(cvc = Option(cvc))
+val source2 = Source.Card
+  .default(expMonth,expYear,cardNumber)
+  .copy(cvc = Option(cvc))
 ```
 The `.default` methods create an instance of the model with all of the `Optional` fields filled as `None`. Models
 that have no `Optional` fields do not have a `.default` method.
+
+### metadata
+
+Stripe provides a metadata field which is available as an input field to most of the stripe objects. The metadata in stripe-scala
+has a type of `Option[Map[String,String]]`. As you can see, the metadata is wrapped in an `Option`. This is to make working
+with metadata easier. If the map for the metadata happens to empty, the metadata will be `None`.
+
+### Timestamps
+
+Stripe represents all of its timestamps as unix timestamp numbers (https://support.stripe.com/questions/what-timezone-does-the-dashboard-and-api-use)
+however stripe-scala models store these timestamps as a JodaTime `DateTime`. stripe-scala handles converting the unix timestamp
+to `DateTime` and vice versa by using custom play-json writers/readers for JSON (`stripeDateTimeReads`/`stripeDateTimeWrites`) and
+`stripeDateTimeParamWrites` for form parameters.
+
+These functions are exposed publicly via the [package object](https://github.com/mdedetrich/stripe-scala/blob/master/src/main/scala/org/mdedetrich/stripe/v1/package.scala).
