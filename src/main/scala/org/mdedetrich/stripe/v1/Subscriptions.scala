@@ -59,6 +59,36 @@ object Subscriptions extends LazyLogging {
                           trialEnd: Option[DateTime],
                           trialStart: Option[DateTime]
                          )
+  
+  object Subscription {
+    def default(id: String,
+                cancelAtPeriod: Boolean,
+                customer: String,
+                currentPeriodEnd: DateTime,
+                currentPeriodStart: DateTime,
+                plan: Plan,
+                quantity: Long,
+                start: DateTime,
+                status: Status) = Subscription(
+      id,
+      None,
+      cancelAtPeriod,
+      None,
+      currentPeriodEnd,
+      currentPeriodStart,
+      customer,
+      None,
+      None,
+      None,
+      plan,
+      quantity,
+      start,
+      status,
+      None,
+      None,
+      None
+    )
+  }
 
   implicit val subscriptionReads: Reads[Subscription] = (
     (__ \ "id").read[String] ~
@@ -86,7 +116,7 @@ object Subscriptions extends LazyLogging {
       (__ \ "trial_start").readNullable[Long].map {
         _.map { timestamp => new DateTime(timestamp * 1000) }
       }
-    ).tupled.map(Subscription.tupled)
+    ).tupled.map((Subscription.apply _).tupled)
 
   implicit val subscriptionWrites: Writes[Subscription] =
     Writes((subscription: Subscription) =>
@@ -118,8 +148,8 @@ object Subscriptions extends LazyLogging {
 
     case class Token(val id: String) extends Source
 
-    case class Card(val expMonth: Long,
-                    val expYear: Long,
+    case class Card(val expMonth: Int,
+                    val expYear: Int,
                     val number: String,
                     val addressCountry: Option[String],
                     val addressLine1: Option[String],
@@ -135,8 +165,8 @@ object Subscriptions extends LazyLogging {
   implicit val sourceReads: Reads[Source] = {
     __.read[JsValue].flatMap {
       case jsObject: JsObject => (
-        (__ \ "exp_month").read[Long] ~
-          (__ \ "exp_year").read[Long] ~
+        (__ \ "exp_month").read[Int] ~
+          (__ \ "exp_year").read[Int] ~
           (__ \ "number").read[String] ~
           (__ \ "address_country").readNullable[String] ~
           (__ \ "address_line1").readNullable[String] ~
@@ -145,7 +175,7 @@ object Subscriptions extends LazyLogging {
           (__ \ "address_zip").readNullable[String] ~
           (__ \ "cvc").readNullable[String] ~
           (__ \ "name").readNullable[String]
-        ).tupled.map(Source.Card.tupled)
+        ).tupled.map((Source.Card.apply _).tupled)
       case jsString: JsString =>
         __.read[String].map { tokenId => Source.Token(tokenId) }
       case _ =>
@@ -195,6 +225,19 @@ object Subscriptions extends LazyLogging {
                                taxPercent: Option[BigDecimal],
                                trialEnd: Option[DateTime]
                               )
+  
+  object SubscriptionInput {
+    def default(plan: String): SubscriptionInput = SubscriptionInput(
+      None,
+      None,
+      plan,
+      None,
+      None,
+      None,
+      None,
+      None
+    )
+  }
 
   def create(subscriptionInput: SubscriptionInput)
             (idempotencyKey: Option[IdempotencyKey] = None)

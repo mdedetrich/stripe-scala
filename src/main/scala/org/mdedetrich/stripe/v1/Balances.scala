@@ -151,7 +151,7 @@ object Balances {
       (__ \ "sourced_transfers").read[SourcedTransfers] ~
       (__ \ "status").read[Status] ~
       (__ \ "type").read[Type]
-    ).tupled.map(BalanceTransaction.tupled)
+    ).tupled.map((BalanceTransaction.apply _).tupled)
 
   implicit val balanceTransactionWrites: Writes[BalanceTransaction] =
     Writes((balanceTransaction: BalanceTransaction) =>

@@ -177,7 +177,7 @@ object Disputes {
       (__ \ "has_evidence").read[Boolean] ~
       (__ \ "past_due").read[Boolean] ~
       (__ \ "submission_count").read[Long]
-    ).tupled.map(EvidenceDetails.tupled)
+    ).tupled.map((EvidenceDetails.apply _).tupled)
 
   implicit val evidenceDetailsWrites: Writes[EvidenceDetails] =
     Writes((evidenceDetails: EvidenceDetails) =>
@@ -283,7 +283,7 @@ object Disputes {
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "reason").read[Reason] ~
       (__ \ "status").read[Status]
-    ).tupled.map(Dispute.tupled)
+    ).tupled.map((Dispute.apply _).tupled)
 
   implicit val disputeWrites: Writes[Dispute] =
     Writes((dispute: Dispute) =>

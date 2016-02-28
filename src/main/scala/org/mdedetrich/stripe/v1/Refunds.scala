@@ -50,7 +50,7 @@ object Refunds {
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "reason").read[Reason] ~
       (__ \ "receipt_number").read[String]
-    ).tupled.map(RefundData.tupled)
+    ).tupled.map((RefundData.apply _).tupled)
 
 
   implicit val refundDataWrites: Writes[RefundData] =
@@ -78,7 +78,7 @@ object Refunds {
       (__ \ "has_more").read[Boolean] ~
       (__ \ "total_count").read[Long] ~
       (__ \ "url").read[String]
-    ).tupled.map(RefundsData.tupled)
+    ).tupled.map((RefundsData.apply _).tupled)
 
   implicit val refundsDataWrites: Writes[RefundsData] =
     Writes((refundsData: RefundsData) =>
@@ -106,7 +106,7 @@ object Refunds {
       (__ \ "reason").read[Reason] ~
       (__ \ "refund_application_fee").read[Boolean] ~
       (__ \ "reverse_transfer").read[Boolean]
-    ).tupled.map(RefundInput.tupled)
+    ).tupled.map((RefundInput.apply _ ).tupled)
 
 
   implicit val refundInputWrites: Writes[RefundInput] =

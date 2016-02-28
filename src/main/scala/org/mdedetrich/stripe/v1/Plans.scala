@@ -83,7 +83,7 @@ object Plans {
       (__ \ "tax_percent").readNullable[BigDecimal] ~
       (__ \ "trial_end").readNullable[Long].map(_.map { timestamp => new DateTime(timestamp * 1000) }) ~
       (__ \ "trial_start").readNullable[Long].map(_.map { timestamp => new DateTime(timestamp * 1000) })
-    ).tupled.map(Plan.tupled)
+    ).tupled.map((Plan.apply _).tupled)
 
   implicit val planWrites: Writes[Plan] =
     Writes((plan: Plan) => Json.obj(

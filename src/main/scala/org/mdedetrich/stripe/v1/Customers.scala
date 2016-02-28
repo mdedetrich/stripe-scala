@@ -29,7 +29,7 @@ object Customers extends LazyLogging {
       (__ \ "has_more").read[Boolean] ~
       (__ \ "total_count").read[Long] ~
       (__ \ "url").read[String]
-    ).tupled.map(Sources.tupled)
+    ).tupled.map((Sources.apply _).tupled)
 
   implicit val sourcesWrites: Writes[Sources] = {
     Writes((sources: Sources) => Json.obj(
@@ -54,6 +54,34 @@ object Customers extends LazyLogging {
                       shipping: Shipping,
                       sources: Sources,
                       subscriptions: List[Subscription]) extends StripeObject
+  
+  object Customer {
+    def default(id: String,
+                accountBalance: BigDecimal,
+                created: DateTime,
+                currency: Currency,
+                defaultSource: String,
+                delinquent: Boolean,
+                livemode: Boolean,
+                shipping: Shipping,
+                sources: Sources,
+                subscriptions: List[Subscription]): Customer = Customer(
+      id,
+      accountBalance,
+      created,
+      currency,
+      defaultSource,
+      delinquent,
+      None,
+      None,
+      None,
+      livemode,
+      None,
+      shipping,
+      sources,
+      subscriptions
+    )
+  }
 
   implicit val customerReads: Reads[Customer] = (
     (__ \ "id").read[String] ~
@@ -70,7 +98,7 @@ object Customers extends LazyLogging {
       (__ \ "shipping").read[Shipping] ~
       (__ \ "sources").read[Sources] ~
       (__ \ "subscriptions" \ "data").read[List[Subscription]]
-    ).tupled.map(Customer.tupled)
+    ).tupled.map((Customer.apply _).tupled)
 
   implicit val customerWrites: Writes[Customer] =
     Writes((customer: Customer) => Json.obj(
@@ -97,8 +125,8 @@ object Customers extends LazyLogging {
 
     case class Token(val id: String) extends Source
 
-    case class Card(expMonth: Long,
-                    expYear: Long,
+    case class Card(expMonth: Int,
+                    expYear: Int,
                     number: String,
                     addressCity: Option[String],
                     addressCountry: Option[String],
@@ -112,6 +140,28 @@ object Customers extends LazyLogging {
                     metadata: Option[Map[String, String]],
                     name: Option[String]
                    ) extends Source with BaseCardSource
+    
+    object Card {
+      def default(expMonth: Int,
+                  expYear: Int,
+                  number: String
+                 ): Card = Card(
+        expMonth,
+        expYear,
+        number,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None
+      )
+    }
 
   }
 
@@ -119,8 +169,8 @@ object Customers extends LazyLogging {
     __.read[JsValue].flatMap {
       case jsObject: JsObject =>
         (
-          (__ \ "exp_month").read[Long] ~
-            (__ \ "exp_year").read[Long] ~
+          (__ \ "exp_month").read[Int] ~
+            (__ \ "exp_year").read[Int] ~
             (__ \ "number").read[String] ~
             (__ \ "address_city").readNullable[String] ~
             (__ \ "address_country").readNullable[String] ~
@@ -133,7 +183,7 @@ object Customers extends LazyLogging {
             (__ \ "default_for_currency").readNullable[Boolean] ~
             (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
             (__ \ "name").readNullable[String]
-          ).tupled.map(Source.Card.tupled)
+          ).tupled.map((Source.Card.apply _).tupled)
       case jsString: JsString =>
         __.read[String].map { tokenId => Source.Token(tokenId) }
       case _ =>
@@ -195,6 +245,22 @@ object Customers extends LazyLogging {
                            taxPercent: Option[BigDecimal],
                            trialEnd: Option[DateTime]
                           )
+  
+  object CustomerInput {
+    def default: CustomerInput = CustomerInput(
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None
+    )
+  }
 
   implicit val customerInputReads: Reads[CustomerInput] = (
     (__ \ "account_balance").readNullable[BigDecimal] ~
@@ -210,7 +276,7 @@ object Customers extends LazyLogging {
       (__ \ "trial_end").readNullable[Long].map {
         _.map { timestamp => new DateTime(timestamp * 1000) }
       }
-    ).tupled.map(CustomerInput.tupled)
+    ).tupled.map((CustomerInput.apply _).tupled)
 
   implicit val customerInputWrites: Writes[CustomerInput] =
     Writes((customerInput: CustomerInput) =>

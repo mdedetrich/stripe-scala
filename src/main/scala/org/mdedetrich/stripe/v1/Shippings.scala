@@ -20,7 +20,7 @@ object Shippings {
       (__ \ "line2").readNullable[String] ~
       (__ \ "postal_code").readNullable[String] ~
       (__ \ "state").readNullable[String]
-    ).tupled.map(Address.tupled)
+    ).tupled.map((Address.apply _).tupled)
 
   implicit val addressWrites: Writes[Address] =
     Writes((address: Address) =>
@@ -47,7 +47,7 @@ object Shippings {
       (__ \ "name").readNullable[String] ~
       (__ \ "phone").readNullable[String] ~
       (__ \ "tracking_number").readNullable[String]
-    ).tupled.map(Shipping.tupled)
+    ).tupled.map((Shipping.apply _).tupled)
 
   implicit val shippingWrites: Writes[Shipping] =
     Writes((shipping: Shipping) =>

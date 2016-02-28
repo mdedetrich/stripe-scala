@@ -118,11 +118,11 @@ object Errors {
     ).tupled
 
 
-  implicit val badRequestReads: Reads[Error.BadRequest] = tupledErrorReads.map(Error.BadRequest.tupled)
-  implicit val unauthorizedReads: Reads[Error.Unauthorized] = tupledErrorReads.map(Error.Unauthorized.tupled)
-  implicit val requestFailedReads: Reads[Error.RequestFailed] = tupledErrorReads.map(Error.RequestFailed.tupled)
-  implicit val notFoundReads: Reads[Error.NotFound] = tupledErrorReads.map(Error.NotFound.tupled)
-  implicit val tooManyRequestsReads: Reads[Error.TooManyRequests] = tupledErrorReads.map(Error.TooManyRequests.tupled)
+  implicit val badRequestReads: Reads[Error.BadRequest] = tupledErrorReads.map((Error.BadRequest.apply _).tupled)
+  implicit val unauthorizedReads: Reads[Error.Unauthorized] = tupledErrorReads.map((Error.Unauthorized.apply _).tupled)
+  implicit val requestFailedReads: Reads[Error.RequestFailed] = tupledErrorReads.map((Error.RequestFailed.apply _).tupled)
+  implicit val notFoundReads: Reads[Error.NotFound] = tupledErrorReads.map((Error.NotFound.apply _).tupled)
+  implicit val tooManyRequestsReads: Reads[Error.TooManyRequests] = tupledErrorReads.map((Error.TooManyRequests.apply _).tupled)
 
   private def errorWrites(error: Error) =
     Json.obj(

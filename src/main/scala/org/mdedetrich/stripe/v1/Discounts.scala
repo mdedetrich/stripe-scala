@@ -20,7 +20,7 @@ object Discounts {
       (__ \ "end").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
       (__ \ "start").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
       (__ \ "subscription").readNullable[String]
-    ).tupled.map(Discount.tupled)
+    ).tupled.map((Discount.apply _).tupled)
 
   implicit val discountWrites: Writes[Discount] =
     Writes((discount: Discount) =>

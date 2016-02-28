@@ -86,6 +86,52 @@ object Charges extends LazyLogging {
                     statementDescriptor: Option[String],
                     status: Status)
 
+  object Charge {
+    def default(id: String,
+                amount: BigDecimal,
+                amountRefunded: BigDecimal,
+                balanceTransaction: String,
+                captured: Boolean,
+                created: DateTime,
+                currency: Currency,
+                description: String,
+                livemode: Boolean,
+                paid: Boolean,
+                refunded: Boolean,
+                source: Card,
+                status: Status
+               ): Charge = Charge(
+      id,
+      amount,
+      amountRefunded,
+      None,
+      balanceTransaction,
+      captured,
+      created,
+      currency,
+      None,
+      description,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      livemode,
+      None,
+      None,
+      paid,
+      None,
+      None,
+      refunded,
+      None,
+      None,
+      source,
+      None,
+      status
+    )
+  }
+
   private val chargeReadsOne = (
     (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
@@ -219,8 +265,8 @@ object Charges extends LazyLogging {
 
     case class Customer(val id: String) extends Source
 
-    case class Card(val expMonth: Long,
-                    val expYear: Long,
+    case class Card(val expMonth: Int,
+                    val expYear: Int,
                     val number: String,
                     val cvc: Option[String],
                     val addressCity: Option[String],
@@ -238,8 +284,8 @@ object Charges extends LazyLogging {
     __.read[JsValue].flatMap {
       case jsObject: JsObject =>
         (
-          (__ \ "exp_month").read[Long] ~
-            (__ \ "exp_year").read[Long] ~
+          (__ \ "exp_month").read[Int] ~
+            (__ \ "exp_year").read[Int] ~
             (__ \ "number").read[String] ~
             (__ \ "cvc").readNullable[String] ~
             (__ \ "address_city").readNullable[String] ~
@@ -249,7 +295,7 @@ object Charges extends LazyLogging {
             (__ \ "name").readNullable[String] ~
             (__ \ "address_state").readNullable[String] ~
             (__ \ "address_zip").readNullable[String]
-          ).tupled.map(Source.Card.tupled)
+          ).tupled.map((Source.Card.apply _).tupled)
       case jsString: JsString =>
         __.read[String].map { customerId => Source.Customer(customerId) }
       case _ =>
@@ -307,6 +353,27 @@ object Charges extends LazyLogging {
                          source: Source,
                          statementDescriptor: Option[String]) extends StripeObject
 
+  object ChargeInput {
+    def default(amount: BigDecimal,
+                currency: Currency,
+                capture: Boolean,
+                destination: String,
+                source: Source): ChargeInput = ChargeInput(
+      amount,
+      currency,
+      None,
+      capture,
+      None,
+      destination,
+      None,
+      None,
+      None,
+      None,
+      source,
+      None
+    )
+  }
+
   implicit val chargeInputReads: Reads[ChargeInput] = (
     (__ \ "amount").read[BigDecimal] ~
       (__ \ "currency").read[Currency] ~
@@ -320,7 +387,7 @@ object Charges extends LazyLogging {
       (__ \ "customer").readNullable[String] ~
       (__ \ "source").read[Source] ~
       (__ \ "statement_descriptor").readNullable[String]
-    ).tupled.map(ChargeInput.tupled)
+    ).tupled.map((ChargeInput.apply _).tupled)
 
   implicit val chargeInputWrites: Writes[ChargeInput] =
     Writes((chargeInput: ChargeInput) =>

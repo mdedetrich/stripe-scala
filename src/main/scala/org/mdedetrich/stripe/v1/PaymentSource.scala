@@ -141,6 +141,37 @@ object Cards {
                   metadata: Option[Map[String, String]],
                   name: Option[String],
                   tokenizationMethod: Option[TokenizationMethod]) extends StripeObject with PaymentSource
+  
+  object Card {
+    def default(id: String,
+                brand: Brand,
+                expMonth: Int,
+                expYear: Int,
+                funding: Funding,
+                last4: String): Card = Card(
+      id,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      brand,
+      None,
+      None,
+      None,
+      None,
+      expMonth,
+      expYear,
+      funding,
+      last4,
+      None,
+      None,
+      None
+    )
+  }
 
   implicit val cardReads: Reads[Card] = (
     (__ \ "id").read[String] ~
@@ -164,7 +195,7 @@ object Cards {
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "name").readNullable[String] ~
       (__ \ "tokenization_method").readNullable[TokenizationMethod]
-    ).tupled.map(Card.tupled)
+    ).tupled.map((Card.apply _).tupled)
 
   implicit val cardWrites: Writes[Card] =
     Writes((card: Card) =>
@@ -213,7 +244,7 @@ object BitcoinReceivers extends LazyLogging {
       (__ \ "created").read[Long].map { timestamp => new DateTime(timestamp * 1000) } ~
       (__ \ "currency").read[Currency] ~
       (__ \ "receiver").read[String]
-    ).tupled.map(Transaction.tupled)
+    ).tupled.map((Transaction.apply _).tupled)
 
   implicit val transactionWrites: Writes[Transaction] =
     Writes((transaction: Transaction) =>
@@ -239,7 +270,7 @@ object BitcoinReceivers extends LazyLogging {
       (__ \ "has_more").read[Boolean] ~
       (__ \ "total_count").read[Long] ~
       (__ \ "url").read[String]
-    ).tupled.map(BitcoinTransactions.tupled)
+    ).tupled.map((BitcoinTransactions.apply _).tupled)
 
   implicit val bitcoinTransactionsWrites: Writes[BitcoinTransactions] =
     Writes((bitcoinTransactions: BitcoinTransactions) =>
@@ -273,6 +304,49 @@ object BitcoinReceivers extends LazyLogging {
                              uncapturedFunds: Boolean,
                              usedForPayment: Boolean
                             ) extends StripeObject with PaymentSource
+  
+  object BitcoinReceiver {
+    def default(id: String,
+                active: Boolean,
+                amount: BigDecimal,
+                amountReceived: BigDecimal,
+                bitcoinAmount: BigDecimal,
+                bitcoinAmountReceived: BigDecimal,
+                bitcoinUri: String,
+                created: DateTime,
+                currency: Currency,
+                customer: String,
+                description: String,
+                email: String,
+                filled: Boolean,
+                inboundAddress: String,
+                livemode: Boolean,
+                uncapturedFunds: Boolean,
+                usedForPayment: Boolean
+               ): BitcoinReceiver = BitcoinReceiver(
+      id,
+      active,
+      amount,
+      amountReceived,
+      bitcoinAmount,
+      bitcoinAmountReceived,
+      bitcoinUri,
+      created,
+      currency,
+      customer,
+      description,
+      email,
+      filled,
+      inboundAddress,
+      livemode,
+      None,
+      None,
+      None,
+      None,
+      uncapturedFunds,
+      usedForPayment
+    )
+  }
 
   implicit val bitcoinReceiverReads: Reads[BitcoinReceiver] = (
     (__ \ "id").read[String] ~
@@ -296,7 +370,7 @@ object BitcoinReceivers extends LazyLogging {
       (__ \ "transactions").readNullable[BitcoinTransactions] ~
       (__ \ "uncaptured_funds").read[Boolean] ~
       (__ \ "used_for_payment").read[Boolean]
-    ).tupled.map(BitcoinReceiver.tupled)
+    ).tupled.map((BitcoinReceiver.apply _).tupled)
 
   implicit val bitcoinReceiverWrites: Writes[BitcoinReceiver] =
     Writes((bitcoinReceiver: BitcoinReceiver) =>
@@ -331,8 +405,21 @@ object BitcoinReceivers extends LazyLogging {
                                   email: String,
                                   description: Option[String],
                                   metadata: Option[Map[String, String]],
-                                  refundMispayments: Boolean
+                                  refundMispayments: Option[Boolean]
                                  )
+
+  object BitcoinReceiverInput {
+    def default(amount: BigDecimal,
+                currency: Currency,
+                email: String): BitcoinReceiverInput = BitcoinReceiverInput(
+      amount,
+      currency,
+      email,
+      None,
+      None,
+      None
+    )
+  }
 
   implicit val bitcoinReceiverInputReads: Reads[BitcoinReceiverInput] = (
     (__ \ "amount").read[BigDecimal] ~
@@ -340,8 +427,8 @@ object BitcoinReceivers extends LazyLogging {
       (__ \ "email").read[String] ~
       (__ \ "description").readNullable[String] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "refund_mispayments").read[Boolean]
-    ).tupled.map(BitcoinReceiverInput.tupled)
+      (__ \ "refund_mispayments").readNullable[Boolean]
+    ).tupled.map((BitcoinReceiverInput.apply _).tupled)
 
   implicit val bitcoinReceiverInputWrites: Writes[BitcoinReceiverInput] =
     Writes((bitcoinReceiverInput: BitcoinReceiverInput) =>

@@ -23,7 +23,7 @@ object TransferReversals {
       (__ \ "currency").read[Currency] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "transfer").read[String]
-    ).tupled.map(TransferReversal.tupled)
+    ).tupled.map((TransferReversal.apply _).tupled)
 
   implicit val transferReversalWrites: Writes[TransferReversal] =
     Writes((transferReversal: TransferReversal) =>

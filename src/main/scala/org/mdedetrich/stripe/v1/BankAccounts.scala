@@ -76,7 +76,7 @@ object BankAccounts {
       (__ \ "name").read[String] ~
       (__ \ "routing_number").read[String] ~
       (__ \ "status").read[Status]
-    ).tupled.map(BankAccount.tupled)
+    ).tupled.map((BankAccount.apply _).tupled)
 
 
   implicit val bankAccountWrites: Writes[BankAccount] =

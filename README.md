@@ -61,4 +61,39 @@ val response: Future[Customers.Customer] = handleCreate(Customers.create(custome
 ```
 
 For the most part you will want to use `handleCreate` and other related methods, however if you want 
-more fine grained control over potential errors then you can use the various `.create`/`.get` methods 
+more fine grained control over potential errors then you can use the various `.create`/`.get` methods
+ 
+### Default methods
+The stripe object models in stripe-scala provide a `.default` method on the companion object which simplifies creating
+the stripe models
+
+```scala
+import org.mdedetrich.stripe.v1.Customers._
+
+val expMonth = 01
+val expYear = 2012
+val cardNumber = "4242424242424242"
+val cvc = "536"
+
+// Inefficient way
+val source = Source.Card(expMonth,
+                        expYear,
+                        cardNumber,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        None,
+                        Option(cvc),
+                        None,
+                        None,
+                        None
+                      )
+
+// Efficient way
+val source2 = Source.Card.default(expMonth,expYear,cardNumber).copy(cvc = Option(cvc))
+```
+The `.default` methods create an instance of the model with all of the `Optional` fields filled as `None`. Models
+that have no `Optional` fields do not have a `.default` method.

@@ -7,9 +7,9 @@ package org.mdedetrich.stripe.v1
 object Sources {
 
   trait BaseCardSource {
-    def expMonth: Long
+    def expMonth: Int
 
-    def expYear: Long
+    def expYear: Int
 
     def number: String
 

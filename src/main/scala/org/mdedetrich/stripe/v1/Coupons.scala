@@ -48,6 +48,29 @@ object Coupons extends LazyLogging {
                     valid: Boolean
                    ) extends StripeObject
 
+  object Coupon {
+    def default(id: String,
+                created: DateTime,
+                duration: Duration,
+                livemode: Boolean,
+                timesRedeemed: Long,
+                valid: Boolean) = Coupon(
+      id,
+      None,
+      created,
+      None,
+      duration,
+      None,
+      livemode,
+      None,
+      None,
+      None,
+      None,
+      timesRedeemed,
+      valid
+    )
+  }
+
   implicit val couponReads: Reads[Coupon] = (
     (__ \ "id").read[String] ~
       (__ \ "amount_off").readNullable[Long] ~
@@ -66,7 +89,7 @@ object Coupons extends LazyLogging {
       } ~
       (__ \ "times_redeemed").read[Long] ~
       (__ \ "valid").read[Boolean]
-    ).tupled.map(Coupon.tupled)
+    ).tupled.map((Coupon.apply _).tupled)
 
   implicit val couponWrites: Writes[Coupon] =
     Writes((coupon: Coupon) =>
@@ -99,6 +122,20 @@ object Coupons extends LazyLogging {
                          redeemBy: Option[DateTime]
                         )
 
+  object CouponInput {
+    def default(duration: Duration): CouponInput = CouponInput(
+      None,
+      duration,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None
+    )
+  }
+
   implicit val couponInputReads: Reads[CouponInput] = (
     (__ \ "id").readNullable[String] ~
       (__ \ "duration").read[Duration] ~
@@ -109,7 +146,7 @@ object Coupons extends LazyLogging {
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "percent_off").readNullable[BigDecimal] ~
       (__ \ "redeemBy").readNullable[Long].map(_.map { timestamp => new DateTime(timestamp * 1000) })
-    ).tupled.map(CouponInput.tupled)
+    ).tupled.map((CouponInput.apply _).tupled)
 
   implicit val couponInputWrites: Writes[CouponInput] =
     Writes((couponInput: CouponInput) =>
