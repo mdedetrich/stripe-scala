@@ -54,7 +54,7 @@ object Customers extends LazyLogging {
                       shipping: Shipping,
                       sources: Sources,
                       subscriptions: List[Subscription]) extends StripeObject
-  
+
   object Customer {
     def default(id: String,
                 accountBalance: BigDecimal,
@@ -140,7 +140,7 @@ object Customers extends LazyLogging {
                     metadata: Option[Map[String, String]],
                     name: Option[String]
                    ) extends Source with BaseCardSource
-    
+
     object Card {
       def default(expMonth: Int,
                   expYear: Int,
@@ -245,7 +245,7 @@ object Customers extends LazyLogging {
                            taxPercent: Option[BigDecimal],
                            trialEnd: Option[DateTime]
                           )
-  
+
   object CustomerInput {
     def default: CustomerInput = CustomerInput(
       None,

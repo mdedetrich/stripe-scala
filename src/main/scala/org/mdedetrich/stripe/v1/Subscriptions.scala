@@ -59,7 +59,7 @@ object Subscriptions extends LazyLogging {
                           trialEnd: Option[DateTime],
                           trialStart: Option[DateTime]
                          )
-  
+
   object Subscription {
     def default(id: String,
                 cancelAtPeriod: Boolean,
@@ -217,7 +217,7 @@ object Subscriptions extends LazyLogging {
                                taxPercent: Option[BigDecimal],
                                trialEnd: Option[DateTime]
                               )
-  
+
   object SubscriptionInput {
     def default(plan: String): SubscriptionInput = SubscriptionInput(
       None,

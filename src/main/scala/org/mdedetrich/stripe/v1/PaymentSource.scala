@@ -141,7 +141,7 @@ object Cards {
                   metadata: Option[Map[String, String]],
                   name: Option[String],
                   tokenizationMethod: Option[TokenizationMethod]) extends StripeObject with PaymentSource
-  
+
   object Card {
     def default(id: String,
                 brand: Brand,
@@ -304,7 +304,7 @@ object BitcoinReceivers extends LazyLogging {
                              uncapturedFunds: Boolean,
                              usedForPayment: Boolean
                             ) extends StripeObject with PaymentSource
-  
+
   object BitcoinReceiver {
     def default(id: String,
                 active: Boolean,

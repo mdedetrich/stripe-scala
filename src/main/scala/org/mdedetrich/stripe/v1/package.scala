@@ -10,20 +10,20 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
 
 package object v1 {
-  
+
   // Stripe stores timestamps in Unix time https://support.stripe.com/questions/what-timezone-does-the-dashboard-and-api-use
-  
+
   def stripeDateTimeParamWrites(dateTime: DateTime) = (dateTime.getMillis / 1000).toString
-  
+
   val stripeDateTimeReads: Reads[DateTime] =
-    Reads.of[Long].map{timestamp => new DateTime(timestamp * 1000)}
-  
+    Reads.of[Long].map { timestamp => new DateTime(timestamp * 1000) }
+
   val stripeDateTimeWrites: Writes[DateTime] =
     Writes { (dateTime: DateTime) =>
       JsNumber(dateTime.getMillis / 1000)
     }
-  
-  val stripeDateTimeFormats: Format[DateTime] = Format(stripeDateTimeReads,stripeDateTimeWrites)
+
+  val stripeDateTimeFormats: Format[DateTime] = Format(stripeDateTimeReads, stripeDateTimeWrites)
 
   /**
     * A function which does the simplest ideal handling for making a stripe request.

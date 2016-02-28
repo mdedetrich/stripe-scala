@@ -106,7 +106,7 @@ object Refunds {
       (__ \ "reason").read[Reason] ~
       (__ \ "refund_application_fee").read[Boolean] ~
       (__ \ "reverse_transfer").read[Boolean]
-    ).tupled.map((RefundInput.apply _ ).tupled)
+    ).tupled.map((RefundInput.apply _).tupled)
 
 
   implicit val refundInputWrites: Writes[RefundInput] =
