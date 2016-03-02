@@ -44,7 +44,7 @@ object Customers extends LazyLogging {
                       accountBalance: BigDecimal,
                       created: DateTime,
                       currency: Currency,
-                      defaultSource: String,
+                      defaultSource: Option[String],
                       delinquent: Boolean,
                       description: Option[String],
                       discount: Option[Discount],
@@ -60,7 +60,6 @@ object Customers extends LazyLogging {
                 accountBalance: BigDecimal,
                 created: DateTime,
                 currency: Currency,
-                defaultSource: String,
                 delinquent: Boolean,
                 livemode: Boolean,
                 shipping: Shipping,
@@ -70,7 +69,7 @@ object Customers extends LazyLogging {
       accountBalance,
       created,
       currency,
-      defaultSource,
+      None,
       delinquent,
       None,
       None,
@@ -88,7 +87,7 @@ object Customers extends LazyLogging {
       (__ \ "account_balance").read[BigDecimal] ~
       (__ \ "created").read[DateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
-      (__ \ "default_source").read[String] ~
+      (__ \ "default_source").readNullable[String] ~
       (__ \ "delinquent").read[Boolean] ~
       (__ \ "description").readNullable[String] ~
       (__ \ "discount").readNullable[Discount] ~
