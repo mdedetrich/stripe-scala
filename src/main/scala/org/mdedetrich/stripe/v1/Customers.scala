@@ -397,4 +397,31 @@ object Customers extends LazyLogging {
       }
     }
   }
+  
+  def get(id: String)
+         (implicit apiKey: ApiKey,
+          endpoint: Endpoint): Future[Try[Customer]] = {
+    val finalUrl = endpoint.url + s"/v1/customers/$id"
+
+    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[Customer](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, customer => customer
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
+  
+  
 }

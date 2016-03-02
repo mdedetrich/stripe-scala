@@ -49,10 +49,10 @@ instead it will be contained within the `Try` monad (i.e. you will get a `scala.
 The second parameter for stripe POST requests (often named as create in stripe-scala) has an optional idempotencyKey which defaults
 to None. You can specify a IdempotencyKey to make sure that you don't create duplicate POST requests with the same input.
 
-stripe-scala provides a `handleCreate` function which provides the typical way of dealing with stripe-errors.
-It will attempt to retry the original request (using the `IdempotencyKey` to prevent duplicate side effects) for
+stripe-scala provides `handle`/`handleCreate` functions which provides the typical way of dealing with stripe-errors.
+It will attempt to retry the original request (using the `IdempotencyKey` to prevent duplicate side effects with `handleCreate`) for
 errors which are deemed to be network related errors, else it will return a failed `Future`. If it
-fails due to going over the retry limit, `handleCreate` will also return a failed `Future` with `MaxNumberOfRetries`
+fails due to going over the retry limit, `handle`/`handleCreate` will also return a failed `Future` with `MaxNumberOfRetries`
 
 ```scala
 import org.mdedetrich.stripe.v1.{Customers, handleCreate}

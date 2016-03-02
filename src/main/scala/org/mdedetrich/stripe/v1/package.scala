@@ -44,7 +44,26 @@ package object v1 {
 
     val idempotencyKey = Option(IdempotencyKey(java.util.UUID.randomUUID.toString))
 
-    def responseBlock = request(idempotencyKey)
+    handle(() => request(idempotencyKey),numberOfRetries)
+  }
+
+
+  /**
+    * A function which does the simplest ideal handling for making a stripe request.
+    * It handles specific stripe errors, and will retry the request for errors that
+    * indicate some sought of network error.
+    *
+    * @param request         The request that you are making with Stripe
+    * @param numberOfRetries Number of retries, provided by default in [[org.mdedetrich.stripe.Config]]
+    * @tparam T The returning Stripe object for the request
+    * @return
+    */
+
+
+  def handle[T](request: () => Future[Try[T]],
+                   numberOfRetries: Int = Config.numberOfRetries
+                  )(implicit executionContext: ExecutionContext): Future[T] = {
+    def responseBlock = request()
 
     def responseBlockWithRetries(currentRetryCount: Int): Future[Try[T]] = {
       if (currentRetryCount > numberOfRetries) {
