@@ -5,6 +5,7 @@ import dispatch.Defaults._
 import dispatch._
 import enumeratum._
 import org.joda.time.DateTime
+import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.{IdempotencyKey, InvalidJsonModelException, Endpoint, ApiKey}
 import org.mdedetrich.stripe.v1.BitcoinReceivers.BitcoinReceiver
 import org.mdedetrich.stripe.v1.Cards.Card
@@ -38,7 +39,7 @@ object PaymentSource extends LazyLogging {
     )
 }
 
-object Cards {
+object Cards extends LazyLogging {
 
   sealed abstract class Brand(val id: String) extends EnumEntry {
     override val entryName = id
@@ -224,6 +225,43 @@ object Cards {
         "tokenization_method" -> card.tokenizationMethod
       )
     )
+
+
+  def delete(customerId: String, cardId: String)
+            (idempotencyKey: Option[IdempotencyKey] = None)
+            (implicit apiKey: ApiKey,
+             endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+
+    val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$cardId"
+
+    val req = {
+      val r = url(finalUrl).DELETE.as(apiKey.apiKey, "")
+
+      idempotencyKey match {
+        case Some(key) =>
+          r.addHeader(idempotencyKeyHeader, key.key)
+        case None =>
+          r
+      }
+    }
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[DeleteResponse](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, customer => customer
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
 
 }
 

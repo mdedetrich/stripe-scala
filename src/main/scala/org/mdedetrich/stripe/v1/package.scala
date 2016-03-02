@@ -37,14 +37,14 @@ package object v1 {
     * @return
     */
 
-  def handleCreate[T](request: => Option[IdempotencyKey] => Future[Try[T]],
+  def handleIdempotent[T](request: => Option[IdempotencyKey] => Future[Try[T]],
                       numberOfRetries: Int = Config.numberOfRetries
                      )
                      (implicit executionContext: ExecutionContext): Future[T] = {
 
     val idempotencyKey = Option(IdempotencyKey(java.util.UUID.randomUUID.toString))
 
-    handle(() => request(idempotencyKey),numberOfRetries)
+    handle(() => request(idempotencyKey), numberOfRetries)
   }
 
 
@@ -61,8 +61,8 @@ package object v1 {
 
 
   def handle[T](request: () => Future[Try[T]],
-                   numberOfRetries: Int = Config.numberOfRetries
-                  )(implicit executionContext: ExecutionContext): Future[T] = {
+                numberOfRetries: Int = Config.numberOfRetries
+               )(implicit executionContext: ExecutionContext): Future[T] = {
     def responseBlock = request()
 
     def responseBlockWithRetries(currentRetryCount: Int): Future[Try[T]] = {

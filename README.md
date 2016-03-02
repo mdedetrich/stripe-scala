@@ -49,19 +49,19 @@ instead it will be contained within the `Try` monad (i.e. you will get a `scala.
 The second parameter for stripe POST requests (often named as create in stripe-scala) has an optional idempotencyKey which defaults
 to None. You can specify a IdempotencyKey to make sure that you don't create duplicate POST requests with the same input.
 
-stripe-scala provides `handle`/`handleCreate` functions which provides the typical way of dealing with stripe-errors.
-It will attempt to retry the original request (using the `IdempotencyKey` to prevent duplicate side effects with `handleCreate`) for
+stripe-scala provides `handle`/`handleIdempotent` functions which provides the typical way of dealing with stripe-errors.
+It will attempt to retry the original request (using the `IdempotencyKey` to prevent duplicate side effects with `handleIdempotent`) for
 errors which are deemed to be network related errors, else it will return a failed `Future`. If it
-fails due to going over the retry limit, `handle`/`handleCreate` will also return a failed `Future` with `MaxNumberOfRetries`
+fails due to going over the retry limit, `handle`/`handleIdempotent` will also return a failed `Future` with `MaxNumberOfRetries`
 
 ```scala
-import org.mdedetrich.stripe.v1.{Customers, handleCreate}
+import org.mdedetrich.stripe.v1.{Customers, handleIdempotent}
 
 val customerInput: Customers.CustomerInput = ??? // Some customer input
-val response: Future[Customers.Customer] = handleCreate(Customers.create(customerInput))
+val response: Future[Customers.Customer] = handleIdempotent(Customers.create(customerInput))
 ```
 
-For the most part you will want to use `handleCreate` and other related methods, however if you want 
+For the most part you will want to use `handleIdempotent`/`handle` however if you want 
 more fine grained control over potential errors then you can use the various `.create`/`.get` methods
  
 ### Default methods

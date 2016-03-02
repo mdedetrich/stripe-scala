@@ -397,7 +397,7 @@ object Customers extends LazyLogging {
       }
     }
   }
-  
+
   def get(id: String)
          (implicit apiKey: ApiKey,
           endpoint: Endpoint): Future[Try[Customer]] = {
@@ -422,6 +422,6 @@ object Customers extends LazyLogging {
       }
     }
   }
-  
-  
+
+
 }

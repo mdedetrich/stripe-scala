@@ -179,9 +179,9 @@ object Plans extends LazyLogging {
       (__ \ "statement_descriptor").readNullable[String] ~
       (__ \ "trial_period_days").readNullable[Long]
     ).tupled.map((PlanInput.apply _).tupled)
-  
+
   implicit val planInputWrites: Writes[PlanInput] =
-    Writes ((planInput: PlanInput) =>
+    Writes((planInput: PlanInput) =>
       Json.obj(
         "id" -> planInput.id,
         "amount" -> planInput.amount,
