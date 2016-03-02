@@ -44,7 +44,7 @@ package object v1 {
 
     val idempotencyKey = Option(IdempotencyKey(java.util.UUID.randomUUID.toString))
 
-    handle(() => request(idempotencyKey), numberOfRetries)
+    handle(request(idempotencyKey), numberOfRetries)
   }
 
 
@@ -60,10 +60,10 @@ package object v1 {
     */
 
 
-  def handle[T](request: () => Future[Try[T]],
+  def handle[T](request: Future[Try[T]],
                 numberOfRetries: Int = Config.numberOfRetries
                )(implicit executionContext: ExecutionContext): Future[T] = {
-    def responseBlock = request()
+    def responseBlock = request
 
     def responseBlockWithRetries(currentRetryCount: Int): Future[Try[T]] = {
       if (currentRetryCount > numberOfRetries) {
