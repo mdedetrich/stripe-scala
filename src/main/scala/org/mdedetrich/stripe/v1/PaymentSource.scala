@@ -226,6 +226,327 @@ object Cards extends LazyLogging {
       )
     )
 
+  sealed abstract class CardData
+
+  object CardData {
+
+    case class SourceObject(expMonth: Int,
+                            expYear: Int,
+                            number: String,
+                            addressCity: Option[String],
+                            addressCountry: Option[String],
+                            addressLine1: Option[String],
+                            addressLine2: Option[String],
+                            addressState: Option[String],
+                            addressZip: Option[String],
+                            cvc: Option[String],
+                            metadata: Option[Map[String, String]],
+                            name: Option[String]
+                     ) extends CardData
+
+    object SourceObject {
+      def default(expMonth: Int,
+                  expYear: Int,
+                  number: String): SourceObject = SourceObject(
+        expMonth,
+        expYear,
+        number,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None
+      )
+    }
+
+    implicit val sourceObjectReads: Reads[SourceObject] = (
+      (__ \ "exp_month").read[Int] ~
+        (__ \ "exp_year").read[Int] ~
+        (__ \ "number").read[String] ~
+        (__ \ "address_city").readNullable[String] ~
+        (__ \ "address_country").readNullable[String] ~
+        (__ \ "address_line1").readNullable[String] ~
+        (__ \ "address_line2").readNullable[String] ~
+        (__ \ "address_state").readNullable[String] ~
+        (__ \ "address_zip").readNullable[String] ~
+        (__ \ "cvc").readNullable[String] ~
+        (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
+        (__ \ "name").readNullable[String]
+      ).tupled.map((SourceObject.apply _).tupled)
+
+    implicit val sourceObjectWrites: Writes[SourceObject] =
+      Writes((source: SourceObject) =>
+        Json.obj(
+          "exp_month" -> source.expMonth,
+          "exp_year" -> source.expYear,
+          "number" -> source.number,
+          "address_city" -> source.addressCity,
+          "address_country" -> source.addressCountry,
+          "address_line1" -> source.addressLine1,
+          "address_line2" -> source.addressLine2,
+          "address_state" -> source.addressState,
+          "address_zip" -> source.addressState,
+          "cvc" -> source.cvc,
+          "metadata" -> source.metadata,
+          "name" -> source.name
+        )
+      )
+
+    case class SourceToken(id: String) extends CardData
+
+    implicit val sourceTokenReads: Reads[SourceToken] = Reads.of[String].map(SourceToken)
+
+    implicit val sourceTokenWrites: Writes[SourceToken] =
+      Writes((token: SourceToken) =>
+        JsString(token.id)
+      )
+
+    case class ExternalAccountObject(expMonth: Int,
+                                     expYear: Int,
+                                     number: String,
+                                     addressCity: Option[String],
+                                     addressCountry: Option[String],
+                                     addressLine1: Option[String],
+                                     addressLine2: Option[String],
+                                     addressState: Option[String],
+                                     addressZip: Option[String],
+                                     currency: Option[Currency],
+                                     cvc: Option[String],
+                                     defaultForCurrency: Option[Currency],
+                                     metadata: Option[Map[String, String]],
+                                     name: Option[String]
+                              ) extends CardData
+
+    object ExternalAccountObject {
+      def default(expMonth: Int,
+                  expYear: Int,
+                  number: String): ExternalAccountObject = ExternalAccountObject(
+        expMonth,
+        expYear,
+        number,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None
+      )
+    }
+
+    implicit val externalAccountObjectReads: Reads[ExternalAccountObject] = (
+      (__ \ "exp_month").read[Int] ~
+        (__ \ "exp_year").read[Int] ~
+        (__ \ "number").read[String] ~
+        (__ \ "address_city").readNullable[String] ~
+        (__ \ "address_country").readNullable[String] ~
+        (__ \ "address_line1").readNullable[String] ~
+        (__ \ "address_line2").readNullable[String] ~
+        (__ \ "address_state").readNullable[String] ~
+        (__ \ "address_zip").readNullable[String] ~
+        (__ \ "currency").readNullable[Currency] ~
+        (__ \ "cvc").readNullable[String] ~
+        (__ \ "default_for_currency").readNullable[Currency] ~
+        (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
+        (__ \ "name").readNullable[String]
+      ).tupled.map((ExternalAccountObject.apply _).tupled)
+
+    implicit val externalAccountObjectWrites: Writes[ExternalAccountObject] =
+      Writes((externalAccount: ExternalAccountObject) =>
+        Json.obj(
+          "exp_month" -> externalAccount.expMonth,
+          "exp_year" -> externalAccount.expYear,
+          "number" -> externalAccount.number,
+          "address_city" -> externalAccount.addressCity,
+          "address_country" -> externalAccount.addressCountry,
+          "address_line1" -> externalAccount.addressLine1,
+          "address_line2" -> externalAccount.addressLine2,
+          "address_state" -> externalAccount.addressState,
+          "address_zip" -> externalAccount.addressState,
+          "currency" -> externalAccount.currency,
+          "cvc" -> externalAccount.cvc,
+          "default_for_currency" -> externalAccount.defaultForCurrency,
+          "metadata" -> externalAccount.metadata,
+          "name" -> externalAccount.name
+        )
+      )
+
+    case class ExternalAccountToken(id: String) extends CardData
+
+    implicit val externalAccountTokenReads: Reads[ExternalAccountToken] = Reads.of[String].map(ExternalAccountToken)
+
+    implicit val externalAccountTokenWrites: Writes[ExternalAccountToken] =
+      Writes((token: ExternalAccountToken) =>
+        JsString(token.id)
+      )
+
+  }
+
+  
+  
+  implicit val cardDataWrites: Writes[CardData] =
+    Writes { (cardData: CardData) =>
+      cardData match {
+        case cardData: CardData.SourceObject => Json.toJson(cardData)
+        case cardData: CardData.ExternalAccountObject => Json.toJson(cardData)
+        case cardData: CardData.SourceToken => Json.toJson(cardData)
+        case cardData: CardData.ExternalAccountToken => Json.toJson(cardData)
+      }
+    }
+
+  case class CardInput(cardData: CardData,
+                       metadata: Option[Map[String, String]],
+                       defaultForCurrency: Option[Boolean]
+                      )
+
+  object CardInput {
+    def default(cardData: CardData): CardInput = CardInput(
+      cardData,
+      None,
+      None
+    )
+  }
+
+  implicit val cardInputWrites: Writes[CardInput] =
+    Writes { (cardInput: CardInput) =>
+      val cardData = cardInput.cardData match {
+        case cardData: CardData.ExternalAccountToken =>
+          Json.obj("external_account" -> cardData)
+        case cardData: CardData.ExternalAccountObject =>
+          Json.obj("external_account" -> cardData)
+        case cardData: CardData.SourceObject =>
+          Json.obj("source" -> cardData)
+        case cardData: CardData.SourceToken =>
+          Json.obj("source" -> cardData)
+      }
+
+      cardData ++ Json.obj(
+        "metadata" -> cardInput.metadata,
+        "default_for_currency" -> cardInput.defaultForCurrency
+      )
+    }
+  
+  implicit val cardInputReads: Reads[CardInput] = {
+    val cardData = (__ \ "external_account").read[JsValue].flatMap {
+      case JsObject(_) => (__ \ "external_account").read[CardData.ExternalAccountObject].map(x => x: CardData)
+      case JsString(_) => (__ \ "external_account").read[CardData.ExternalAccountToken].map(x => x: CardData)
+      case _ =>
+        (__ \ "source").read[JsValue].flatMap{
+          case JsObject(_) => (__ \ "source").read[CardData.SourceObject].map(x => x: CardData)
+          case JsString(_) => (__ \ "source").read[CardData.SourceToken].map(x => x: CardData)
+          case _ => Reads[CardData](_ => JsError(ValidationError("UnknownCardData")))
+        }
+        
+    }
+    
+    ( cardData ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+      (__ \ "default_for_currency").readNullable[Boolean]
+    ).tupled.map((CardInput.apply _).tupled)
+  }
+    
+
+  def create(customerId: String, cardInput: CardInput)
+            (idempotencyKey: Option[IdempotencyKey] = None)
+            (implicit apiKey: ApiKey,
+             endpoint: Endpoint): Future[Try[Card]] = {
+    val postFormParameters: Map[String, String] = {
+      Map(
+        "default_for_currency" -> cardInput.defaultForCurrency.map(_.toString)
+      )
+    }.collect {
+      case (k, Some(v)) => (k, v)
+    } ++ {
+      cardInput.cardData match {
+        case CardData.ExternalAccountToken(id) =>
+          Map("external_account" -> id)
+        case CardData.SourceToken(id) =>
+          Map("source" -> id)
+        case externalAccount: CardData.ExternalAccountObject =>
+          val map = Map(
+            "exp_month" -> Option(externalAccount.expMonth.toString),
+            "exp_year" -> Option(externalAccount.expYear.toString),
+            "number" -> Option(externalAccount.number),
+            "address_city" -> externalAccount.addressCity,
+            "address_country" -> externalAccount.addressCountry,
+            "address_line1" -> externalAccount.addressLine1,
+            "address_line2" -> externalAccount.addressLine2,
+            "address_state" -> externalAccount.addressState,
+            "address_zip" -> externalAccount.addressState,
+            "currency" -> externalAccount.currency.map(_.iso.toLowerCase),
+            "cvc" -> externalAccount.cvc,
+            "default_for_currency" -> externalAccount.defaultForCurrency.map(_.toString),
+            "name" -> externalAccount.name
+          ).collect {
+            case (k, Some(v)) => (k, v)
+          }
+          mapToPostParams(Option(map), "external_account")
+        case source: CardData.SourceObject =>
+          val map = Map(
+            "exp_month" -> Option(source.expMonth.toString),
+            "exp_year" -> Option(source.expYear.toString),
+            "number" -> Option(source.number),
+            "address_city" -> source.addressCity,
+            "address_country" -> source.addressCountry,
+            "address_line1" -> source.addressLine1,
+            "address_line2" -> source.addressLine2,
+            "address_state" -> source.addressState,
+            "address_zip" -> source.addressState,
+            "cvc" -> source.cvc,
+            "name" -> source.name
+          ).collect {
+            case (k, Some(v)) => (k, v)
+          }
+          mapToPostParams(Option(map), "source")
+      }
+    }
+
+    logger.debug(s"Generated POST form parameters is $postFormParameters")
+
+    val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources"
+
+    val req = {
+      val r = (
+        url(finalUrl)
+          .addHeader("Content-Type", "application/x-www-form-urlencoded")
+          << postFormParameters
+        ).POST.as(apiKey.apiKey, "")
+
+      idempotencyKey match {
+        case Some(key) =>
+          r.addHeader(idempotencyKeyHeader, key.key)
+        case None =>
+          r
+      }
+    }
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[Card](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
+              }, card => card
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+    
+  }
+
 
   def delete(customerId: String, cardId: String)
             (idempotencyKey: Option[IdempotencyKey] = None)
