@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.DateTime
 import dispatch.Defaults._
 import dispatch._
+import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.{IdempotencyKey, InvalidJsonModelException, Endpoint, ApiKey}
 import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.Shippings.Shipping
@@ -422,5 +423,39 @@ object Customers extends LazyLogging {
     }
   }
 
+  def delete(id: String)
+            (idempotencyKey: Option[IdempotencyKey] = None)
+            (implicit apiKey: ApiKey,
+             endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+    val finalUrl = endpoint.url + s"/v1/customers/$id"
+
+    val req = {
+      val r = url(finalUrl).DELETE.as(apiKey.apiKey, "")
+
+      idempotencyKey match {
+        case Some(key) =>
+          r.addHeader(idempotencyKeyHeader, key.key)
+        case None =>
+          r
+      }
+    }
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[DeleteResponse](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, customer => customer
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
 
 }

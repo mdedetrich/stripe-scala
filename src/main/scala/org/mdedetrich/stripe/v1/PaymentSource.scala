@@ -242,7 +242,7 @@ object Cards extends LazyLogging {
                             cvc: Option[String],
                             metadata: Option[Map[String, String]],
                             name: Option[String]
-                     ) extends CardData
+                           ) extends CardData
 
     object SourceObject {
       def default(expMonth: Int,
@@ -319,7 +319,7 @@ object Cards extends LazyLogging {
                                      defaultForCurrency: Option[Currency],
                                      metadata: Option[Map[String, String]],
                                      name: Option[String]
-                              ) extends CardData
+                                    ) extends CardData
 
     object ExternalAccountObject {
       def default(expMonth: Int,
@@ -390,8 +390,7 @@ object Cards extends LazyLogging {
 
   }
 
-  
-  
+
   implicit val cardDataWrites: Writes[CardData] =
     Writes { (cardData: CardData) =>
       cardData match {
@@ -433,26 +432,26 @@ object Cards extends LazyLogging {
         "default_for_currency" -> cardInput.defaultForCurrency
       )
     }
-  
+
   implicit val cardInputReads: Reads[CardInput] = {
     val cardData = (__ \ "external_account").read[JsValue].flatMap {
       case JsObject(_) => (__ \ "external_account").read[CardData.ExternalAccountObject].map(x => x: CardData)
       case JsString(_) => (__ \ "external_account").read[CardData.ExternalAccountToken].map(x => x: CardData)
       case _ =>
-        (__ \ "source").read[JsValue].flatMap{
+        (__ \ "source").read[JsValue].flatMap {
           case JsObject(_) => (__ \ "source").read[CardData.SourceObject].map(x => x: CardData)
           case JsString(_) => (__ \ "source").read[CardData.SourceToken].map(x => x: CardData)
           case _ => Reads[CardData](_ => JsError(ValidationError("UnknownCardData")))
         }
-        
+
     }
-    
-    ( cardData ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String,String]] ~
+
+    (cardData ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "default_for_currency").readNullable[Boolean]
-    ).tupled.map((CardInput.apply _).tupled)
+      ).tupled.map((CardInput.apply _).tupled)
   }
-    
+
 
   def create(customerId: String, cardInput: CardInput)
             (idempotencyKey: Option[IdempotencyKey] = None)
@@ -544,7 +543,33 @@ object Cards extends LazyLogging {
           scala.util.Failure(error)
       }
     }
-    
+
+  }
+
+  def get(customerId: String, cardId: String)
+         (implicit apiKey: ApiKey,
+          endpoint: Endpoint): Future[Try[Card]] = {
+    val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$cardId"
+
+    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[Card](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, card => card
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+
   }
 
 
