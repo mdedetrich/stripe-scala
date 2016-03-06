@@ -5,6 +5,7 @@ import dispatch.Defaults._
 import dispatch._
 import enumeratum._
 import org.joda.time.DateTime
+import org.mdedetrich.stripe.v1.Collections.ListJsonMappers
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.{IdempotencyKey, InvalidJsonModelException, Endpoint, ApiKey}
 import org.mdedetrich.stripe.v1.BitcoinReceivers.BitcoinReceiver
@@ -16,6 +17,11 @@ import org.mdedetrich.playjson.Utils._
 
 import scala.concurrent.Future
 import scala.util.Try
+
+/**
+  * [[PaymentSource]] is a supertype of the different availabe Stripe
+  * payment types.
+  */
 
 sealed trait PaymentSource
 
@@ -36,6 +42,25 @@ object PaymentSource extends LazyLogging {
         case c: Card => Json.toJson(c)
         case b: BitcoinReceiver => Json.toJson(b)
       }
+    )
+}
+
+case class PaymentSourceList(override val url: String,
+                             override val hasMore: Boolean,
+                             override val data: List[PaymentSource],
+                             override val totalCount: Option[Long]
+                            )(implicit reads: Reads[JsValue]) extends Collections.List[PaymentSource](
+  url, hasMore, data, totalCount
+)
+
+object PaymentSourceList extends ListJsonMappers[PaymentSource] {
+
+  implicit val paymentSourceListReadsInstance: Reads[PaymentSourceList] =
+    listReads.tupled.map((PaymentSourceList.apply _).tupled)
+
+  implicit val paymentSourceListWritesInstance: Writes[PaymentSourceList] =
+    Writes((paymentSourceList: PaymentSourceList) =>
+      listWrites.writes(paymentSourceList)
     )
 }
 
@@ -643,28 +668,21 @@ object BitcoinReceivers extends LazyLogging {
       )
     )
 
-  case class BitcoinTransactions(data: List[Transaction],
-                                 hasMore: Boolean,
-                                 totalCount: Long,
-                                 url: String
-                                )
+  case class TransactionList(override val url: String,
+                             override val hasMore: Boolean,
+                             override val data: List[Transaction],
+                             override val totalCount: Option[Long]
+                            ) extends Collections.List[Transaction](
+    url, hasMore, data, totalCount
+  )
 
-  implicit val bitcoinTransactionsReads: Reads[BitcoinTransactions] = (
-    (__ \ "data").read[List[Transaction]] ~
-      (__ \ "has_more").read[Boolean] ~
-      (__ \ "total_count").read[Long] ~
-      (__ \ "url").read[String]
-    ).tupled.map((BitcoinTransactions.apply _).tupled)
+  object TransactionList extends Collections.ListJsonMappers[Transaction] {
+    implicit val transactionsReads: Reads[TransactionList] =
+      listReads.tupled.map((TransactionList.apply _).tupled)
 
-  implicit val bitcoinTransactionsWrites: Writes[BitcoinTransactions] =
-    Writes((bitcoinTransactions: BitcoinTransactions) =>
-      Json.obj(
-        "data" -> bitcoinTransactions.data,
-        "has_more" -> bitcoinTransactions.hasMore,
-        "total_count" -> bitcoinTransactions.totalCount,
-        "url" -> bitcoinTransactions.url
-      )
-    )
+    implicit val transactionsWrites: Writes[TransactionList] =
+      listWrites
+  }
 
   case class BitcoinReceiver(id: String,
                              active: Boolean,
@@ -684,7 +702,7 @@ object BitcoinReceivers extends LazyLogging {
                              metadata: Option[Map[String, String]],
                              payment: Option[String],
                              refundAddress: Option[String],
-                             transactions: Option[BitcoinTransactions],
+                             transactions: Option[TransactionList],
                              uncapturedFunds: Boolean,
                              usedForPayment: Boolean
                             ) extends StripeObject with PaymentSource
@@ -751,7 +769,7 @@ object BitcoinReceivers extends LazyLogging {
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "payment").readNullable[String] ~
       (__ \ "refund_address").readNullable[String] ~
-      (__ \ "transactions").readNullable[BitcoinTransactions] ~
+      (__ \ "transactions").readNullable[TransactionList] ~
       (__ \ "uncaptured_funds").read[Boolean] ~
       (__ \ "used_for_payment").read[Boolean]
     ).tupled.map((BitcoinReceiver.apply _).tupled)

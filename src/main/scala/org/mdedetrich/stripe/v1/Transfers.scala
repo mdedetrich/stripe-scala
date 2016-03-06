@@ -10,29 +10,21 @@ import org.mdedetrich.playjson.Utils._
 
 object Transfers {
 
-  case class Reversals(data: List[TransferReversal],
-                       hasMore: Boolean,
-                       totalCount: Long,
-                       url: String)
-
-  implicit val reversalReads: Reads[Reversals] = (
-    (__ \ "data").read[List[TransferReversal]] ~
-      (__ \ "has_more").read[Boolean] ~
-      (__ \ "total_count").read[Long] ~
-      (__ \ "url").read[String]
-    ) ((data, hasMore, totalCount, url) =>
-    Reversals(data, hasMore, totalCount, url)
+  case class TransferReversalList(override val url: String,
+                                  override val hasMore: Boolean,
+                                  override val data: List[TransferReversal],
+                                  override val totalCount: Option[Long]
+                                 ) extends Collections.List[TransferReversal](
+    url, hasMore, data, totalCount
   )
 
-  implicit val reversalWrites: Writes[Reversals] =
-    Writes((reversal: Reversals) =>
-      Json.obj(
-        "data" -> reversal.data,
-        "has_more" -> reversal.hasMore,
-        "total_count" -> reversal.totalCount,
-        "url" -> reversal.url
-      )
-    )
+  object TransferReversalList extends Collections.ListJsonMappers[TransferReversal] {
+    implicit val transferReversalListReads: Reads[TransferReversalList] =
+      listReads.tupled.map((TransferReversalList.apply _).tupled)
+
+    implicit val transferReversalWrites: Writes[TransferReversalList] =
+      listWrites
+  }
 
   sealed abstract class Type(val id: String) extends EnumEntry {
     override val entryName = id
@@ -147,7 +139,7 @@ object Transfers {
                       livemode: Boolean,
                       metadata: Option[Map[String, String]],
                       recipient: String,
-                      reversals: Reversals,
+                      reversals: TransferReversalList,
                       reversed: Boolean,
                       sourceTransaction: String,
                       sourceType: SourceType,
@@ -175,7 +167,7 @@ object Transfers {
       (__ \ "livemode").read[Boolean] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "recipient").read[String] ~
-      (__ \ "reversals").read[Reversals] ~
+      (__ \ "reversals").read[TransferReversalList] ~
       (__ \ "reversed").read[Boolean] ~
       (__ \ "source_transaction").read[String] ~
       (__ \ "source_type").read[SourceType]
@@ -224,6 +216,23 @@ object Transfers {
         "source_type" -> transfer.sourceType
       )
     )
+
+
+  case class TransferList(override val url: String,
+                          override val hasMore: Boolean,
+                          override val data: List[Transfers.Transfer],
+                          override val totalCount: Option[Long]
+                         ) extends Collections.List[Transfer](
+    url, hasMore, data, totalCount
+  )
+
+  object TransferList extends Collections.ListJsonMappers[Transfer] {
+    implicit val transferListReads: Reads[TransferList] =
+      listReads.tupled.map((TransferList.apply _).tupled)
+
+    implicit val transferWrites: Writes[TransferList] =
+      listWrites
+  }
 
   case class TransferInput(amount: BigDecimal,
                            currency: Currency,

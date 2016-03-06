@@ -53,30 +53,6 @@ object Balances {
       )
     )
 
-  case class SourcedTransfers(data: List[Transfers.Transfer],
-                              hasMore: Boolean,
-                              totalCount: Long,
-                              url: String)
-
-  implicit val sourcedTransfersReads: Reads[SourcedTransfers] = (
-    (__ \ "data").read[List[Transfer]] ~
-      (__ \ "has_more").read[Boolean] ~
-      (__ \ "total_count").read[Long] ~
-      (__ \ "url").read[String]
-    ) ((data, hasMore, totalCount, url) =>
-    SourcedTransfers(data, hasMore, totalCount, url)
-  )
-
-  implicit val sourcedTransfersWrites: Writes[SourcedTransfers] =
-    Writes((sourcedTransfers: SourcedTransfers) =>
-      Json.obj(
-        "data" -> sourcedTransfers.data,
-        "has_more" -> sourcedTransfers.hasMore,
-        "total_count" -> sourcedTransfers.totalCount,
-        "url" -> sourcedTransfers.url
-      )
-    )
-
   sealed abstract class Type(val id: String) extends EnumEntry {
     override val entryName = id
   }
@@ -133,7 +109,7 @@ object Balances {
                                 feeDetails: List[FeeDetails],
                                 net: BigDecimal,
                                 source: String,
-                                sourcedTransfers: SourcedTransfers,
+                                sourcedTransfers: TransferList,
                                 status: Status,
                                 `type`: Type) extends StripeObject
 
@@ -148,7 +124,7 @@ object Balances {
       (__ \ "fee_details").read[List[FeeDetails]] ~
       (__ \ "net").read[BigDecimal] ~
       (__ \ "source").read[String] ~
-      (__ \ "sourced_transfers").read[SourcedTransfers] ~
+      (__ \ "sourced_transfers").read[TransferList] ~
       (__ \ "status").read[Status] ~
       (__ \ "type").read[Type]
     ).tupled.map((BalanceTransaction.apply _).tupled)

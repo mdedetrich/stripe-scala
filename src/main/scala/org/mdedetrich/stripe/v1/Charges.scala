@@ -9,7 +9,7 @@ import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.Cards._
 import org.mdedetrich.stripe.v1.Disputes._
 import org.mdedetrich.stripe.v1.Errors._
-import org.mdedetrich.stripe.v1.Refunds.RefundsData
+import org.mdedetrich.stripe.v1.Refunds.RefundList
 import org.mdedetrich.stripe.v1.Shippings.Shipping
 import org.mdedetrich.stripe.v1.Sources.BaseCardSource
 import org.mdedetrich.stripe.{IdempotencyKey, ApiKey, Endpoint, InvalidJsonModelException}
@@ -80,7 +80,7 @@ object Charges extends LazyLogging {
                     receiptEmail: Option[String],
                     receiptNumber: Option[String],
                     refunded: Boolean,
-                    refunds: Option[RefundsData],
+                    refunds: Option[RefundList],
                     shipping: Option[Shipping],
                     source: Card,
                     statementDescriptor: Option[String],
@@ -159,7 +159,7 @@ object Charges extends LazyLogging {
   private val chargeReadsTwo = (
     (__ \ "receipt_number").readNullable[String] ~
       (__ \ "refunded").read[Boolean] ~
-      (__ \ "refunds").readNullable[RefundsData] ~
+      (__ \ "refunds").readNullable[RefundList] ~
       (__ \ "shipping").readNullable[Shipping] ~
       (__ \ "source").read[Card] ~
       (__ \ "statement_descriptor").readNullable[String] ~

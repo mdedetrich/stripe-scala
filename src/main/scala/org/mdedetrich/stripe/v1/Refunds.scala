@@ -68,28 +68,21 @@ object Refunds {
       )
     )
 
-  case class RefundsData(data: List[RefundData],
-                         hasMore: Boolean,
-                         totalCount: Long,
-                         url: String)
+  case class RefundList(override val url: String,
+                        override val hasMore: Boolean,
+                        override val data: List[RefundData],
+                        override val totalCount: Option[Long]
+                       ) extends Collections.List[RefundData](
+    url, hasMore, data, totalCount
+  )
 
-  implicit val refundsDataReads: Reads[RefundsData] = (
-    (__ \ "data").read[List[RefundData]] ~
-      (__ \ "has_more").read[Boolean] ~
-      (__ \ "total_count").read[Long] ~
-      (__ \ "url").read[String]
-    ).tupled.map((RefundsData.apply _).tupled)
+  object RefundList extends Collections.ListJsonMappers[RefundData] {
+    implicit val refundsDataReads: Reads[RefundList] =
+      listReads.tupled.map((RefundList.apply _).tupled)
 
-  implicit val refundsDataWrites: Writes[RefundsData] =
-    Writes((refundsData: RefundsData) =>
-      Json.obj(
-        "data" -> refundsData.data,
-        "has_more" -> refundsData.hasMore,
-        "total_count" -> refundsData.totalCount,
-        "url" -> refundsData.url
-      )
-
-    )
+    implicit val refundDataWrites: Writes[RefundList] =
+      listWrites
+  }
 
   case class RefundInput(charge: String,
                          amount: BigDecimal,

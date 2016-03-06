@@ -38,9 +38,9 @@ package object v1 {
     */
 
   def handleIdempotent[T](request: => Option[IdempotencyKey] => Future[Try[T]],
-                      numberOfRetries: Int = Config.numberOfRetries
-                     )
-                     (implicit executionContext: ExecutionContext): Future[T] = {
+                          numberOfRetries: Int = Config.numberOfRetries
+                         )
+                         (implicit executionContext: ExecutionContext): Future[T] = {
 
     val idempotencyKey = Option(IdempotencyKey(java.util.UUID.randomUUID.toString))
 
