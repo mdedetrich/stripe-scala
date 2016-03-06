@@ -306,6 +306,7 @@ object Cards extends LazyLogging {
     implicit val sourceObjectWrites: Writes[SourceObject] =
       Writes((source: SourceObject) =>
         Json.obj(
+          "object" -> "card",
           "exp_month" -> source.expMonth,
           "exp_year" -> source.expYear,
           "number" -> source.number,
@@ -387,6 +388,7 @@ object Cards extends LazyLogging {
     implicit val externalAccountObjectWrites: Writes[ExternalAccountObject] =
       Writes((externalAccount: ExternalAccountObject) =>
         Json.obj(
+          "object" -> "card",
           "exp_month" -> externalAccount.expMonth,
           "exp_year" -> externalAccount.expYear,
           "number" -> externalAccount.number,
@@ -496,6 +498,7 @@ object Cards extends LazyLogging {
           Map("source" -> id)
         case externalAccount: CardData.ExternalAccountObject =>
           val map = Map(
+            "object" -> Option("card"),
             "exp_month" -> Option(externalAccount.expMonth.toString),
             "exp_year" -> Option(externalAccount.expYear.toString),
             "number" -> Option(externalAccount.number),
@@ -515,6 +518,7 @@ object Cards extends LazyLogging {
           mapToPostParams(Option(map), "external_account")
         case source: CardData.SourceObject =>
           val map = Map(
+            "object" -> Option("card"),
             "exp_month" -> Option(source.expMonth.toString),
             "exp_year" -> Option(source.expYear.toString),
             "number" -> Option(source.number),
