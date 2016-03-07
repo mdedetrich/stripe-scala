@@ -72,7 +72,7 @@ the stripe models
 import org.mdedetrich.stripe.v1.Customers._
 
 val expMonth = 01
-val expYear = 2012
+val expYear = 2020
 val cardNumber = "4242424242424242"
 val cvc = "536"
 
@@ -115,3 +115,52 @@ to `DateTime` and vice versa by using custom play-json writers/readers for JSON 
 `stripeDateTimeParamWrites` for form parameters.
 
 These functions are exposed publicly via the [package object](https://github.com/mdedetrich/stripe-scala/blob/master/src/main/scala/org/mdedetrich/stripe/v1/package.scala).
+
+### Dealing with Card Errors
+Since error messages from stripe are properly checked, dealing with errors like invalid CVC when adding a card are very easy to do.
+Here is an example (we assume that you are using Play, but this can work with any web framework. Only `OK`,`BadRequest` and `Json.obj` 
+are Play related methods)
+
+```scala
+
+import org.mdedetrich.stripe.v1.Cards._
+import org.mdedetrich.stripe.v1.Errors._
+import org.mdedetrich.stripe.v1.{handleIdempotent,transformParam}
+
+import play.api.mvc // Play related import
+
+val expMonth = 01
+val expYear = 2020
+val cardNumber = "4000000000000127"
+val cvc = "536"
+
+val stripeCustomerId: String = ??? // Some stripe customer Id
+
+val cardData = Cards.CardData.SourceObject
+  .default(expMonth, expYear, cardNumber)
+
+val cardInput = Cards.CardInput.default(cardData)
+
+val futureResponse = handleIdempotent(Cards.create(stripeCustomerId, cardInput)).recover {
+  case Errors.Error.RequestFailed(CardError, _, Some(message), Some(param)) =>
+    // We have a parameter, this usually means one of our fields is incorrect such as an invalid CVC
+    BadRequest(Json.obj("message" -> List((transformParam(param), List(message))))
+  case Errors.Error.RequestFailed(CardError, _, Some(message), None) =>
+    // No parameter, usually means a more general error, such as a declined card
+    BadRequest(Json.obj("message" -> message))
+}.map { cardData =>
+  Ok(Json.toJson(cardData))
+}
+```
+
+We attempt to create a card, and if it fails due to a `CardError` we use the `.recover` 
+method on a `Future` with pattern matching to map it to a `BadRequest`. If the request passes, we simply wrap the
+card data around an `Ok`. If we don't catch something of type `CardError` we let it propagate as a failed `Future`.
+
+One thing to note is the `transformParam` function. Since scala-stripe uses camel case instead of stripe's snake case,
+returned params for error messages from stripe will use snake case (i.e. "exp_month"). `transformParam` will convert
+that to a "expMonth".
+
+If you try and run the above code (remembering to implement `stripeCustomerId`) with that credit card number 
+in a test environment, it should return an incorrect CVC, see [stripe testing](https://stripe.com/docs/testing)
+for more info.
