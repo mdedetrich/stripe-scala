@@ -138,6 +138,7 @@ val stripeCustomerId: String = ??? // Some stripe customer Id
 
 val cardData = Cards.CardData.SourceObject
   .default(expMonth, expYear, cardNumber)
+  .copy(cvc = Option(cvc))
 
 val cardInput = Cards.CardInput.default(cardData)
 
@@ -162,5 +163,5 @@ returned params for error messages from stripe will use snake case (i.e. "exp_mo
 that to a "expMonth".
 
 If you try and run the above code (remembering to implement `stripeCustomerId`) with that credit card number 
-in a test environment, it should return an incorrect CVC, see [stripe testing](https://stripe.com/docs/testing)
+in a test environment it should return an incorrect CVC, see [stripe testing](https://stripe.com/docs/testing)
 for more info.
