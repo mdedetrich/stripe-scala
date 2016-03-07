@@ -75,6 +75,16 @@ object Errors {
 
   implicit val codeFormats = EnumFormats.formats(Code, insensitive = true)
 
+  /**
+    * Typed error from stripe
+    * @see https://stripe.com/docs/api#errors
+    * @param httpCode
+    * @param `type`
+    * @param code
+    * @param message
+    * @param param Note that if we get an empty param from stripe, this will get mapped to [[None]]
+    */
+
   sealed abstract class Error(val httpCode: Long,
                               val `type`: Type,
                               val code: Option[Code],
@@ -114,7 +124,10 @@ object Errors {
     (__ \ "type").read[Type] ~
       (__ \ "code").readNullable[Code] ~
       (__ \ "message").readNullable[String] ~
-      (__ \ "param").readNullable[String]
+      (__ \ "param").readNullable[String].map{
+        case Some(s) if s.isEmpty => None
+        case s => s
+      }
     ).tupled
 
 
