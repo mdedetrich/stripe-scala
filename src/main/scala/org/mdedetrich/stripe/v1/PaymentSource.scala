@@ -629,7 +629,7 @@ object Cards extends LazyLogging {
             jsResult.fold(
               errors => {
                 throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, customer => customer
+              }, deleteResponse => deleteResponse
             )
           }
         case Left(error) =>

@@ -337,6 +337,22 @@ object Customers extends LazyLogging {
       }
     })
 
+
+  case class CustomerList(override val url: String,
+                          override val hasMore: Boolean,
+                          override val data: List[Customer],
+                          override val totalCount: Option[Long]
+                         )
+    extends Collections.List[Customer](url, hasMore, data, totalCount)
+
+  object CustomerList extends Collections.ListJsonMappers[Customer] {
+    implicit val customerListReads: Reads[CustomerList] =
+      listReads.tupled.map((CustomerList.apply _).tupled)
+
+    implicit val customerWrites: Writes[CustomerList] =
+      listWrites
+  }
+  
   case class CustomerListInput(created: Option[CreatedInput],
                                endingBefore: Option[DateTime],
                                limit: Option[Long],
@@ -480,21 +496,6 @@ object Customers extends LazyLogging {
           scala.util.Failure(error)
       }
     }
-  }
-
-  case class CustomerList(override val url: String,
-                          override val hasMore: Boolean,
-                          override val data: List[Customer],
-                          override val totalCount: Option[Long]
-                         )
-    extends Collections.List[Customer](url, hasMore, data, totalCount)
-
-  object CustomerList extends Collections.ListJsonMappers[Customer] {
-    implicit val customerListReads: Reads[CustomerList] =
-      listReads.tupled.map((CustomerList.apply _).tupled)
-
-    implicit val customerWrites: Writes[CustomerList] =
-      listWrites
   }
 
   def delete(id: String)
