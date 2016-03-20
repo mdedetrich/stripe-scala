@@ -274,37 +274,7 @@ object BankAccounts extends LazyLogging {
 
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources"
 
-    val req = {
-      val r = (
-        url(finalUrl)
-          .addHeader("Content-Type", "application/x-www-form-urlencoded")
-          << postFormParameters
-        ).POST.as(apiKey.apiKey, "")
-
-      idempotencyKey match {
-        case Some(key) =>
-          r.addHeader(idempotencyKeyHeader, key.key)
-        case None =>
-          r
-      }
-    }
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[BankAccount](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
-              }, bankAccount => bankAccount
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestPOST[BankAccount](finalUrl,postFormParameters,idempotencyKey,logger)
 
   }
 

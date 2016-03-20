@@ -345,37 +345,7 @@ object Customers extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/customers"
 
-    val req = {
-      val r = (
-        url(finalUrl)
-          .addHeader("Content-Type", "application/x-www-form-urlencoded")
-          << postFormParameters
-        ).POST.as(apiKey.apiKey, "")
-
-      idempotencyKey match {
-        case Some(key) =>
-          r.addHeader(idempotencyKeyHeader, key.key)
-        case None =>
-          r
-      }
-    }
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[Customer](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
-              }, customer => customer
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestPOST[Customer](finalUrl,postFormParameters,idempotencyKey,logger)
   }
 
   def get(id: String)

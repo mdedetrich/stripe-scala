@@ -231,7 +231,8 @@ object Subscriptions extends LazyLogging {
     )
   }
 
-  def create(subscriptionInput: SubscriptionInput)
+  def create(customerId: String,
+             subscriptionInput: SubscriptionInput)
             (idempotencyKey: Option[IdempotencyKey] = None)
             (implicit apiKey: ApiKey,
              endpoint: Endpoint): Future[Try[Subscription]] = {
@@ -287,39 +288,10 @@ object Subscriptions extends LazyLogging {
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
-    val finalUrl = endpoint.url + "/v1/customers"
-
-    val req = {
-      val r = (
-        url(finalUrl)
-          .addHeader("Content-Type", "application/x-www-form-urlencoded")
-          << postFormParameters
-        ).POST.as(apiKey.apiKey, "")
-
-      idempotencyKey match {
-        case Some(key) =>
-          r.addHeader(idempotencyKeyHeader, key.key)
-        case None =>
-          r
-      }
-    }
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[Subscription](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
-              }, subscription => subscription
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    val finalUrl = endpoint.url + s"/v1/customers/$customerId/subscriptions"
+    
+    createRequestPOST[Subscription](finalUrl,postFormParameters,idempotencyKey,logger)
+    
   }
 
 }

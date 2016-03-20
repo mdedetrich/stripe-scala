@@ -540,37 +540,7 @@ object Cards extends LazyLogging {
 
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources"
 
-    val req = {
-      val r = (
-        url(finalUrl)
-          .addHeader("Content-Type", "application/x-www-form-urlencoded")
-          << postFormParameters
-        ).POST.as(apiKey.apiKey, "")
-
-      idempotencyKey match {
-        case Some(key) =>
-          r.addHeader(idempotencyKeyHeader, key.key)
-        case None =>
-          r
-      }
-    }
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[Card](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
-              }, card => card
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestPOST[Card](finalUrl,postFormParameters,idempotencyKey,logger)
 
   }
 
@@ -938,38 +908,9 @@ object BitcoinReceivers extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/bitcoin/receivers"
 
-    val req = {
-      val r = (
-        url(finalUrl)
-          .addHeader("Content-Type", "application/x-www-form-urlencoded")
-          << postFormParameters
-        ).POST.as(apiKey.apiKey, "")
-
-      idempotencyKey match {
-        case Some(key) =>
-          r.addHeader(idempotencyKeyHeader, key.key)
-        case None =>
-          r
-      }
-    }
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[BitcoinReceiver](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
-              }, bitcoinReceiver => bitcoinReceiver
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestPOST[BitcoinReceiver](finalUrl,postFormParameters,idempotencyKey,logger)
   }
+  
 
   def get(id: String)
          (implicit apiKey: ApiKey,

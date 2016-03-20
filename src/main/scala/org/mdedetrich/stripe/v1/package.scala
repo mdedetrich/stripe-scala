@@ -10,6 +10,61 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
 
 package object v1 {
+
+  /**
+    * A helper function which creates a POST request through dispatch
+    * @param finalUrl The URL for the request
+    * @param postFormParameters The POST form parameters
+    * @param idempotencyKey The IdempotencyKey
+    * @param logger The logger to use, should the logger for the model for
+    *               easy debugging
+    * @param reads
+    * @param apiKey
+    * @tparam M The model which this request should return
+    * @return
+    */
+  
+  private[v1] def createRequestPOST[M](finalUrl: String,
+                                postFormParameters: Map[String,String],
+                                idempotencyKey: Option[IdempotencyKey],
+                                logger: Logger)
+                               (implicit reads: Reads[M],
+                                apiKey: ApiKey): Future[Try[M]] = {
+    import dispatch.Defaults._
+    import dispatch._
+
+    val req = {
+      val r = (
+        url(finalUrl)
+          .addHeader("Content-Type", "application/x-www-form-urlencoded")
+          << postFormParameters
+        ).POST.as(apiKey.apiKey, "")
+
+      idempotencyKey match {
+        case Some(key) =>
+          r.addHeader(idempotencyKeyHeader, key.key)
+        case None =>
+          r
+      }
+    }
+    
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[M](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
+              }, model => model
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
   
   private[v1] def createdInputToBaseUrl(createdInput: CreatedInput, baseUrl: String): com.netaporter.uri.Uri = {
     import com.netaporter.uri.dsl._
