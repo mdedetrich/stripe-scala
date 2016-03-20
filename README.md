@@ -38,6 +38,7 @@ libraryDependencies ++= Seq(
 - [ ] Add all operations for all endpoints
 - [ ] Add tests
 - [ ] Shade jawn/scala-uri/enumeratum if possible. These dependencies don't need to be exposed to users
+- [ ] Document Stripe API with ScalaDoc
 - [x] Figure out how to deal with list collections
 - [x] Figure out how to deal with error handling
 - [x] Provide default methods for models so that building them is nicer
