@@ -427,6 +427,21 @@ object Cards extends LazyLogging {
         case cardData: CardData.ExternalAccountToken => Json.toJson(cardData)
       }
     }
+  
+  case class CardList(override val url: String,
+                      override val hasMore: Boolean,
+                      override val data: List[Card],
+                      override val totalCount: Option[Long]
+                     )
+    extends Collections.List[Card](url, hasMore, data, totalCount)
+  
+  object CardList extends Collections.ListJsonMappers[Card] {
+    implicit val cardListReads: Reads[CardList] =
+      listReads.tupled.map((CardList.apply _).tupled)
+
+    implicit val cardListWrites: Writes[CardList] =
+      listWrites
+  }
 
   case class CardInput(cardData: CardData,
                        metadata: Option[Map[String, String]],
@@ -478,6 +493,18 @@ object Cards extends LazyLogging {
       (__ \ "default_for_currency").readNullable[Boolean]
       ).tupled.map((CardInput.apply _).tupled)
   }
+  
+  case class CardListInput(endingBefore: Option[String],
+                           limit: Option[Long],
+                           startingAfter: Option[String])
+  
+  object CardListInput {
+    def default: CardListInput = CardListInput(
+      None,
+      None,
+      None
+    )
+  }
 
 
   def create(customerId: String, cardInput: CardInput)
@@ -510,7 +537,7 @@ object Cards extends LazyLogging {
             "address_zip" -> externalAccount.addressState,
             "currency" -> externalAccount.currency.map(_.iso.toLowerCase),
             "cvc" -> externalAccount.cvc,
-            "default_for_currency" -> externalAccount.defaultForCurrency.map(_.toString),
+            "default_for_currency" -> externalAccount.defaultForCurrency.map(_.iso.toLowerCase),
             "name" -> externalAccount.name
           ).collect {
             case (k, Some(v)) => (k, v)
@@ -535,7 +562,7 @@ object Cards extends LazyLogging {
           }
           mapToPostParams(Option(map), "source")
       }
-    }
+    }  ++ mapToPostParams(cardInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -630,6 +657,49 @@ object Cards extends LazyLogging {
               errors => {
                 throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
               }, deleteResponse => deleteResponse
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
+  
+  def list(customerId: String,
+           cardListInput: CardListInput,
+           includeTotalCount: Boolean)
+          (implicit apiKey: ApiKey,
+           endpoint: Endpoint): Future[Try[CardList]] = {
+    val finalUrl = {
+      import com.netaporter.uri.dsl._
+      val totalCountUrl = if (includeTotalCount)
+        "/include[]=total_count"
+      else
+        ""
+
+      val baseUrl = endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
+      
+      (baseUrl ?
+        ("object" -> "card") ?
+        ("ending_before" -> cardListInput.endingBefore) ?
+        ("limit" -> cardListInput.limit.map(_.toString)) ?
+        ("starting_after" -> cardListInput.startingAfter)
+        
+        ).toString()
+    }
+
+    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[CardList](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, cardList => cardList
             )
           }
         case Left(error) =>
@@ -847,6 +917,42 @@ object BitcoinReceivers extends LazyLogging {
         "refund_mispayments" -> bitcoinReceiverInput.refundMispayments
       )
     )
+  
+  case class BitcoinReceiverList(override val url: String,
+                                 override val hasMore: Boolean,
+                                 override val data: List[BitcoinReceiver],
+                                 override val totalCount: Option[Long]
+                                )
+    extends Collections.List[BitcoinReceiver](url, hasMore, data, totalCount)
+
+
+
+  object BitcoinReceiverList extends Collections.ListJsonMappers[BitcoinReceiver] {
+    implicit val cardListReads: Reads[BitcoinReceiverList] =
+      listReads.tupled.map((BitcoinReceiverList.apply _).tupled)
+
+    implicit val cardListWrites: Writes[BitcoinReceiverList] =
+      listWrites
+  }
+  
+  
+  case class BitcoinReceiverListInput(active: Option[Boolean],
+                                      endingBefore: Option[String],
+                                      filled: Option[Boolean],
+                                      limit: Option[Long],
+                                      startingAfter: Option[String],
+                                      uncapturedFunds: Option[Boolean])
+  
+  object BitcoinReceiverListInput {
+    def default: BitcoinReceiverListInput = BitcoinReceiverListInput(
+      None,
+      None,
+      None,
+      None,
+      None,
+      None
+    )
+  }
 
   def create(bitcoinReceiverInput: BitcoinReceiverInput)
             (idempotencyKey: Option[IdempotencyKey] = None)
@@ -900,6 +1006,75 @@ object BitcoinReceivers extends LazyLogging {
           scala.util.Failure(error)
       }
     }
+  }
+  
+  def get(id: String)
+         (implicit apiKey: ApiKey,
+          endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
+    val finalUrl = endpoint.url + s"/v1/bitcoin/receivers/$id"
+
+    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[BitcoinReceiver](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, bitcoinReceiver => bitcoinReceiver
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
+  
+  def list(bitcoinReceiverListInput: BitcoinReceiverListInput,
+           includeTotalCount: Boolean)
+          (implicit apiKey: ApiKey,
+           endpoint: Endpoint): Future[Try[BitcoinReceiverList]] = {
+    val finalUrl = {
+      import com.netaporter.uri.dsl._
+      val totalCountUrl = if (includeTotalCount)
+        "/include[]=total_count"
+      else
+        ""
+
+      val baseUrl = endpoint.url + s"/v1/bitcoin/receivers$totalCountUrl"
+
+      (baseUrl ?
+        ("active" -> bitcoinReceiverListInput.active) ?
+        ("ending_before" -> bitcoinReceiverListInput.endingBefore) ?
+        ("filled" -> bitcoinReceiverListInput.filled) ?
+        ("limit" -> bitcoinReceiverListInput.limit.map(_.toString)) ?
+        ("starting_after" -> bitcoinReceiverListInput.startingAfter) ?
+        ("uncaptured_funds" -> bitcoinReceiverListInput.uncapturedFunds)
+        ).toString()
+    }
+
+    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[BitcoinReceiverList](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, bitcoinReceiverList => bitcoinReceiverList
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+    
   }
 
 }

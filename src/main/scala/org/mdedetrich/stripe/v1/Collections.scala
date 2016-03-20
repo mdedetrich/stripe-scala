@@ -18,7 +18,7 @@ object Collections {
   abstract class List[A](val url: String,
                          val hasMore: Boolean,
                          val data: scala.List[A],
-                         val totalCount: Option[Long] = None
+                         val totalCount: Option[Long]
                         ) {
   }
 

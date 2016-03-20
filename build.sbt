@@ -1,8 +1,10 @@
 name := "stripe-scala"
 
-scalaVersion := "2.11.7"
+val currentScalaVersion = "2.11.8"
 
-crossScalaVersions := Seq("2.11.7")
+scalaVersion := currentScalaVersion
+
+crossScalaVersions := Seq(currentScalaVersion)
 
 organization := "org.mdedetrich"
 
@@ -40,5 +42,6 @@ libraryDependencies ++= Seq(
   "org.spire-math" %% "jawn-play" % jawnVersion,
   "com.iheart" %% "ficus" % "1.2.2",
   "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
+  "com.netaporter" %% "scala-uri" % "0.4.13",
   "org.mdedetrich" %% "play-json-utils" % "1.0.0-SNAPSHOT"
 )

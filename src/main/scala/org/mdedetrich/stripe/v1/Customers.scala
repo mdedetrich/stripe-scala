@@ -352,9 +352,9 @@ object Customers extends LazyLogging {
     implicit val customerWrites: Writes[CustomerList] =
       listWrites
   }
-  
+
   case class CustomerListInput(created: Option[CreatedInput],
-                               endingBefore: Option[DateTime],
+                               endingBefore: Option[String],
                                limit: Option[Long],
                                startingAfter: Option[String]
                               )
@@ -524,7 +524,64 @@ object Customers extends LazyLogging {
             jsResult.fold(
               errors => {
                 throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, customer => customer
+              }, deleteResponse => deleteResponse
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
+
+
+  def list(customerListInput: CustomerListInput,
+           includeTotalCount: Boolean)
+          (implicit apiKey: ApiKey,
+           endpoint: Endpoint): Future[Try[CustomerList]] = {
+    val finalUrl = {
+      import com.netaporter.uri.dsl._
+      val totalCountUrl = if (includeTotalCount)
+        "/include[]=total_count"
+      else
+        ""
+
+      val baseUrl = endpoint.url + s"/v1/customers$totalCountUrl"
+
+      val created: com.netaporter.uri.Uri = customerListInput.created match {
+        case Some(createdInput) =>
+          createdInput match {
+            case c: CreatedInput.Object =>
+              baseUrl ?
+                ("created[gt]" -> c.gt.map(stripeDateTimeParamWrites)) ?
+                ("created[gte]" -> c.gte.map(stripeDateTimeParamWrites)) ?
+                ("created[lt]" -> c.lt.map(stripeDateTimeParamWrites)) ?
+                ("created[lte]" -> c.lte.map(stripeDateTimeParamWrites))
+            case c: CreatedInput.Timestamp =>
+              baseUrl ? ("created" -> Option(stripeDateTimeParamWrites(c.timestamp)))
+          }
+        case None => baseUrl
+      }
+
+      (created ?
+        ("ending_before" -> customerListInput.endingBefore) ?
+        ("limit" -> customerListInput.limit.map(_.toString)) ?
+        ("starting_after" -> customerListInput.startingAfter)
+        ).toString()
+
+    }
+
+    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[CustomerList](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, customerList => customerList
             )
           }
         case Left(error) =>

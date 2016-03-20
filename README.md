@@ -14,6 +14,7 @@ reading/writing JSON from/to scala case classes). It also provides a very powerf
 - [ficus](https://github.com/iheartradio/ficus) for providing config (via [typesafe-config](https://github.com/typesafehub/config))
 - [nscala-time](https://github.com/nscala-time/nscala-time) for date/time handling (via [JodaTime](http://www.joda.org/joda-time/))
 - [enumeratum](https://github.com/lloydmeta/enumeratum) for providing typesafe enumerations on stripe enum models as well 
+- [scala-uri](https://github.com/NET-A-PORTER/scala-uri) for providing a URI DSL to generate query parameters for list operations
 play-json formats for such models
 
 stripe-scala was intentionally designed to use bare minimum external dependencies so its easier to integrate with scala codebases
@@ -32,6 +33,22 @@ libraryDependencies ++= Seq(
   "org.mdedetrich" %% "stripe-scala" % "1.0.0-SNAPSHOT"
 )
 ```
+
+## TODO for release
+- [ ] Add all operations for all endpoints
+- [ ] Add tests
+- [ ] Shade jawn/scala-uri/enumeratum if possible. These dependencies don't need to be exposed to users
+- [x] Figure out how to deal with list collections
+- [x] Figure out how to deal with error handling
+- [x] Provide default methods for models so that building them is nicer
+- [ ] Implement a single instance of all operation types to figure out if there are any potential issues
+  - [x] get
+  - [x] create
+  - [ ] update
+  - [x] list
+  - [x] delete
+- [ ] Release another branch for Play Json 2.5
+- [ ] Clean up/refactor code (still a lot of duplication)
 
 ## Usage
 Stripe Api key and url endpoint are provided implicitly by using the `org.mdedetrich.stripe.ApiKey` and `org.mdedetrich.stripe.Endpoint` 
@@ -165,3 +182,22 @@ that to a "expMonth".
 If you try and run the above code (remembering to implement `stripeCustomerId`) with that credit card number 
 in a test environment it should return an incorrect CVC, see [stripe testing](https://stripe.com/docs/testing)
 for more info.
+
+### List collection
+stripe can return items in the form a of a list which has the following format
+
+```json
+{
+  "object": "list",
+  "url": "/v1/customers/35/sources",
+  "has_more": false,
+  "data": [
+    {...},
+    {...}
+  ]
+}
+```
+
+In stripe-scala, there is a base List collection at `org.mdedetrich.stripe.v1.Collections.List` with represents
+the model for the list. Other stripe objects extend `org.mdedetrich.stripe.v1.Collections.List` to provide an implementation
+of the object as a list collection, i.e. `BankAccountList` for `BankAccount`
