@@ -50,6 +50,7 @@ libraryDependencies ++= Seq(
   - [x] delete
 - [ ] Release another branch for Play Json 2.5
 - [ ] Clean up/refactor code (still a lot of duplication)
+- [ ] Webhooks/Events
 
 ## Usage
 Stripe Api key and url endpoint are provided implicitly by using the `org.mdedetrich.stripe.ApiKey` and `org.mdedetrich.stripe.Endpoint` 
