@@ -10,6 +10,33 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
 
 package object v1 {
+  
+  private[v1] def createRequestGET[M](finalUrl: String,
+                                      logger: Logger)
+                                     (implicit reads: Reads[M],
+                                      apiKey: ApiKey): Future[Try[M]] = {
+    import dispatch.Defaults._
+    import dispatch._
+    
+    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[M](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, model => model
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
 
   /**
     * A helper function which creates a POST request through dispatch

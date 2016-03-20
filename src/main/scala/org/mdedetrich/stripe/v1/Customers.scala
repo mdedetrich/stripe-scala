@@ -353,24 +353,8 @@ object Customers extends LazyLogging {
           endpoint: Endpoint): Future[Try[Customer]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
-    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[Customer](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, customer => customer
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestGET[Customer](finalUrl,logger)
+    
   }
 
   def delete(id: String)
@@ -465,24 +449,8 @@ object Customers extends LazyLogging {
 
     }
 
-    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[CustomerList](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, customerList => customerList
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestGET[CustomerList](finalUrl,logger)
+    
   }
 
 }

@@ -549,24 +549,7 @@ object Cards extends LazyLogging {
           endpoint: Endpoint): Future[Try[Card]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$cardId"
 
-    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[Card](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, card => card
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestGET[Card](finalUrl,logger)
 
   }
 
@@ -657,24 +640,7 @@ object Cards extends LazyLogging {
         ).toString()
     }
 
-    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[CardList](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, cardList => cardList
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestGET[CardList](finalUrl,logger)
   }
 
 }
@@ -917,24 +883,8 @@ object BitcoinReceivers extends LazyLogging {
           endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
     val finalUrl = endpoint.url + s"/v1/bitcoin/receivers/$id"
 
-    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[BitcoinReceiver](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, bitcoinReceiver => bitcoinReceiver
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestGET[BitcoinReceiver](finalUrl,logger)
+    
   }
 
   case class BitcoinReceiverListInput(active: Option[Boolean],
@@ -994,24 +944,7 @@ object BitcoinReceivers extends LazyLogging {
         ).toString()
     }
 
-    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[BitcoinReceiverList](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, bitcoinReceiverList => bitcoinReceiverList
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestGET[BitcoinReceiverList](finalUrl,logger)
 
   }
 

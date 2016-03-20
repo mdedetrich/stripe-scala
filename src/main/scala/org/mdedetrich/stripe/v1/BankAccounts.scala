@@ -284,24 +284,8 @@ object BankAccounts extends LazyLogging {
           endpoint: Endpoint): Future[Try[BankAccount]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$bankAccountId"
 
-    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[BankAccount](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, bankAccount => bankAccount
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestGET[BankAccount](finalUrl,logger)
+    
   }
 
   def delete(customerId: String,
@@ -389,24 +373,7 @@ object BankAccounts extends LazyLogging {
         ).toString()
     }
 
-    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[BankAccountList](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, bankAccountList => bankAccountList
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestGET[BankAccountList](finalUrl,logger)
 
   }
 
