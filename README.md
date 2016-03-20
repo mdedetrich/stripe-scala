@@ -63,8 +63,8 @@ as a failed `Future` (it is by design that the models defined in stripe-scala ar
 If there however is a checked error (such as an invalid API key) this will not throw an exception, 
 instead it will be contained within the `Try` monad (i.e. you will get a `scala.util.Failure`)
 
-The second parameter for stripe POST requests (often named as create in stripe-scala) has an optional idempotencyKey which defaults
-to None. You can specify a IdempotencyKey to make sure that you don't create duplicate POST requests with the same input.
+The second parameter for stripe POST requests (often named as create in stripe-scala) has an optional `idempotencyKey` which defaults
+to `None`. You can specify a `IdempotencyKey` to make sure that you don't create duplicate POST requests with the same input.
 
 stripe-scala provides `handle`/`handleIdempotent` functions which provides the typical way of dealing with stripe-errors.
 It will attempt to retry the original request (using the `IdempotencyKey` to prevent duplicate side effects with `handleIdempotent`) for
