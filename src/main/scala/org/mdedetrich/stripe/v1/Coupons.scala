@@ -201,33 +201,8 @@ object Coupons extends LazyLogging {
              endpoint: Endpoint): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/coupons/$id"
 
-    val req = {
-      val r = url(finalUrl).DELETE.as(apiKey.apiKey, "")
-
-      idempotencyKey match {
-        case Some(key) =>
-          r.addHeader(idempotencyKeyHeader, key.key)
-        case None =>
-          r
-      }
-    }
-
-    Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[DeleteResponse](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, deleteResponse => deleteResponse
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
-      }
-    }
+    createRequestDELETE(finalUrl,idempotencyKey,logger)
+    
   }
 
   case class CouponListInput(created: Option[CreatedInput],

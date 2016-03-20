@@ -4,12 +4,74 @@ import com.ning.http.client.Response
 import com.typesafe.scalalogging.Logger
 import jawn.support.play.Parser
 import org.joda.time.DateTime
+import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.v1.Errors.{Error, StripeServerError, UnhandledServerError}
 import play.api.libs.json._
+
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
 
 package object v1 {
+
+  /**
+    * A helper function which creates a DELETE request through dispatch.
+    * Note that DELETE requests in stripe all have the same response
+    * 
+    * @param finalUrl The URL for the request
+    * @param idempotencyKey The logger to use, should the logger for the model for
+    *                       easy debugging
+    * @param logger
+    * @param apiKey
+    * @return
+    */
+  
+  private[v1] def createRequestDELETE(finalUrl: String,
+                                      idempotencyKey: Option[IdempotencyKey],
+                                      logger: Logger)
+                                     (implicit apiKey: ApiKey): Future[Try[DeleteResponse]] = {
+    import dispatch.Defaults._
+    import dispatch._
+
+    val req = {
+      val r = url(finalUrl).DELETE.as(apiKey.apiKey, "")
+
+      idempotencyKey match {
+        case Some(key) =>
+          r.addHeader(idempotencyKeyHeader, key.key)
+        case None =>
+          r
+      }
+    }
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[DeleteResponse](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, deleteResponse => deleteResponse
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
+
+  /**
+    * A helper function which creates a GET request through dispatch
+    * 
+    * @param finalUrl The URL for the request
+    * @param logger The logger to use, should the logger for the model for
+    *               easy debugging
+    * @param reads
+    * @param apiKey
+    * @tparam M The model which this request should return
+    * @return
+    */
   
   private[v1] def createRequestGET[M](finalUrl: String,
                                       logger: Logger)
