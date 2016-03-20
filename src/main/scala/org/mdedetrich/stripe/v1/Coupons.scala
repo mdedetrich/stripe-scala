@@ -183,9 +183,9 @@ object Coupons extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/charges"
 
-    createRequestPOST[Coupon](finalUrl,postFormParameters,idempotencyKey,logger)
+    createRequestPOST[Coupon](finalUrl, postFormParameters, idempotencyKey, logger)
   }
-  
+
   def get(id: String)
          (implicit apiKey: ApiKey,
           endpoint: Endpoint): Future[Try[Coupon]] = {
@@ -210,7 +210,7 @@ object Coupons extends LazyLogging {
       }
     }
   }
-  
+
   def delete(id: String)
             (idempotencyKey: Option[IdempotencyKey] = None)
             (implicit apiKey: ApiKey,
@@ -245,13 +245,13 @@ object Coupons extends LazyLogging {
       }
     }
   }
-  
+
   case class CouponListInput(created: Option[CreatedInput],
                              endingBefore: Option[String],
                              limit: Option[Long],
                              startingAfter: Option[String]
                             )
-  
+
   object CouponListInput {
     def default: CouponListInput = CouponListInput(
       None,
@@ -260,14 +260,14 @@ object Coupons extends LazyLogging {
       None
     )
   }
-  
+
   case class CouponList(override val url: String,
                         override val hasMore: Boolean,
                         override val data: List[Coupon],
                         override val totalCount: Option[Long]
                        )
     extends Collections.List[Coupon](url, hasMore, data, totalCount)
-  
+
   object CouponList extends Collections.ListJsonMappers[Coupon] {
     implicit val couponListReads: Reads[CouponList] =
       listReads.tupled.map((CouponList.apply _).tupled)
@@ -275,12 +275,12 @@ object Coupons extends LazyLogging {
     implicit val couponListWrites: Writes[CouponList] =
       listWrites
   }
-  
+
   def list(couponListInput: CouponListInput,
            includeTotalCount: Boolean)
           (implicit apiKey: ApiKey,
            endpoint: Endpoint): Future[Try[CouponList]] = {
-    
+
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl = if (includeTotalCount)
@@ -292,7 +292,7 @@ object Coupons extends LazyLogging {
 
       val created: com.netaporter.uri.Uri = couponListInput.created match {
         case Some(createdInput) =>
-          createdInputToBaseUrl(createdInput,baseUrl)
+          createdInputToBaseUrl(createdInput, baseUrl)
         case None => baseUrl
       }
 
@@ -301,7 +301,7 @@ object Coupons extends LazyLogging {
         ("limit" -> couponListInput.limit.map(_.toString)) ?
         ("starting_after" -> couponListInput.startingAfter)
         ).toString()
-      
+
     }
 
     val req = url(finalUrl).GET.as(apiKey.apiKey, "")
@@ -324,5 +324,5 @@ object Coupons extends LazyLogging {
     }
 
   }
-  
+
 }

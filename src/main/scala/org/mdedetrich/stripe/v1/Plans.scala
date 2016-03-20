@@ -218,8 +218,8 @@ object Plans extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/plans"
 
-    createRequestPOST[Plan](finalUrl,postFormParameters,idempotencyKey,logger)
-  
+    createRequestPOST[Plan](finalUrl, postFormParameters, idempotencyKey, logger)
+
   }
 
 }

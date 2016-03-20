@@ -540,7 +540,7 @@ object Cards extends LazyLogging {
 
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources"
 
-    createRequestPOST[Card](finalUrl,postFormParameters,idempotencyKey,logger)
+    createRequestPOST[Card](finalUrl, postFormParameters, idempotencyKey, logger)
 
   }
 
@@ -908,9 +908,9 @@ object BitcoinReceivers extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/bitcoin/receivers"
 
-    createRequestPOST[BitcoinReceiver](finalUrl,postFormParameters,idempotencyKey,logger)
+    createRequestPOST[BitcoinReceiver](finalUrl, postFormParameters, idempotencyKey, logger)
   }
-  
+
 
   def get(id: String)
          (implicit apiKey: ApiKey,

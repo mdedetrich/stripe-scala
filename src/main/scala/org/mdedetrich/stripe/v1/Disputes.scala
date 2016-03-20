@@ -38,7 +38,7 @@ object Disputes {
                              uncategorizedText: Option[String]) extends StripeObject
 
   // This is due to http://stackoverflow.com/questions/28167971/scala-case-having-22-fields-but-having-issue-with-play-json-in-scala-2-11-5
-  
+
   private val disputeEvidenceReadsOne = (
     (__ \ "access_activity_log").readNullable[String] ~
       (__ \ "billing_address").readNullable[String] ~

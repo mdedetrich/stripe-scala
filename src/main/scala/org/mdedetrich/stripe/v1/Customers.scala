@@ -345,7 +345,7 @@ object Customers extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/customers"
 
-    createRequestPOST[Customer](finalUrl,postFormParameters,idempotencyKey,logger)
+    createRequestPOST[Customer](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
   def get(id: String)
@@ -437,7 +437,7 @@ object Customers extends LazyLogging {
     implicit val customerWrites: Writes[CustomerList] =
       listWrites
   }
-  
+
   def list(customerListInput: CustomerListInput,
            includeTotalCount: Boolean)
           (implicit apiKey: ApiKey,
@@ -453,7 +453,7 @@ object Customers extends LazyLogging {
 
       val created: com.netaporter.uri.Uri = customerListInput.created match {
         case Some(createdInput) =>
-          createdInputToBaseUrl(createdInput,baseUrl)
+          createdInputToBaseUrl(createdInput, baseUrl)
         case None => baseUrl
       }
 

@@ -289,9 +289,9 @@ object Subscriptions extends LazyLogging {
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/subscriptions"
-    
-    createRequestPOST[Subscription](finalUrl,postFormParameters,idempotencyKey,logger)
-    
+
+    createRequestPOST[Subscription](finalUrl, postFormParameters, idempotencyKey, logger)
+
   }
 
 }

@@ -13,23 +13,24 @@ package object v1 {
 
   /**
     * A helper function which creates a POST request through dispatch
-    * @param finalUrl The URL for the request
+    *
+    * @param finalUrl           The URL for the request
     * @param postFormParameters The POST form parameters
-    * @param idempotencyKey The IdempotencyKey
-    * @param logger The logger to use, should the logger for the model for
-    *               easy debugging
+    * @param idempotencyKey     The IdempotencyKey
+    * @param logger             The logger to use, should the logger for the model for
+    *                           easy debugging
     * @param reads
     * @param apiKey
     * @tparam M The model which this request should return
     * @return
     */
-  
+
   private[v1] def createRequestPOST[M](finalUrl: String,
-                                postFormParameters: Map[String,String],
-                                idempotencyKey: Option[IdempotencyKey],
-                                logger: Logger)
-                               (implicit reads: Reads[M],
-                                apiKey: ApiKey): Future[Try[M]] = {
+                                       postFormParameters: Map[String, String],
+                                       idempotencyKey: Option[IdempotencyKey],
+                                       logger: Logger)
+                                      (implicit reads: Reads[M],
+                                       apiKey: ApiKey): Future[Try[M]] = {
     import dispatch.Defaults._
     import dispatch._
 
@@ -47,7 +48,7 @@ package object v1 {
           r
       }
     }
-    
+
     Http(req).map { response =>
 
       parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
@@ -65,7 +66,7 @@ package object v1 {
       }
     }
   }
-  
+
   private[v1] def createdInputToBaseUrl(createdInput: CreatedInput, baseUrl: String): com.netaporter.uri.Uri = {
     import com.netaporter.uri.dsl._
     createdInput match {
@@ -79,7 +80,7 @@ package object v1 {
         baseUrl ? ("created" -> Option(stripeDateTimeParamWrites(c.timestamp)))
     }
   }
-  
+
   /**
     * Transforms a param from Stripes naming scheme (snake case) to scala-stripe's naming scheme (camel case).
     * Often used when dealing with stripe error messages for invalid fields, such as invalid CVC
@@ -211,10 +212,10 @@ package object v1 {
     */
 
   private[v1] def parseStripeServerError(response: Response,
-                             finalUrl: String,
-                             postFormParameters: Option[Map[String, String]],
-                             postJsonParameters: Option[JsValue])
-                            (implicit logger: Logger): Either[Errors.Error, Try[JsValue]] = {
+                                         finalUrl: String,
+                                         postFormParameters: Option[Map[String, String]],
+                                         postJsonParameters: Option[JsValue])
+                                        (implicit logger: Logger): Either[Errors.Error, Try[JsValue]] = {
     val httpCode = response.getStatusCode
 
     logger.debug(s"Response status code is $httpCode")

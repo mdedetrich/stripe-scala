@@ -10,6 +10,7 @@ case object CurrencyGroup2 extends CurrencyGroup
 
 /**
   * List of currency codes supported by Stripe
+  *
   * @see https://support.stripe.com/questions/which-currencies-does-stripe-support
   * @param iso             ISO code for the currency
   * @param currencyGroup   Which currency group the currency is in                       

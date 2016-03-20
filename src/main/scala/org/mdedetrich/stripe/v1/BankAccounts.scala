@@ -274,7 +274,7 @@ object BankAccounts extends LazyLogging {
 
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources"
 
-    createRequestPOST[BankAccount](finalUrl,postFormParameters,idempotencyKey,logger)
+    createRequestPOST[BankAccount](finalUrl, postFormParameters, idempotencyKey, logger)
 
   }
 
