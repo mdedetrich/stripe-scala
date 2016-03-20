@@ -36,8 +36,7 @@ object Errors {
   implicit val typeFormats = EnumFormats.formats(Type, insensitive = true)
 
   /**
-    * Codes taken from https://stripe.com/docs/api#errors
-    *
+    * @see from https://stripe.com/docs/api#errors
     * @param id
     */
   sealed abstract class Code(val id: String) extends EnumEntry {
@@ -82,7 +81,7 @@ object Errors {
     * @param `type`
     * @param code
     * @param message
-    * @param param Note that if we get an empty param from stripe, this will get mapped to [[None]]
+    * @param param Note that if we get an empty String param from stripe, this will get mapped to [[None]]
     */
 
   sealed abstract class Error(val httpCode: Long,

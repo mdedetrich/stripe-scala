@@ -19,7 +19,7 @@ import scala.concurrent.Future
 import scala.util.Try
 
 /**
-  * [[PaymentSource]] is a supertype of the different availabe Stripe
+  * [[PaymentSource]] is a supertype of the different available Stripe
   * payment types.
   */
 

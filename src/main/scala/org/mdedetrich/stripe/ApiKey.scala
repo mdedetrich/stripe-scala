@@ -5,4 +5,4 @@ package org.mdedetrich.stripe
   *
   * @param apiKey
   */
-case class ApiKey(val apiKey: String) extends AnyVal
+case class ApiKey(apiKey: String) extends AnyVal

@@ -13,11 +13,11 @@ import play.api.libs.json.{JsPath, JsValue}
   * @param jsonResponse   The original json response
   * @param errors         The errors as reported from play-json
   */
-case class InvalidJsonModelException(val httpStatusCode: Long,
-                                     val url: String,
-                                     val postParameters: Option[Map[String, String]],
-                                     val postJson: Option[JsValue],
-                                     val jsonResponse: JsValue,
-                                     val errors: Seq[(JsPath, Seq[ValidationError])]) extends Exception {
+case class InvalidJsonModelException(httpStatusCode: Long,
+                                     url: String,
+                                     postParameters: Option[Map[String, String]],
+                                     postJson: Option[JsValue],
+                                     jsonResponse: JsValue,
+                                     errors: Seq[(JsPath, Seq[ValidationError])]) extends Exception {
   override def getMessage = s"Invalid JSON model, errors are $errors"
 }

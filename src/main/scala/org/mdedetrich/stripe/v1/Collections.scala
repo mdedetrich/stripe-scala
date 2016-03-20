@@ -10,7 +10,7 @@ object Collections {
   }
 
   /**
-    * Stripe can returns its lists in this format
+    * Stripe returns its list collection in this format
     *
     * @tparam A
     */

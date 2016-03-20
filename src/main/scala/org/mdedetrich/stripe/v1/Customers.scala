@@ -103,7 +103,7 @@ object Customers extends LazyLogging {
 
   object Source {
 
-    case class Token(val id: String) extends Source
+    case class Token(id: String) extends Source
 
     case class Card(expMonth: Int,
                     expYear: Int,

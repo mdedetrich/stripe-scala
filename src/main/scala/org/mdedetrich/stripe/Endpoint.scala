@@ -6,4 +6,4 @@ package org.mdedetrich.stripe
   *
   * @param url
   */
-case class Endpoint(val url: String) extends AnyVal
+case class Endpoint(url: String) extends AnyVal

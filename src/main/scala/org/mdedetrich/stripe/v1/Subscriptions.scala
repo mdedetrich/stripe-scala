@@ -138,18 +138,18 @@ object Subscriptions extends LazyLogging {
 
   object Source {
 
-    case class Token(val id: String) extends Source
+    case class Token(id: String) extends Source
 
-    case class Card(val expMonth: Int,
-                    val expYear: Int,
-                    val number: String,
-                    val addressCountry: Option[String],
-                    val addressLine1: Option[String],
-                    val addressLine2: Option[String],
-                    val addressState: Option[String],
-                    val addressZip: Option[String],
-                    val cvc: Option[String],
-                    val name: Option[String]
+    case class Card(expMonth: Int,
+                    expYear: Int,
+                    number: String,
+                    addressCountry: Option[String],
+                    addressLine1: Option[String],
+                    addressLine2: Option[String],
+                    addressState: Option[String],
+                    addressZip: Option[String],
+                    cvc: Option[String],
+                    name: Option[String]
                    ) extends Source with BaseCardSource
 
   }
