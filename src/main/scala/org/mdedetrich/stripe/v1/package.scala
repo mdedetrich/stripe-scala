@@ -93,11 +93,7 @@ package object v1 {
           case scala.util.Failure(failure) =>
             failure match {
               case Errors.Error.RequestFailed(error, _, _, _) =>
-
-                /**
-                  * According to documentation, these errors imply some sought of network error
-                  * so we should retry
-                  */
+                // According to documentation, these errors imply some sought of network error so we should retry
                 error match {
                   case Errors.Type.ApiError => responseBlockWithRetries(currentRetryCount + 1)
                   case Errors.Type.ApiConnectionError => responseBlockWithRetries(currentRetryCount + 1)
@@ -119,7 +115,8 @@ package object v1 {
       case Success(success) => Future {
         success
       }
-      case Failure(throwable) => Future.failed(throwable)
+      case Failure(throwable) =>
+        Future.failed(throwable)
     }
   }
 
