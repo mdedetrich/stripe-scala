@@ -1,8 +1,6 @@
 package org.mdedetrich.stripe.v1
 
 import com.typesafe.scalalogging.LazyLogging
-import dispatch.Defaults._
-import dispatch._
 import enumeratum._
 import org.joda.time.DateTime
 import org.mdedetrich.playjson.Utils._
@@ -12,7 +10,7 @@ import org.mdedetrich.stripe.v1.Errors._
 import org.mdedetrich.stripe.v1.Refunds.RefundList
 import org.mdedetrich.stripe.v1.Shippings.Shipping
 import org.mdedetrich.stripe.v1.Sources.BaseCardSource
-import org.mdedetrich.stripe.{IdempotencyKey, ApiKey, Endpoint, InvalidJsonModelException}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json._

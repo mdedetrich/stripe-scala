@@ -1,19 +1,17 @@
 package org.mdedetrich.stripe.v1
 
 import com.typesafe.scalalogging.LazyLogging
-import dispatch.Defaults._
-import dispatch._
 import enumeratum._
 import org.joda.time.DateTime
-import org.mdedetrich.stripe.v1.Collections.ListJsonMappers
-import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
-import org.mdedetrich.stripe.{IdempotencyKey, InvalidJsonModelException, Endpoint, ApiKey}
+import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.BitcoinReceivers.BitcoinReceiver
 import org.mdedetrich.stripe.v1.Cards.Card
+import org.mdedetrich.stripe.v1.Collections.ListJsonMappers
+import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 import play.api.data.validation.ValidationError
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import org.mdedetrich.playjson.Utils._
+import play.api.libs.json._
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -549,7 +547,7 @@ object Cards extends LazyLogging {
           endpoint: Endpoint): Future[Try[Card]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$cardId"
 
-    createRequestGET[Card](finalUrl,logger)
+    createRequestGET[Card](finalUrl, logger)
 
   }
 
@@ -561,8 +559,8 @@ object Cards extends LazyLogging {
 
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$cardId"
 
-    createRequestDELETE(finalUrl,idempotencyKey,logger)
-    
+    createRequestDELETE(finalUrl, idempotencyKey, logger)
+
   }
 
   case class CardListInput(endingBefore: Option[String],
@@ -615,7 +613,7 @@ object Cards extends LazyLogging {
         ).toString()
     }
 
-    createRequestGET[CardList](finalUrl,logger)
+    createRequestGET[CardList](finalUrl, logger)
   }
 
 }
@@ -858,8 +856,8 @@ object BitcoinReceivers extends LazyLogging {
           endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
     val finalUrl = endpoint.url + s"/v1/bitcoin/receivers/$id"
 
-    createRequestGET[BitcoinReceiver](finalUrl,logger)
-    
+    createRequestGET[BitcoinReceiver](finalUrl, logger)
+
   }
 
   case class BitcoinReceiverListInput(active: Option[Boolean],
@@ -919,7 +917,7 @@ object BitcoinReceivers extends LazyLogging {
         ).toString()
     }
 
-    createRequestGET[BitcoinReceiverList](finalUrl,logger)
+    createRequestGET[BitcoinReceiverList](finalUrl, logger)
 
   }
 

@@ -16,15 +16,15 @@ package object v1 {
   /**
     * A helper function which creates a DELETE request through dispatch.
     * Note that DELETE requests in stripe all have the same response
-    * 
-    * @param finalUrl The URL for the request
+    *
+    * @param finalUrl       The URL for the request
     * @param idempotencyKey The logger to use, should the logger for the model for
     *                       easy debugging
     * @param logger
     * @param apiKey
     * @return
     */
-  
+
   private[v1] def createRequestDELETE(finalUrl: String,
                                       idempotencyKey: Option[IdempotencyKey],
                                       logger: Logger)
@@ -63,23 +63,23 @@ package object v1 {
 
   /**
     * A helper function which creates a GET request through dispatch
-    * 
+    *
     * @param finalUrl The URL for the request
-    * @param logger The logger to use, should the logger for the model for
-    *               easy debugging
+    * @param logger   The logger to use, should the logger for the model for
+    *                 easy debugging
     * @param reads
     * @param apiKey
     * @tparam M The model which this request should return
     * @return
     */
-  
+
   private[v1] def createRequestGET[M](finalUrl: String,
                                       logger: Logger)
                                      (implicit reads: Reads[M],
                                       apiKey: ApiKey): Future[Try[M]] = {
     import dispatch.Defaults._
     import dispatch._
-    
+
     val req = url(finalUrl).GET.as(apiKey.apiKey, "")
 
     Http(req).map { response =>

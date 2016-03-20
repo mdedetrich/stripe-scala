@@ -2,19 +2,17 @@ package org.mdedetrich.stripe.v1
 
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.DateTime
-import dispatch.Defaults._
-import dispatch._
+import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
-import org.mdedetrich.stripe.{IdempotencyKey, InvalidJsonModelException, Endpoint, ApiKey}
 import org.mdedetrich.stripe.v1.Discounts.Discount
+import org.mdedetrich.stripe.v1.PaymentSourceList._
 import org.mdedetrich.stripe.v1.Shippings.Shipping
 import org.mdedetrich.stripe.v1.Sources.BaseCardSource
 import org.mdedetrich.stripe.v1.Subscriptions.Subscription
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 import play.api.data.validation.ValidationError
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import org.mdedetrich.playjson.Utils._
-import PaymentSourceList._
+import play.api.libs.json._
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -353,8 +351,8 @@ object Customers extends LazyLogging {
           endpoint: Endpoint): Future[Try[Customer]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
-    createRequestGET[Customer](finalUrl,logger)
-    
+    createRequestGET[Customer](finalUrl, logger)
+
   }
 
   def delete(id: String)
@@ -363,8 +361,8 @@ object Customers extends LazyLogging {
              endpoint: Endpoint): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
-    createRequestDELETE(finalUrl,idempotencyKey,logger)
-    
+    createRequestDELETE(finalUrl, idempotencyKey, logger)
+
   }
 
   case class CustomerListInput(created: Option[CreatedInput],
@@ -424,8 +422,8 @@ object Customers extends LazyLogging {
 
     }
 
-    createRequestGET[CustomerList](finalUrl,logger)
-    
+    createRequestGET[CustomerList](finalUrl, logger)
+
   }
 
 }

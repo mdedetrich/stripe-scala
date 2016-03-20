@@ -1,12 +1,10 @@
 package org.mdedetrich.stripe.v1
 
 import com.typesafe.scalalogging.LazyLogging
-import dispatch.Defaults._
-import dispatch._
 import enumeratum._
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, InvalidJsonModelException}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -284,8 +282,8 @@ object BankAccounts extends LazyLogging {
           endpoint: Endpoint): Future[Try[BankAccount]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$bankAccountId"
 
-    createRequestGET[BankAccount](finalUrl,logger)
-    
+    createRequestGET[BankAccount](finalUrl, logger)
+
   }
 
   def delete(customerId: String,
@@ -295,8 +293,8 @@ object BankAccounts extends LazyLogging {
              endpoint: Endpoint): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$bankAccountId"
 
-    createRequestDELETE(finalUrl,idempotencyKey,logger)
-    
+    createRequestDELETE(finalUrl, idempotencyKey, logger)
+
   }
 
   case class BankAccountListInput(endingBefore: Option[String],
@@ -348,7 +346,7 @@ object BankAccounts extends LazyLogging {
         ).toString()
     }
 
-    createRequestGET[BankAccountList](finalUrl,logger)
+    createRequestGET[BankAccountList](finalUrl, logger)
 
   }
 

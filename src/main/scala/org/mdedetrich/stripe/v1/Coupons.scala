@@ -2,14 +2,12 @@ package org.mdedetrich.stripe.v1
 
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, InvalidJsonModelException}
-import dispatch.Defaults._
-import dispatch._
 import org.joda.time.DateTime
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -191,8 +189,8 @@ object Coupons extends LazyLogging {
           endpoint: Endpoint): Future[Try[Coupon]] = {
     val finalUrl = endpoint.url + s"/v1/coupons/$id"
 
-    createRequestGET[Coupon](finalUrl,logger)
-    
+    createRequestGET[Coupon](finalUrl, logger)
+
   }
 
   def delete(id: String)
@@ -201,8 +199,8 @@ object Coupons extends LazyLogging {
              endpoint: Endpoint): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/coupons/$id"
 
-    createRequestDELETE(finalUrl,idempotencyKey,logger)
-    
+    createRequestDELETE(finalUrl, idempotencyKey, logger)
+
   }
 
   case class CouponListInput(created: Option[CreatedInput],
@@ -263,7 +261,7 @@ object Coupons extends LazyLogging {
 
     }
 
-    createRequestGET[CouponList](finalUrl,logger)
+    createRequestGET[CouponList](finalUrl, logger)
 
   }
 
