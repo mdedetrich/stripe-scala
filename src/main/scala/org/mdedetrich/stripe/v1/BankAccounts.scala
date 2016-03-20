@@ -4,12 +4,11 @@ import com.typesafe.scalalogging.LazyLogging
 import dispatch.Defaults._
 import dispatch._
 import enumeratum._
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
 import org.mdedetrich.playjson.Utils._
-import org.mdedetrich.stripe.v1.Cards.CardData
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, InvalidJsonModelException}
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -142,9 +141,9 @@ object BankAccounts extends LazyLogging {
                             accountHolderName: Option[String],
                             accountHolderType: Option[AccountHolderType],
                             routingNumber: Option[String]) extends BankAccountData
-    
+
     object SourceObject {
-      
+
       def default(accountNumber: String,
                   country: String,
                   currency: Currency): SourceObject = SourceObject(
@@ -165,9 +164,9 @@ object BankAccounts extends LazyLogging {
         (__ \ "account_holder_type").readNullable[AccountHolderType] ~
         (__ \ "routing_number").readNullable[String]
       ).tupled.map((SourceObject.apply _).tupled)
-    
+
     implicit val sourceObjectWrites: Writes[SourceObject] =
-      Writes ((sourceObject: SourceObject) =>
+      Writes((sourceObject: SourceObject) =>
         Json.obj(
           "account_number" -> sourceObject.accountNumber,
           "country" -> sourceObject.country,
@@ -184,7 +183,7 @@ object BankAccounts extends LazyLogging {
                                      accountHolderName: Option[String],
                                      accountHolderType: Option[AccountHolderType],
                                      routingNumber: Option[String]) extends BankAccountData
-    
+
     object ExternalAccountObject {
       def default(accountNumber: String,
                   country: String,
@@ -208,7 +207,7 @@ object BankAccounts extends LazyLogging {
       ).tupled.map((ExternalAccountObject.apply _).tupled)
 
     implicit val externalAccountObject: Writes[ExternalAccountObject] =
-      Writes ((externalAccountObject: ExternalAccountObject) =>
+      Writes((externalAccountObject: ExternalAccountObject) =>
         Json.obj(
           "account_number" -> externalAccountObject.accountNumber,
           "country" -> externalAccountObject.country,
@@ -228,9 +227,9 @@ object BankAccounts extends LazyLogging {
       Writes((sourceToken: SourceToken) =>
         JsString(sourceToken.id)
       )
-    
+
     case class ExternalAccountToken(id: String) extends BankAccountData
-    
+
     implicit val externalAccountTokenReads: Reads[ExternalAccountToken] =
       Reads.of[String].map(ExternalAccountToken)
 
@@ -240,7 +239,7 @@ object BankAccounts extends LazyLogging {
       )
 
   }
-  
+
   implicit val bankAccountDataWrites: Writes[BankAccountData] =
     Writes { (bankAccountData: BankAccountData) =>
       bankAccountData match {
@@ -255,87 +254,87 @@ object BankAccounts extends LazyLogging {
                               defaultForCurrency: Option[Currency],
                               metadata: Option[Map[String, String]])
 
-    def create(customerId: String, bankAccountInput: BankAccountInput)
-              (idempotencyKey: Option[IdempotencyKey] = None)
-              (implicit apiKey: ApiKey,
-               endpoint: Endpoint): Future[Try[BankAccount]] = {
-      val postFormParameters: Map[String, String] = {
-        Map(
-          "default_for_currency" -> bankAccountInput.defaultForCurrency.map(_.toString)
-        )
-      }.collect {
-        case (k, Some(v)) => (k, v)
-      } ++ {
-        bankAccountInput.bankAccountData match {
-          case BankAccountData.ExternalAccountToken(id) =>
-            Map("external_account" -> id)
-          case BankAccountData.SourceToken(id) =>
-            Map("source" -> id)
-          case externalAccount: BankAccountData.ExternalAccountObject =>
-            val map = Map(
-              "account_number" -> Option(externalAccount.accountNumber),
-              "country" -> Option(externalAccount.country),
-              "currency" -> Option(externalAccount.currency.iso.toLowerCase),
-              "account_holder_name" -> externalAccount.accountHolderName,
-              "account_holder_type" -> externalAccount.accountHolderType.map(_.id),
-              "routing_number" -> externalAccount.routingNumber
-            ).collect {
-              case (k, Some(v)) => (k, v)
-            }
-            mapToPostParams(Option(map), "external_account")
-          case source: BankAccountData.SourceObject =>
-            val map = Map(
-              "account_number" -> Option(source.accountNumber),
-              "country" -> Option(source.country),
-              "currency" -> Option(source.currency.iso.toLowerCase),
-              "account_holder_name" -> source.accountHolderName,
-              "account_holder_type" -> source.accountHolderType.map(_.id),
-              "routing_number" -> source.routingNumber
-            ).collect {
-              case (k, Some(v)) => (k, v)
-            }
-            mapToPostParams(Option(map), "source")
-        }
-      }  ++ mapToPostParams(bankAccountInput.metadata, "metadata")
-
-      logger.debug(s"Generated POST form parameters is $postFormParameters")
-
-      val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources"
-
-      val req = {
-        val r = (
-          url(finalUrl)
-            .addHeader("Content-Type", "application/x-www-form-urlencoded")
-            << postFormParameters
-          ).POST.as(apiKey.apiKey, "")
-
-        idempotencyKey match {
-          case Some(key) =>
-            r.addHeader(idempotencyKeyHeader, key.key)
-          case None =>
-            r
-        }
+  def create(customerId: String, bankAccountInput: BankAccountInput)
+            (idempotencyKey: Option[IdempotencyKey] = None)
+            (implicit apiKey: ApiKey,
+             endpoint: Endpoint): Future[Try[BankAccount]] = {
+    val postFormParameters: Map[String, String] = {
+      Map(
+        "default_for_currency" -> bankAccountInput.defaultForCurrency.map(_.toString)
+      )
+    }.collect {
+      case (k, Some(v)) => (k, v)
+    } ++ {
+      bankAccountInput.bankAccountData match {
+        case BankAccountData.ExternalAccountToken(id) =>
+          Map("external_account" -> id)
+        case BankAccountData.SourceToken(id) =>
+          Map("source" -> id)
+        case externalAccount: BankAccountData.ExternalAccountObject =>
+          val map = Map(
+            "account_number" -> Option(externalAccount.accountNumber),
+            "country" -> Option(externalAccount.country),
+            "currency" -> Option(externalAccount.currency.iso.toLowerCase),
+            "account_holder_name" -> externalAccount.accountHolderName,
+            "account_holder_type" -> externalAccount.accountHolderType.map(_.id),
+            "routing_number" -> externalAccount.routingNumber
+          ).collect {
+            case (k, Some(v)) => (k, v)
+          }
+          mapToPostParams(Option(map), "external_account")
+        case source: BankAccountData.SourceObject =>
+          val map = Map(
+            "account_number" -> Option(source.accountNumber),
+            "country" -> Option(source.country),
+            "currency" -> Option(source.currency.iso.toLowerCase),
+            "account_holder_name" -> source.accountHolderName,
+            "account_holder_type" -> source.accountHolderType.map(_.id),
+            "routing_number" -> source.routingNumber
+          ).collect {
+            case (k, Some(v)) => (k, v)
+          }
+          mapToPostParams(Option(map), "source")
       }
+    } ++ mapToPostParams(bankAccountInput.metadata, "metadata")
 
-      Http(req).map { response =>
+    logger.debug(s"Generated POST form parameters is $postFormParameters")
 
-        parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
-          case Right(triedJsValue) =>
-            triedJsValue.map { jsValue =>
-              val jsResult = Json.fromJson[BankAccount](jsValue)
-              jsResult.fold(
-                errors => {
-                  throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
-                }, bankAccount => bankAccount
-              )
-            }
-          case Left(error) =>
-            scala.util.Failure(error)
-        }
+    val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources"
+
+    val req = {
+      val r = (
+        url(finalUrl)
+          .addHeader("Content-Type", "application/x-www-form-urlencoded")
+          << postFormParameters
+        ).POST.as(apiKey.apiKey, "")
+
+      idempotencyKey match {
+        case Some(key) =>
+          r.addHeader(idempotencyKeyHeader, key.key)
+        case None =>
+          r
       }
-      
     }
-  
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[BankAccount](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
+              }, bankAccount => bankAccount
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+
+  }
+
   def get(customerId: String,
           bankAccountId: String)
          (implicit apiKey: ApiKey,

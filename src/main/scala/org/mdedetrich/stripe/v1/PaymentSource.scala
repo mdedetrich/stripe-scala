@@ -427,14 +427,14 @@ object Cards extends LazyLogging {
         case cardData: CardData.ExternalAccountToken => Json.toJson(cardData)
       }
     }
-  
+
   case class CardList(override val url: String,
                       override val hasMore: Boolean,
                       override val data: List[Card],
                       override val totalCount: Option[Long]
                      )
     extends Collections.List[Card](url, hasMore, data, totalCount)
-  
+
   object CardList extends Collections.ListJsonMappers[Card] {
     implicit val cardListReads: Reads[CardList] =
       listReads.tupled.map((CardList.apply _).tupled)
@@ -493,11 +493,11 @@ object Cards extends LazyLogging {
       (__ \ "default_for_currency").readNullable[Boolean]
       ).tupled.map((CardInput.apply _).tupled)
   }
-  
+
   case class CardListInput(endingBefore: Option[String],
                            limit: Option[Long],
                            startingAfter: Option[String])
-  
+
   object CardListInput {
     def default: CardListInput = CardListInput(
       None,
@@ -562,7 +562,7 @@ object Cards extends LazyLogging {
           }
           mapToPostParams(Option(map), "source")
       }
-    }  ++ mapToPostParams(cardInput.metadata, "metadata")
+    } ++ mapToPostParams(cardInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -664,7 +664,7 @@ object Cards extends LazyLogging {
       }
     }
   }
-  
+
   def list(customerId: String,
            cardListInput: CardListInput,
            includeTotalCount: Boolean)
@@ -678,13 +678,13 @@ object Cards extends LazyLogging {
         ""
 
       val baseUrl = endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
-      
+
       (baseUrl ?
         ("object" -> "card") ?
         ("ending_before" -> cardListInput.endingBefore) ?
         ("limit" -> cardListInput.limit.map(_.toString)) ?
         ("starting_after" -> cardListInput.startingAfter)
-        
+
         ).toString()
     }
 
@@ -917,14 +917,13 @@ object BitcoinReceivers extends LazyLogging {
         "refund_mispayments" -> bitcoinReceiverInput.refundMispayments
       )
     )
-  
+
   case class BitcoinReceiverList(override val url: String,
                                  override val hasMore: Boolean,
                                  override val data: List[BitcoinReceiver],
                                  override val totalCount: Option[Long]
                                 )
     extends Collections.List[BitcoinReceiver](url, hasMore, data, totalCount)
-
 
 
   object BitcoinReceiverList extends Collections.ListJsonMappers[BitcoinReceiver] {
@@ -934,15 +933,15 @@ object BitcoinReceivers extends LazyLogging {
     implicit val cardListWrites: Writes[BitcoinReceiverList] =
       listWrites
   }
-  
-  
+
+
   case class BitcoinReceiverListInput(active: Option[Boolean],
                                       endingBefore: Option[String],
                                       filled: Option[Boolean],
                                       limit: Option[Long],
                                       startingAfter: Option[String],
                                       uncapturedFunds: Option[Boolean])
-  
+
   object BitcoinReceiverListInput {
     def default: BitcoinReceiverListInput = BitcoinReceiverListInput(
       None,
@@ -1007,7 +1006,7 @@ object BitcoinReceivers extends LazyLogging {
       }
     }
   }
-  
+
   def get(id: String)
          (implicit apiKey: ApiKey,
           endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
@@ -1032,7 +1031,7 @@ object BitcoinReceivers extends LazyLogging {
       }
     }
   }
-  
+
   def list(bitcoinReceiverListInput: BitcoinReceiverListInput,
            includeTotalCount: Boolean)
           (implicit apiKey: ApiKey,
@@ -1074,7 +1073,7 @@ object BitcoinReceivers extends LazyLogging {
           scala.util.Failure(error)
       }
     }
-    
+
   }
 
 }

@@ -14,12 +14,13 @@ package object v1 {
     * Transforms a param from Stripes naming scheme (snake case) to scala-stripe's naming scheme (camel case).
     * Often used when dealing with stripe error messages for invalid fields, such as invalid CVC
     * Code taken from https://gist.github.com/sidharthkuruvila/3154845
+    *
     * @param param
     * @return
     */
-  
+
   def transformParam(param: String): String = {
-    "_([a-z\\d])".r.replaceAllIn(param, {m =>
+    "_([a-z\\d])".r.replaceAllIn(param, { m =>
       m.group(1).toUpperCase()
     })
   }

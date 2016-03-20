@@ -8,8 +8,7 @@ import play.api.libs.json._
 object Errors {
 
   /**
-    * Errors taken from https://stripe.com/docs/api#errors
-    *
+    * @see https://stripe.com/docs/api#errors
     * @param id
     */
   sealed abstract class Type(val id: String) extends EnumEntry {
@@ -77,6 +76,7 @@ object Errors {
 
   /**
     * Typed error from stripe
+    *
     * @see https://stripe.com/docs/api#errors
     * @param httpCode
     * @param `type`
@@ -124,7 +124,7 @@ object Errors {
     (__ \ "type").read[Type] ~
       (__ \ "code").readNullable[Code] ~
       (__ \ "message").readNullable[String] ~
-      (__ \ "param").readNullable[String].map{
+      (__ \ "param").readNullable[String].map {
         case Some(s) if s.isEmpty => None
         case s => s
       }
@@ -176,11 +176,11 @@ object Errors {
     * @param response
     */
 
-  case class StripeServerError(val response: Response) extends Exception {
+  case class StripeServerError(response: Response) extends Exception {
     override def getMessage = s"Stripe server error, status code is ${response.getStatusCode}"
   }
 
-  case class UnhandledServerError(val response: Response) extends Exception {
+  case class UnhandledServerError(response: Response) extends Exception {
     override def getMessage = s"Unhandled server error, status code is ${response.getStatusCode}"
   }
 
