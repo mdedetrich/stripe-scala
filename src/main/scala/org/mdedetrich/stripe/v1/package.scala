@@ -10,6 +10,21 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
 
 package object v1 {
+  
+  private[v1] def createdInputToBaseUrl(createdInput: CreatedInput, baseUrl: String): com.netaporter.uri.Uri = {
+    import com.netaporter.uri.dsl._
+    createdInput match {
+      case c: CreatedInput.Object =>
+        baseUrl ?
+          ("created[gt]" -> c.gt.map(stripeDateTimeParamWrites)) ?
+          ("created[gte]" -> c.gte.map(stripeDateTimeParamWrites)) ?
+          ("created[lt]" -> c.lt.map(stripeDateTimeParamWrites)) ?
+          ("created[lte]" -> c.lte.map(stripeDateTimeParamWrites))
+      case c: CreatedInput.Timestamp =>
+        baseUrl ? ("created" -> Option(stripeDateTimeParamWrites(c.timestamp)))
+    }
+  }
+  
   /**
     * Transforms a param from Stripes naming scheme (snake case) to scala-stripe's naming scheme (camel case).
     * Often used when dealing with stripe error messages for invalid fields, such as invalid CVC
@@ -125,7 +140,7 @@ package object v1 {
     * This is a header constat to specify a Idempotency-Key
     */
 
-  val idempotencyKeyHeader = "Idempotency-Key"
+  private[v1] val idempotencyKeyHeader = "Idempotency-Key"
 
 
   /**
@@ -140,7 +155,7 @@ package object v1 {
     *         are made. Will throw an [[UnhandledServerError]] or [[StripeServerError]] for uncaught errors.
     */
 
-  def parseStripeServerError(response: Response,
+  private[v1] def parseStripeServerError(response: Response,
                              finalUrl: String,
                              postFormParameters: Option[Map[String, String]],
                              postJsonParameters: Option[JsValue])
@@ -197,7 +212,7 @@ package object v1 {
 
   }
 
-  def mapToPostParams(optionalMap: Option[Map[String, String]], parentKey: String) = {
+  private[v1] def mapToPostParams(optionalMap: Option[Map[String, String]], parentKey: String) = {
     optionalMap match {
       case Some(map) =>
         map.map { case (key, value) =>

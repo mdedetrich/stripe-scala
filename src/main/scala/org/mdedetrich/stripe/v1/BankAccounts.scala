@@ -104,33 +104,6 @@ object BankAccounts extends LazyLogging {
       )
     )
 
-  case class BankAccountList(override val url: String,
-                             override val hasMore: Boolean,
-                             override val data: List[BankAccount],
-                             override val totalCount: Option[Long]
-                            )
-    extends Collections.List[BankAccount](url, hasMore, data, totalCount)
-
-  object BankAccountList extends Collections.ListJsonMappers[BankAccount] {
-    implicit val bankAccountListReads: Reads[BankAccountList] =
-      listReads.tupled.map((BankAccountList.apply _).tupled)
-
-    implicit val bankAccountListWrites: Writes[BankAccountList] =
-      listWrites
-  }
-
-  case class BankAccountListInput(endingBefore: Option[String],
-                                  limit: Option[Long],
-                                  startingAfter: Option[String])
-
-  object BankAccountListInput {
-    def default: BankAccountListInput = BankAccountListInput(
-      None,
-      None,
-      None
-    )
-  }
-
   sealed abstract class BankAccountData
 
   object BankAccountData {
@@ -395,6 +368,33 @@ object BankAccounts extends LazyLogging {
           scala.util.Failure(error)
       }
     }
+  }
+
+  case class BankAccountListInput(endingBefore: Option[String],
+                                  limit: Option[Long],
+                                  startingAfter: Option[String])
+
+  object BankAccountListInput {
+    def default: BankAccountListInput = BankAccountListInput(
+      None,
+      None,
+      None
+    )
+  }
+
+  case class BankAccountList(override val url: String,
+                             override val hasMore: Boolean,
+                             override val data: List[BankAccount],
+                             override val totalCount: Option[Long]
+                            )
+    extends Collections.List[BankAccount](url, hasMore, data, totalCount)
+
+  object BankAccountList extends Collections.ListJsonMappers[BankAccount] {
+    implicit val bankAccountListReads: Reads[BankAccountList] =
+      listReads.tupled.map((BankAccountList.apply _).tupled)
+
+    implicit val bankAccountListWrites: Writes[BankAccountList] =
+      listWrites
   }
 
   def list(customerId: String,

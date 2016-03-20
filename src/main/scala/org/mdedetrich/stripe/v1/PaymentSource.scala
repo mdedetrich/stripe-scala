@@ -428,21 +428,6 @@ object Cards extends LazyLogging {
       }
     }
 
-  case class CardList(override val url: String,
-                      override val hasMore: Boolean,
-                      override val data: List[Card],
-                      override val totalCount: Option[Long]
-                     )
-    extends Collections.List[Card](url, hasMore, data, totalCount)
-
-  object CardList extends Collections.ListJsonMappers[Card] {
-    implicit val cardListReads: Reads[CardList] =
-      listReads.tupled.map((CardList.apply _).tupled)
-
-    implicit val cardListWrites: Writes[CardList] =
-      listWrites
-  }
-
   case class CardInput(cardData: CardData,
                        metadata: Option[Map[String, String]],
                        defaultForCurrency: Option[Boolean]
@@ -493,19 +478,6 @@ object Cards extends LazyLogging {
       (__ \ "default_for_currency").readNullable[Boolean]
       ).tupled.map((CardInput.apply _).tupled)
   }
-
-  case class CardListInput(endingBefore: Option[String],
-                           limit: Option[Long],
-                           startingAfter: Option[String])
-
-  object CardListInput {
-    def default: CardListInput = CardListInput(
-      None,
-      None,
-      None
-    )
-  }
-
 
   def create(customerId: String, cardInput: CardInput)
             (idempotencyKey: Option[IdempotencyKey] = None)
@@ -663,6 +635,33 @@ object Cards extends LazyLogging {
           scala.util.Failure(error)
       }
     }
+  }
+
+  case class CardListInput(endingBefore: Option[String],
+                           limit: Option[Long],
+                           startingAfter: Option[String])
+
+  object CardListInput {
+    def default: CardListInput = CardListInput(
+      None,
+      None,
+      None
+    )
+  }
+
+  case class CardList(override val url: String,
+                      override val hasMore: Boolean,
+                      override val data: List[Card],
+                      override val totalCount: Option[Long]
+                     )
+    extends Collections.List[Card](url, hasMore, data, totalCount)
+
+  object CardList extends Collections.ListJsonMappers[Card] {
+    implicit val cardListReads: Reads[CardList] =
+      listReads.tupled.map((CardList.apply _).tupled)
+
+    implicit val cardListWrites: Writes[CardList] =
+      listWrites
   }
 
   def list(customerId: String,
@@ -918,41 +917,6 @@ object BitcoinReceivers extends LazyLogging {
       )
     )
 
-  case class BitcoinReceiverList(override val url: String,
-                                 override val hasMore: Boolean,
-                                 override val data: List[BitcoinReceiver],
-                                 override val totalCount: Option[Long]
-                                )
-    extends Collections.List[BitcoinReceiver](url, hasMore, data, totalCount)
-
-
-  object BitcoinReceiverList extends Collections.ListJsonMappers[BitcoinReceiver] {
-    implicit val cardListReads: Reads[BitcoinReceiverList] =
-      listReads.tupled.map((BitcoinReceiverList.apply _).tupled)
-
-    implicit val cardListWrites: Writes[BitcoinReceiverList] =
-      listWrites
-  }
-
-
-  case class BitcoinReceiverListInput(active: Option[Boolean],
-                                      endingBefore: Option[String],
-                                      filled: Option[Boolean],
-                                      limit: Option[Long],
-                                      startingAfter: Option[String],
-                                      uncapturedFunds: Option[Boolean])
-
-  object BitcoinReceiverListInput {
-    def default: BitcoinReceiverListInput = BitcoinReceiverListInput(
-      None,
-      None,
-      None,
-      None,
-      None,
-      None
-    )
-  }
-
   def create(bitcoinReceiverInput: BitcoinReceiverInput)
             (idempotencyKey: Option[IdempotencyKey] = None)
             (implicit apiKey: ApiKey,
@@ -1030,6 +994,40 @@ object BitcoinReceivers extends LazyLogging {
           scala.util.Failure(error)
       }
     }
+  }
+
+  case class BitcoinReceiverListInput(active: Option[Boolean],
+                                      endingBefore: Option[String],
+                                      filled: Option[Boolean],
+                                      limit: Option[Long],
+                                      startingAfter: Option[String],
+                                      uncapturedFunds: Option[Boolean])
+
+  object BitcoinReceiverListInput {
+    def default: BitcoinReceiverListInput = BitcoinReceiverListInput(
+      None,
+      None,
+      None,
+      None,
+      None,
+      None
+    )
+  }
+
+  case class BitcoinReceiverList(override val url: String,
+                                 override val hasMore: Boolean,
+                                 override val data: List[BitcoinReceiver],
+                                 override val totalCount: Option[Long]
+                                )
+    extends Collections.List[BitcoinReceiver](url, hasMore, data, totalCount)
+
+
+  object BitcoinReceiverList extends Collections.ListJsonMappers[BitcoinReceiver] {
+    implicit val cardListReads: Reads[BitcoinReceiverList] =
+      listReads.tupled.map((BitcoinReceiverList.apply _).tupled)
+
+    implicit val cardListWrites: Writes[BitcoinReceiverList] =
+      listWrites
   }
 
   def list(bitcoinReceiverListInput: BitcoinReceiverListInput,

@@ -2,13 +2,14 @@ package org.mdedetrich.stripe.v1
 
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
-import org.mdedetrich.stripe.{InvalidJsonModelException, Endpoint, ApiKey, IdempotencyKey}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, InvalidJsonModelException}
 import dispatch.Defaults._
 import dispatch._
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import org.mdedetrich.playjson.Utils._
+import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -214,4 +215,144 @@ object Coupons extends LazyLogging {
       }
     }
   }
+  
+  def get(id: String)
+         (implicit apiKey: ApiKey,
+          endpoint: Endpoint): Future[Try[Coupon]] = {
+    val finalUrl = endpoint.url + s"/v1/coupons/$id"
+
+    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[Coupon](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, coupon => coupon
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
+  
+  def delete(id: String)
+            (idempotencyKey: Option[IdempotencyKey] = None)
+            (implicit apiKey: ApiKey,
+             endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+    val finalUrl = endpoint.url + s"/v1/coupons/$id"
+
+    val req = {
+      val r = url(finalUrl).DELETE.as(apiKey.apiKey, "")
+
+      idempotencyKey match {
+        case Some(key) =>
+          r.addHeader(idempotencyKeyHeader, key.key)
+        case None =>
+          r
+      }
+    }
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[DeleteResponse](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, deleteResponse => deleteResponse
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+  }
+  
+  case class CouponListInput(created: Option[CreatedInput],
+                             endingBefore: Option[String],
+                             limit: Option[Long],
+                             startingAfter: Option[String]
+                            )
+  
+  object CouponListInput {
+    def default: CouponListInput = CouponListInput(
+      None,
+      None,
+      None,
+      None
+    )
+  }
+  
+  case class CouponList(override val url: String,
+                        override val hasMore: Boolean,
+                        override val data: List[Coupon],
+                        override val totalCount: Option[Long]
+                       )
+    extends Collections.List[Coupon](url, hasMore, data, totalCount)
+  
+  object CouponList extends Collections.ListJsonMappers[Coupon] {
+    implicit val couponListReads: Reads[CouponList] =
+      listReads.tupled.map((CouponList.apply _).tupled)
+
+    implicit val couponListWrites: Writes[CouponList] =
+      listWrites
+  }
+  
+  def list(couponListInput: CouponListInput,
+           includeTotalCount: Boolean)
+          (implicit apiKey: ApiKey,
+           endpoint: Endpoint): Future[Try[CouponList]] = {
+    
+    val finalUrl = {
+      import com.netaporter.uri.dsl._
+      val totalCountUrl = if (includeTotalCount)
+        "/include[]=total_count"
+      else
+        ""
+
+      val baseUrl = endpoint.url + s"/v1/customers$totalCountUrl"
+
+      val created: com.netaporter.uri.Uri = couponListInput.created match {
+        case Some(createdInput) =>
+          createdInputToBaseUrl(createdInput,baseUrl)
+        case None => baseUrl
+      }
+
+      (created ?
+        ("ending_before" -> couponListInput.endingBefore) ?
+        ("limit" -> couponListInput.limit.map(_.toString)) ?
+        ("starting_after" -> couponListInput.startingAfter)
+        ).toString()
+      
+    }
+
+    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
+
+    Http(req).map { response =>
+
+      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+        case Right(triedJsValue) =>
+          triedJsValue.map { jsValue =>
+            val jsResult = Json.fromJson[CouponList](jsValue)
+            jsResult.fold(
+              errors => {
+                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
+              }, customerList => customerList
+            )
+          }
+        case Left(error) =>
+          scala.util.Failure(error)
+      }
+    }
+
+  }
+  
 }
