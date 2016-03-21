@@ -410,7 +410,7 @@ object Customers extends LazyLogging {
 
       val created: com.netaporter.uri.Uri = customerListInput.created match {
         case Some(createdInput) =>
-          listFilterInputToUri(createdInput, baseUrl)
+          listFilterInputToUri(createdInput, baseUrl, "created")
         case None => baseUrl
       }
 

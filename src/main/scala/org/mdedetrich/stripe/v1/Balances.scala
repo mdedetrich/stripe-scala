@@ -282,11 +282,11 @@ object Balances extends LazyLogging {
 
       val created: com.netaporter.uri.Uri = (balanceHistoryListInput.created, balanceHistoryListInput.availableOn) match {
         case (Some(createdInput), Some(availableOnInput)) =>
-          listFilterInputToUri(availableOnInput, listFilterInputToUri(createdInput, baseUrl))
+          listFilterInputToUri(availableOnInput, listFilterInputToUri(createdInput, baseUrl, "created"), "available_on")
         case (Some(createdInput), None) =>
-          listFilterInputToUri(createdInput, baseUrl)
+          listFilterInputToUri(createdInput, baseUrl, "created")
         case (None, Some(availableInput)) =>
-          listFilterInputToUri(availableInput, baseUrl)
+          listFilterInputToUri(availableInput, baseUrl, "available_on")
         case _ => baseUrl
       }
 
