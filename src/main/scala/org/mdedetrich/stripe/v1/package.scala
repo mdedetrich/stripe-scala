@@ -156,16 +156,16 @@ package object v1 {
     }
   }
 
-  private[v1] def createdInputToBaseUrl(createdInput: CreatedInput, baseUrl: String): com.netaporter.uri.Uri = {
+  private[v1] def listFilterInputToUri(createdInput: ListFilterInput, baseUrl: String): com.netaporter.uri.Uri = {
     import com.netaporter.uri.dsl._
     createdInput match {
-      case c: CreatedInput.Object =>
+      case c: ListFilterInput.Object =>
         baseUrl ?
           ("created[gt]" -> c.gt.map(stripeDateTimeParamWrites)) ?
           ("created[gte]" -> c.gte.map(stripeDateTimeParamWrites)) ?
           ("created[lt]" -> c.lt.map(stripeDateTimeParamWrites)) ?
           ("created[lte]" -> c.lte.map(stripeDateTimeParamWrites))
-      case c: CreatedInput.Timestamp =>
+      case c: ListFilterInput.Timestamp =>
         baseUrl ? ("created" -> Option(stripeDateTimeParamWrites(c.timestamp)))
     }
   }

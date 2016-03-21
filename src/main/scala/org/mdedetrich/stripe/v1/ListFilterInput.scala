@@ -9,17 +9,17 @@ import play.api.libs.functional.syntax._
   * Common data model for list requests that accept a created input
   */
 
-sealed abstract class CreatedInput
+sealed abstract class ListFilterInput
 
-object CreatedInput {
+object ListFilterInput {
 
-  case class Timestamp(timestamp: DateTime) extends CreatedInput
+  case class Timestamp(timestamp: DateTime) extends ListFilterInput
 
   case class Object(gt: Option[DateTime],
                     gte: Option[DateTime],
                     lt: Option[DateTime],
                     lte: Option[DateTime]
-                   ) extends CreatedInput
+                   ) extends ListFilterInput
 
   object Object {
     def default: Object = Object(
@@ -53,21 +53,21 @@ object CreatedInput {
       )
     )
 
-  implicit val createdInputReads: Reads[CreatedInput] =
+  implicit val listFilterInputReads: Reads[ListFilterInput] =
     __.read[JsValue].flatMap {
       case jsObject: JsObject =>
-        __.read[CreatedInput.Object].map(x => x: CreatedInput)
+        __.read[ListFilterInput.Object].map(x => x: ListFilterInput)
       case jsString: JsString =>
-        __.read[CreatedInput.Timestamp].map(x => x: CreatedInput)
-      case _ => Reads[CreatedInput](_ => JsError(ValidationError("UnknownCreatedInput")))
+        __.read[ListFilterInput.Timestamp].map(x => x: ListFilterInput)
+      case _ => Reads[ListFilterInput](_ => JsError(ValidationError("UnknownListFilterInput")))
     }
 
-  implicit val createdInputWrites: Writes[CreatedInput] =
-    Writes((createdInput: CreatedInput) => {
-      createdInput match {
-        case o: CreatedInput.Object =>
+  implicit val listFilterInputWrites: Writes[ListFilterInput] =
+    Writes((filterInput: ListFilterInput) => {
+      filterInput match {
+        case o: ListFilterInput.Object =>
           Json.toJson(o)
-        case timestamp: CreatedInput.Timestamp =>
+        case timestamp: ListFilterInput.Timestamp =>
           Json.toJson(timestamp)
       }
     })

@@ -1,12 +1,17 @@
 package org.mdedetrich.stripe.v1
 
+import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.joda.time.DateTime
+import org.mdedetrich.stripe.{ApiKey, Endpoint}
 import org.mdedetrich.stripe.v1.Transfers._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
-object Balances {
+import scala.concurrent.Future
+import scala.util.Try
+
+object Balances extends LazyLogging {
 
   sealed abstract class FeeType(val id: String) extends EnumEntry {
     override val entryName = id
@@ -148,4 +153,156 @@ object Balances {
         "type" -> balanceTransaction.`type`
       )
     )
+
+  case class SourceTypes(card: BigDecimal,
+                         bankAccount: BigDecimal,
+                         bitcoinReceiver: BigDecimal)
+
+  implicit val sourceTypesReads: Reads[SourceTypes] = (
+    (__ \ "card").read[BigDecimal] ~
+      (__ \ "bank_account").read[BigDecimal] ~
+      (__ \ "bitcoin_receiver").read[BigDecimal]
+    ).tupled.map((SourceTypes.apply _).tupled)
+
+  implicit val sourceTypesWrites: Writes[SourceTypes] =
+    Writes((sourceTypes: SourceTypes) =>
+      Json.obj(
+        "card" -> sourceTypes.card,
+        "bank_account" -> sourceTypes.bankAccount,
+        "bitcoin_receiver" -> sourceTypes.bitcoinReceiver
+      )
+    )
+
+  case class BalanceFund(currency: Currency,
+                         amount: BigDecimal,
+                         sourceTypes: SourceTypes)
+
+  implicit val balanceFundReads: Reads[BalanceFund] = (
+    (__ \ "currency").read[Currency] ~
+      (__ \ "amount").read[BigDecimal] ~
+      (__ \ "source_types").read[SourceTypes]
+    ).tupled.map((BalanceFund.apply _).tupled)
+
+  implicit val balanceFundWrites: Writes[BalanceFund] =
+    Writes((balanceFund: BalanceFund) =>
+      Json.obj(
+        "currency" -> balanceFund.currency,
+        "amount" -> balanceFund.amount,
+        "source_types" -> balanceFund.sourceTypes
+      )
+    )
+
+  case class Balance(available: List[BalanceFund],
+                     livemode: Boolean,
+                     pending: List[BalanceFund]
+                    )
+
+  implicit val balanceReads: Reads[Balance] = (
+    (__ \ "available").read[List[BalanceFund]] ~
+      (__ \ "livemode").read[Boolean] ~
+      (__ \ "pending").read[List[BalanceFund]]
+    ).tupled.map((Balance.apply _).tupled)
+
+  implicit val balanceWrites: Writes[Balance] =
+    Writes((balance: Balance) =>
+      Json.obj(
+        "available" -> balance.available,
+        "livemode" -> balance.livemode,
+        "pending" -> balance.pending
+      )
+    )
+
+  def get(implicit apiKey: ApiKey,
+          endpoint: Endpoint): Future[Try[Balance]] = {
+    val finalUrl = endpoint.url + s"/v1/balance"
+
+    createRequestGET[Balance](finalUrl, logger)
+  }
+
+  def getBalanceTransaction(id: String)
+                           (implicit apiKey: ApiKey,
+                            endpoint: Endpoint): Future[Try[BalanceTransaction]] = {
+    val finalUrl = endpoint.url + s"/v1/balance/history/$id"
+
+    createRequestGET[BalanceTransaction](finalUrl, logger)
+  }
+
+  case class BalanceHistoryListInput(availableOn: Option[ListFilterInput],
+                                     created: Option[ListFilterInput],
+                                     currency: Option[Currency],
+                                     endingBefore: Option[String],
+                                     limit: Option[Long],
+                                     source: Option[String],
+                                     startingAfter: Option[String],
+                                     transfer: Option[Boolean],
+                                     `type`: Option[Type]
+                                    )
+
+  object BalanceHistoryListInput {
+    def default: BalanceHistoryListInput = BalanceHistoryListInput(
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None
+    )
+  }
+
+  case class BalanceTransactionList(override val url: String,
+                                    override val hasMore: Boolean,
+                                    override val data: List[BalanceTransaction],
+                                    override val totalCount: Option[Long]
+                                   )
+    extends Collections.List[BalanceTransaction](url, hasMore, data, totalCount)
+
+  object BalanceTransactionList extends Collections.ListJsonMappers[BalanceTransaction] {
+    implicit val balanceTransactionListReads: Reads[BalanceTransactionList] =
+      listReads.tupled.map((BalanceTransactionList.apply _).tupled)
+
+    implicit val balanceTransactionListWrites: Writes[BalanceTransactionList] =
+      listWrites
+  }
+
+  def listBalanceHistory(balanceHistoryListInput: BalanceHistoryListInput,
+                         includeTotalCount: Boolean)
+                        (implicit apiKey: ApiKey,
+                         endpoint: Endpoint): Future[Try[BalanceTransactionList]] = {
+    val finalUrl = {
+      import com.netaporter.uri.dsl._
+      val totalCountUrl = if (includeTotalCount)
+        "/include[]=total_count"
+      else
+        ""
+
+      val baseUrl = endpoint.url + s"/v1/balance/history$totalCountUrl"
+
+      val created: com.netaporter.uri.Uri = (balanceHistoryListInput.created, balanceHistoryListInput.availableOn) match {
+        case (Some(createdInput), Some(availableOnInput)) =>
+          listFilterInputToUri(availableOnInput, listFilterInputToUri(createdInput, baseUrl))
+        case (Some(createdInput), None) =>
+          listFilterInputToUri(createdInput, baseUrl)
+        case (None, Some(availableInput)) =>
+          listFilterInputToUri(availableInput, baseUrl)
+        case _ => baseUrl
+      }
+
+      (created ?
+        ("currency" -> balanceHistoryListInput.currency.map(_.iso.toLowerCase)) ?
+        ("ending_before" -> balanceHistoryListInput.endingBefore) ?
+        ("limit" -> balanceHistoryListInput.limit.map(_.toString)) ?
+        ("source" -> balanceHistoryListInput.source) ?
+        ("starting_after" -> balanceHistoryListInput.startingAfter) ?
+        ("transfer" -> balanceHistoryListInput.transfer) ?
+        ("type" -> balanceHistoryListInput.`type`.map(_.id))
+        ).toString()
+
+    }
+
+    createRequestGET[BalanceTransactionList](finalUrl, logger)
+
+  }
 }

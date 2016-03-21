@@ -365,7 +365,7 @@ object Customers extends LazyLogging {
 
   }
 
-  case class CustomerListInput(created: Option[CreatedInput],
+  case class CustomerListInput(created: Option[ListFilterInput],
                                endingBefore: Option[String],
                                limit: Option[Long],
                                startingAfter: Option[String]
@@ -410,7 +410,7 @@ object Customers extends LazyLogging {
 
       val created: com.netaporter.uri.Uri = customerListInput.created match {
         case Some(createdInput) =>
-          createdInputToBaseUrl(createdInput, baseUrl)
+          listFilterInputToUri(createdInput, baseUrl)
         case None => baseUrl
       }
 
