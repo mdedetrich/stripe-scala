@@ -1,13 +1,18 @@
 package org.mdedetrich.stripe.v1
 
+import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.joda.time.DateTime
 import org.mdedetrich.stripe.v1.Balances._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import org.mdedetrich.playjson.Utils._
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 
-object Disputes {
+import scala.concurrent.Future
+import scala.util.Try
+
+object Disputes extends LazyLogging {
 
   case class DisputeEvidence(accessActivityLog: Option[String],
                              billingAddress: Option[String],
@@ -306,4 +311,84 @@ object Disputes {
         "status" -> dispute.status
       )
     )
+
+  def get(id: String)
+         (implicit apiKey: ApiKey,
+          endpoint: Endpoint): Future[Try[Dispute]] = {
+    val finalUrl = endpoint.url + s"/v1/disputes/$id"
+
+    createRequestGET[Dispute](finalUrl, logger)
+
+  }
+
+  def close(id: String)
+           (idempotencyKey: Option[IdempotencyKey] = None)
+           (implicit apiKey: ApiKey,
+            endpoint: Endpoint): Future[Try[Dispute]] = {
+    val finalUrl = endpoint.url + s"/v1/disputes/$id/close"
+
+    createRequestPOST[Dispute](finalUrl, Map.empty, idempotencyKey, logger)
+
+  }
+
+  case class DisputeListInput(created: Option[ListFilterInput],
+                              endingBefore: Option[String],
+                              limit: Option[String],
+                              startingAfter: Option[String])
+
+  object DisputeListInput {
+    def default: DisputeListInput = DisputeListInput(
+      None,
+      None,
+      None,
+      None
+    )
+  }
+
+  case class DisputeList(override val url: String,
+                         override val hasMore: Boolean,
+                         override val data: List[Dispute],
+                         override val totalCount: Option[Long]
+                        )
+    extends Collections.List[Dispute](url, hasMore, data, totalCount)
+
+  object DisputeList extends Collections.ListJsonMappers[Dispute] {
+    implicit val disputeListReads: Reads[DisputeList] =
+      listReads.tupled.map((DisputeList.apply _).tupled)
+
+    implicit val disputeWrites: Writes[DisputeList] =
+      listWrites
+  }
+
+  def list(disputeListInput: DisputeListInput,
+           includeTotalCount: Boolean)
+          (implicit apiKey: ApiKey,
+           endpoint: Endpoint): Future[Try[DisputeList]] = {
+    val finalUrl = {
+      import com.netaporter.uri.dsl._
+      val totalCountUrl = if (includeTotalCount)
+        "/include[]=total_count"
+      else
+        ""
+
+      val baseUrl = endpoint.url + s"/v1/customers$totalCountUrl"
+
+      val created: com.netaporter.uri.Uri = disputeListInput.created match {
+        case Some(createdInput) =>
+          listFilterInputToUri(createdInput, baseUrl, "created")
+        case None => baseUrl
+      }
+
+      (created ?
+        ("ending_before" -> disputeListInput.endingBefore) ?
+        ("limit" -> disputeListInput.limit.map(_.toString)) ?
+        ("starting_after" -> disputeListInput.startingAfter)
+        ).toString()
+
+    }
+
+    createRequestGET[DisputeList](finalUrl, logger)
+
+  }
+
 }

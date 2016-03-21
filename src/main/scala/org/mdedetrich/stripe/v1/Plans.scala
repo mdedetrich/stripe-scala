@@ -4,6 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.joda.time.DateTime
 import org.mdedetrich.playjson.Utils._
+import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -218,6 +219,84 @@ object Plans extends LazyLogging {
 
     createRequestPOST[Plan](finalUrl, postFormParameters, idempotencyKey, logger)
 
+  }
+
+  def get(id: String)
+         (implicit apiKey: ApiKey,
+          endpoint: Endpoint): Future[Try[Plan]] = {
+    val finalUrl = endpoint.url + s"/v1/plans/$id"
+
+    createRequestGET[Plan](finalUrl, logger)
+  }
+
+  def delete(id: String)
+            (idempotencyKey: Option[IdempotencyKey] = None)
+            (implicit apiKey: ApiKey,
+             endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+    val finalUrl = endpoint.url + s"/v1/plans/$id"
+
+    createRequestDELETE(finalUrl, idempotencyKey, logger)
+
+  }
+
+  case class PlanListInput(created: Option[ListFilterInput],
+                           endingBefore: Option[String],
+                           limit: Option[Long],
+                           startingAfter: Option[String]
+                          )
+
+  object PlanListInput {
+    def default: PlanListInput = PlanListInput(
+      None,
+      None,
+      None,
+      None
+    )
+  }
+
+  case class PlanList(override val url: String,
+                      override val hasMore: Boolean,
+                      override val data: List[Plan],
+                      override val totalCount: Option[Long]
+                     )
+    extends Collections.List[Plan](url, hasMore, data, totalCount)
+
+  object PlanList extends Collections.ListJsonMappers[Plan] {
+    implicit val customerListReads: Reads[PlanList] =
+      listReads.tupled.map((PlanList.apply _).tupled)
+
+    implicit val customerWrites: Writes[PlanList] =
+      listWrites
+  }
+
+  def list(planListInput: PlanListInput,
+           includeTotalCount: Boolean)
+          (implicit apiKey: ApiKey,
+           endpoint: Endpoint): Future[Try[PlanList]] = {
+    val finalUrl = {
+      import com.netaporter.uri.dsl._
+      val totalCountUrl = if (includeTotalCount)
+        "/include[]=total_count"
+      else
+        ""
+
+      val baseUrl = endpoint.url + s"/v1/customers$totalCountUrl"
+
+      val created: com.netaporter.uri.Uri = planListInput.created match {
+        case Some(createdInput) =>
+          listFilterInputToUri(createdInput, baseUrl, "created")
+        case None => baseUrl
+      }
+
+      (created ?
+        ("ending_before" -> planListInput.endingBefore) ?
+        ("limit" -> planListInput.limit.map(_.toString)) ?
+        ("starting_after" -> planListInput.startingAfter)
+        ).toString()
+
+    }
+
+    createRequestGET[PlanList](finalUrl, logger)
   }
 
 }

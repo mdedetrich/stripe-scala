@@ -7,7 +7,7 @@ import org.mdedetrich.playjson.Utils._
 import enumeratum._
 
 /**
-  * Taken from https://stripe.com/docs/api/curl#refunds
+  * @see https://stripe.com/docs/api/curl#refunds
   */
 
 object Refunds {
@@ -113,5 +113,7 @@ object Refunds {
         "reverse_transfer" -> refundInput.reverseTransfer
       )
     )
+  
+  
 
 }

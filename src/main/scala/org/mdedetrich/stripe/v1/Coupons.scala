@@ -245,7 +245,7 @@ object Coupons extends LazyLogging {
       else
         ""
 
-      val baseUrl = endpoint.url + s"/v1/customers$totalCountUrl"
+      val baseUrl = endpoint.url + s"/v1/coupons$totalCountUrl"
 
       val created: com.netaporter.uri.Uri = couponListInput.created match {
         case Some(createdInput) =>

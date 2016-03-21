@@ -67,7 +67,7 @@ object Transfers {
   implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   /**
-    * Taken from https://stripe.com/docs/api#transfer_failures
+    * @see https://stripe.com/docs/api#transfer_failures
     *
     * @param id
     */
