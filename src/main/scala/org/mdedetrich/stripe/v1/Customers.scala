@@ -344,6 +344,7 @@ object Customers extends LazyLogging {
     val finalUrl = endpoint.url + "/v1/customers"
 
     createRequestPOST[Customer](finalUrl, postFormParameters, idempotencyKey, logger)
+  
   }
 
   def get(id: String)

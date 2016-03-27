@@ -6,9 +6,14 @@ import org.mdedetrich.stripe.v1.TransferReversals._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import BankAccounts._
+import com.typesafe.scalalogging.LazyLogging
 import org.mdedetrich.playjson.Utils._
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 
-object Transfers {
+import scala.concurrent.Future
+import scala.util.Try
+
+object Transfers extends LazyLogging {
 
   case class TransferReversalList(override val url: String,
                                   override val hasMore: Boolean,
@@ -68,7 +73,6 @@ object Transfers {
 
   /**
     * @see https://stripe.com/docs/api#transfer_failures
-    *
     * @param id
     */
 
@@ -217,6 +221,90 @@ object Transfers {
       )
     )
 
+  /**
+    * Thrown in the statement descriptor is too long
+    *
+    * @see https://stripe.com/docs/api#create_transfer-statement_descriptor
+    * @param length The length of the requested statement descriptor
+    */
+  
+  case class StatementDescriptorTooLong(length: Int) extends Exception {
+    override def getMessage = s"Statement Descriptor must not be longer than 22 characters, input was $length characters"
+  }
+
+  case class TransferInput(amount: BigDecimal,
+                           currency: Currency,
+                           destination: String,
+                           description: Option[String],
+                           metadata: Option[Map[String, String]],
+                           sourceTransaction: Option[String],
+                           statementDescriptor: Option[String],
+                           sourceType: Option[SourceType]
+                          ) {
+    statementDescriptor match {
+      case Some(sD) if sD.length > 22 =>
+        throw StatementDescriptorTooLong(sD.length)
+      case None =>
+    }
+  }
+
+  def create(transferInput: TransferInput)
+            (idempotencyKey: Option[IdempotencyKey] = None)
+            (implicit apiKey: ApiKey,
+             endpoint: Endpoint): Future[Try[Transfer]] = {
+    val postFormParameters: Map[String, String] = {
+      Map(
+        "amount" -> Option(transferInput.amount.toString()),
+        "currency" -> Option(transferInput.currency.iso.toLowerCase()),
+        "destination" -> Option(transferInput.destination),
+        "description" -> transferInput.description,
+        "source_transaction" -> transferInput.sourceTransaction,
+        "statement_descriptor" -> transferInput.statementDescriptor,
+        "source_type" -> transferInput.sourceType.map(_.id)
+      ).collect {
+        case (k, Some(v)) => (k, v)
+      }
+    } ++ mapToPostParams(transferInput.metadata, "metadata")
+
+    logger.debug(s"Generated POST form parameters is $postFormParameters")
+
+    val finalUrl = endpoint.url + "/v1/transfers"
+
+    createRequestPOST[Transfer](finalUrl, postFormParameters, idempotencyKey, logger)
+
+  }
+
+  def get(id: String)
+         (implicit apiKey: ApiKey,
+          endpoint: Endpoint): Future[Try[Transfer]] = {
+    val finalUrl = endpoint.url + s"/v1/transfers/$id"
+
+    createRequestGET[Transfer](finalUrl, logger)
+
+  }
+
+  case class TransferListInput(created: Option[ListFilterInput],
+                               date: Option[ListFilterInput],
+                               destination: Option[String],
+                               endingBefore: Option[String],
+                               limit: Option[String],
+                               recipient: Option[String],
+                               startingAfter: Option[String],
+                               status: Option[Status]
+                              )
+
+  object TransferListInput {
+    def default: TransferListInput = TransferListInput(
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None
+    )
+  }
 
   case class TransferList(override val url: String,
                           override val hasMore: Boolean,
@@ -230,18 +318,48 @@ object Transfers {
     implicit val transferListReads: Reads[TransferList] =
       listReads.tupled.map((TransferList.apply _).tupled)
 
-    implicit val transferWrites: Writes[TransferList] =
+    implicit val transferListWrites: Writes[TransferList] =
       listWrites
   }
 
-  case class TransferInput(amount: BigDecimal,
-                           currency: Currency,
-                           destination: String,
-                           description: Option[String],
-                           metadata: Option[Map[String, String]],
-                           sourceTransaction: Option[String],
-                           statementDescriptor: Option[String],
-                           sourceType: Option[SourceType]
-                          )
+  def list(transferListInput: TransferListInput,
+           includeTotalCount: Boolean)
+          (implicit apiKey: ApiKey,
+           endpoint: Endpoint): Future[Try[TransferList]] = {
+
+    val finalUrl = {
+      import com.netaporter.uri.dsl._
+      val totalCountUrl = if (includeTotalCount)
+        "/include[]=total_count"
+      else
+        ""
+
+      val baseUrl = endpoint.url + s"/v1/transfers$totalCountUrl"
+
+      val created: com.netaporter.uri.Uri = (transferListInput.created, transferListInput.date) match {
+        case (Some(createdInput), Some(dateInput)) =>
+          listFilterInputToUri(dateInput, listFilterInputToUri(createdInput, baseUrl, "created"), "date")
+        case (Some(createdInput), None) =>
+          listFilterInputToUri(createdInput, baseUrl, "created")
+        case (None, Some(dateInput)) =>
+          listFilterInputToUri(dateInput, baseUrl, "date")
+        case (None, None) => baseUrl
+      }
+
+      (created ?
+        ("destination" -> transferListInput.destination) ?
+        ("ending_before" -> transferListInput.endingBefore) ?
+        ("limit" -> transferListInput.limit.map(_.toString)) ?
+        ("recipient" -> transferListInput.recipient) ?
+        ("starting_after" -> transferListInput.startingAfter) ?
+        ("status" -> transferListInput.status.map(_.id))
+        ).toString()
+
+    }
+
+    createRequestGET[TransferList](finalUrl, logger)
+
+  }
+
 
 }
