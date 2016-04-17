@@ -51,8 +51,34 @@ object BankAccounts extends LazyLogging {
 
   implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
+  /**
+    *
+    * @param id
+    * @param account
+    * @param accountHolderName  The name of the person or business that owns the bank account.
+    * @param accountHolderType  The type of entity that holds the account. This can be either [[AccountHolderType.Individual]] or [[AccountHolderType.Company]]
+    * @param bankName           Name of the bank associated with the routing number, e.g. WELLS FARGO
+    * @param country            Two-letter ISO code representing the country the bank account is located in.
+    * @param currency           Three-letter ISO currency code representing the currency paid out to the bank account.
+    * @param defaultForCurrency This indicates whether or not this bank account is the default external account for its currency.
+    * @param fingerprint        Uniquely identifies this particular bank account. You can use this attribute to check whether two bank accounts are the same.
+    * @param last4
+    * @param metadata           A set of key/value pairs that you can attach to a bank account object. It can be useful for storing additional information about the bank account in a structured format.
+    * @param routingNumber      The routing transit number for the bank account.
+    * @param status             Possible values are new, [[Status.Validated]], [[Status.Verified]], [[Status.VerificationFailed]], or errored. 
+    *                           A bank account that hasn’t had any activity or validation performed is new. 
+    *                           If Stripe can determine that the bank account exists, its status will be validated. 
+    *                           Note that there often isn’t enough information to know (e.g. for smaller credit unions), 
+    *                           and the validation is not always run. If customer bank account verification has succeeded, 
+    *                           the bank account status will be verified. If the verification failed for any reason, such 
+    *                           as microdeposit failure, the status will be [[Status.VerificationFailed]]. 
+    *                           If a transfer sent to this bank account fails, we’ll set the status to errored and will 
+    *                           not continue to send transfers until the bank details are updated.
+    */
+
   case class BankAccount(id: String,
-                         account: String,
+                         account: Option[String],
+                         accountHolderName: String,
                          accountHolderType: AccountHolderType,
                          bankName: String,
                          country: String,
@@ -67,7 +93,8 @@ object BankAccounts extends LazyLogging {
 
   implicit val bankAccountReads: Reads[BankAccount] = (
     (__ \ "id").read[String] ~
-      (__ \ "account").read[String] ~
+      (__ \ "account").readNullable[String] ~
+      (__ \ "account_holder_name").read[String] ~
       (__ \ "account_holder_type").read[AccountHolderType] ~
       (__ \ "bank_name").read[String] ~
       (__ \ "country").read[String] ~
@@ -88,6 +115,7 @@ object BankAccounts extends LazyLogging {
         "id" -> bankAccount.id,
         "object" -> "bank_account",
         "account" -> bankAccount.account,
+        "account_holder_name" -> bankAccount.accountHolderName,
         "account_holder_type" -> bankAccount.accountHolderType,
         "bank_name" -> bankAccount.bankName,
         "country" -> bankAccount.country,
@@ -102,124 +130,178 @@ object BankAccounts extends LazyLogging {
       )
     )
 
+  /**
+    * @see https://stripe.com/docs/api#create_bank_account-source | external_account
+    */
+
   sealed abstract class BankAccountData
 
   object BankAccountData {
 
-    case class SourceObject(accountNumber: String,
-                            country: String,
-                            currency: Currency,
-                            accountHolderName: Option[String],
-                            accountHolderType: Option[AccountHolderType],
-                            routingNumber: Option[String]) extends BankAccountData
+    sealed abstract class Source extends BankAccountData
 
-    object SourceObject {
+    object Source {
 
-      def default(accountNumber: String,
-                  country: String,
-                  currency: Currency): SourceObject = SourceObject(
-        accountNumber,
-        country,
-        currency,
-        None,
-        None,
-        None
-      )
+      /**
+        * @param accountNumber     The account number for the bank account in string form. Must be a checking account.
+        * @param country           The country the bank account is in.
+        * @param currency          The currency the bank account is in. This must be a country/currency pairing that Stripe supports.
+        * @param accountHolderName The name of the person or business that owns the bank account. This field is required when attaching the bank account to a customer object.
+        * @param accountHolderType The type of entity that holds the account. This can be either [[AccountHolderType.Individual]] or [[AccountHolderType.Company]]. This field is
+        *                          required when attaching the bank account to a customer object.
+        * @param routingNumber     The routing number, sort code, or other country-appropriate institution number for the bank account.
+        *                          For US bank accounts, this is required and should be the ACH routing number, not the wire
+        *                          routing number. If you are providing an IBAN for [[accountNumber]], this field is not required.
+        */
+
+      case class Object(accountNumber: String,
+                        country: String,
+                        currency: Currency,
+                        accountHolderName: Option[String],
+                        accountHolderType: Option[AccountHolderType],
+                        routingNumber: Option[String]) extends Source
+
+      object Object {
+
+        def default(accountNumber: String,
+                    country: String,
+                    currency: Currency): Object = Object(
+          accountNumber,
+          country,
+          currency,
+          None,
+          None,
+          None
+        )
+      }
+
+      implicit val sourceObjectReads: Reads[Object] = (
+        (__ \ "account_number").read[String] ~
+          (__ \ "country").read[String] ~
+          (__ \ "currency").read[Currency] ~
+          (__ \ "account_holder_name").readNullable[String] ~
+          (__ \ "account_holder_type").readNullable[AccountHolderType] ~
+          (__ \ "routing_number").readNullable[String]
+        ).tupled.map((Object.apply _).tupled)
+
+      implicit val sourceObjectWrites: Writes[Object] =
+        Writes((`object`: Object) =>
+          Json.obj(
+            "account_number" -> `object`.accountNumber,
+            "country" -> `object`.country,
+            "currency" -> `object`.currency,
+            "account_holder_name" -> `object`.accountHolderName,
+            "account_holder_type" -> `object`.accountHolderType,
+            "routing_number" -> `object`.routingNumber
+          )
+        )
+
+      case class Token(id: String) extends Source
+
+      implicit val sourceTokenReads: Reads[Token] =
+        Reads.of[String].map(Token)
+
+      implicit val sourceTokenWrites: Writes[Token] =
+        Writes((token: Token) =>
+          JsString(token.id)
+        )
+
     }
 
-    implicit val sourceObjectReads: Reads[SourceObject] = (
-      (__ \ "account_number").read[String] ~
-        (__ \ "country").read[String] ~
-        (__ \ "currency").read[Currency] ~
-        (__ \ "account_holder_name").readNullable[String] ~
-        (__ \ "account_holder_type").readNullable[AccountHolderType] ~
-        (__ \ "routing_number").readNullable[String]
-      ).tupled.map((SourceObject.apply _).tupled)
+    sealed abstract class ExternalAccount extends BankAccountData
 
-    implicit val sourceObjectWrites: Writes[SourceObject] =
-      Writes((sourceObject: SourceObject) =>
-        Json.obj(
-          "account_number" -> sourceObject.accountNumber,
-          "country" -> sourceObject.country,
-          "currency" -> sourceObject.currency,
-          "account_holder_name" -> sourceObject.accountHolderName,
-          "account_holder_type" -> sourceObject.accountHolderType,
-          "routing_number" -> sourceObject.routingNumber
+    object ExternalAccount {
+
+      /**
+        * @param accountNumber     The account number for the bank account in string form. Must be a checking account.
+        * @param country           The country the bank account is in.
+        * @param currency          The currency the bank account is in. This must be a country/currency pairing that Stripe supports.
+        * @param accountHolderName The name of the person or business that owns the bank account. This field is required when attaching the bank account to a customer object.
+        * @param accountHolderType The type of entity that holds the account. This can be either [[AccountHolderType.Individual]] or [[AccountHolderType.Company]]. This field is
+        *                          required when attaching the bank account to a customer object.
+        * @param routingNumber     The routing number, sort code, or other country-appropriate institution number for the bank account.
+        *                          For US bank accounts, this is required and should be the ACH routing number, not the wire
+        *                          routing number. If you are providing an IBAN for [[accountNumber]], this field is not required.
+        */
+
+      case class Object(accountNumber: String,
+                        country: String,
+                        currency: Currency,
+                        accountHolderName: Option[String],
+                        accountHolderType: Option[AccountHolderType],
+                        routingNumber: Option[String]) extends ExternalAccount
+
+      object Object {
+        def default(accountNumber: String,
+                    country: String,
+                    currency: Currency): Object = Object(
+          accountNumber,
+          country,
+          currency,
+          None,
+          None,
+          None
         )
-      )
+      }
 
-    case class ExternalAccountObject(accountNumber: String,
-                                     country: String,
-                                     currency: Currency,
-                                     accountHolderName: Option[String],
-                                     accountHolderType: Option[AccountHolderType],
-                                     routingNumber: Option[String]) extends BankAccountData
+      implicit val externalAccountObjectReads: Reads[Object] = (
+        (__ \ "account_number").read[String] ~
+          (__ \ "country").read[String] ~
+          (__ \ "currency").read[Currency] ~
+          (__ \ "account_holder_name").readNullable[String] ~
+          (__ \ "account_holder_type").readNullable[AccountHolderType] ~
+          (__ \ "routing_number").readNullable[String]
+        ).tupled.map((Object.apply _).tupled)
 
-    object ExternalAccountObject {
-      def default(accountNumber: String,
-                  country: String,
-                  currency: Currency): ExternalAccountObject = ExternalAccountObject(
-        accountNumber,
-        country,
-        currency,
-        None,
-        None,
-        None
-      )
+      implicit val externalAccountObject: Writes[Object] =
+        Writes((`object`: Object) =>
+          Json.obj(
+            "account_number" -> `object`.accountNumber,
+            "country" -> `object`.country,
+            "currency" -> `object`.currency,
+            "account_holder_name" -> `object`.accountHolderName,
+            "account_holder_type" -> `object`.accountHolderType,
+            "routing_number" -> `object`.routingNumber
+          )
+        )
+
+      case class Token(id: String) extends ExternalAccount
+
+      implicit val externalAccountTokenReads: Reads[Token] =
+        Reads.of[String].map(Token)
+
+      implicit val externalAccountTokenWrites: Writes[Token] =
+        Writes((token: Token) =>
+          JsString(token.id)
+        )
+
     }
-
-    implicit val externalAccountObjectReads: Reads[ExternalAccountObject] = (
-      (__ \ "account_number").read[String] ~
-        (__ \ "country").read[String] ~
-        (__ \ "currency").read[Currency] ~
-        (__ \ "account_holder_name").readNullable[String] ~
-        (__ \ "account_holder_type").readNullable[AccountHolderType] ~
-        (__ \ "routing_number").readNullable[String]
-      ).tupled.map((ExternalAccountObject.apply _).tupled)
-
-    implicit val externalAccountObject: Writes[ExternalAccountObject] =
-      Writes((externalAccountObject: ExternalAccountObject) =>
-        Json.obj(
-          "account_number" -> externalAccountObject.accountNumber,
-          "country" -> externalAccountObject.country,
-          "currency" -> externalAccountObject.currency,
-          "account_holder_name" -> externalAccountObject.accountHolderName,
-          "account_holder_type" -> externalAccountObject.accountHolderType,
-          "routing_number" -> externalAccountObject.routingNumber
-        )
-      )
-
-    case class SourceToken(id: String) extends BankAccountData
-
-    implicit val sourceTokenReads: Reads[SourceToken] =
-      Reads.of[String].map(SourceToken)
-
-    implicit val sourceTokenWrites: Writes[SourceToken] =
-      Writes((sourceToken: SourceToken) =>
-        JsString(sourceToken.id)
-      )
-
-    case class ExternalAccountToken(id: String) extends BankAccountData
-
-    implicit val externalAccountTokenReads: Reads[ExternalAccountToken] =
-      Reads.of[String].map(ExternalAccountToken)
-
-    implicit val externalAccountTokenWrites: Writes[ExternalAccountToken] =
-      Writes((externalAccountToken: ExternalAccountToken) =>
-        JsString(externalAccountToken.id)
-      )
 
   }
 
   implicit val bankAccountDataWrites: Writes[BankAccountData] =
     Writes { (bankAccountData: BankAccountData) =>
       bankAccountData match {
-        case bankAccountData: BankAccountData.SourceObject => Json.toJson(bankAccountData)
-        case bankAccountData: BankAccountData.ExternalAccountObject => Json.toJson(bankAccountData)
-        case bankAccountData: BankAccountData.SourceToken => Json.toJson(bankAccountData)
-        case bankAccountData: BankAccountData.ExternalAccountToken => Json.toJson(bankAccountData)
+        case bankAccountData: BankAccountData.Source.Object => Json.toJson(bankAccountData)
+        case bankAccountData: BankAccountData.ExternalAccount.Object => Json.toJson(bankAccountData)
+        case bankAccountData: BankAccountData.Source.Token => Json.toJson(bankAccountData)
+        case bankAccountData: BankAccountData.ExternalAccount.Token => Json.toJson(bankAccountData)
       }
     }
+
+  /**
+    * @see https://stripe.com/docs/api#create_bank_account
+    * @param bankAccountData    When adding a bank account to a customer, the parameter name is [[BankAccountData.Source]].
+    *                           When adding to an account, the parameter name is [[BankAccountData.ExternalAccount]].
+    *                           The value can either be a token, like the ones returned by Stripe.js,
+    *                           or a dictionary containing a user’s bank account details (with the options shown below).
+    * @param defaultForCurrency If you set this to true (or if this is the first external account being
+    *                           added in this currency) this bank account will become the default
+    *                           external account for its currency.
+    * @param metadata           A set of key/value pairs that you can attach to an external account
+    *                           object. It can be useful for storing additional information about the
+    *                           external account in a structured format.
+    */
 
   case class BankAccountInput(bankAccountData: BankAccountData,
                               defaultForCurrency: Option[Currency],
@@ -237,11 +319,11 @@ object BankAccounts extends LazyLogging {
       case (k, Some(v)) => (k, v)
     } ++ {
       bankAccountInput.bankAccountData match {
-        case BankAccountData.ExternalAccountToken(id) =>
+        case BankAccountData.ExternalAccount.Token(id) =>
           Map("external_account" -> id)
-        case BankAccountData.SourceToken(id) =>
+        case BankAccountData.Source.Token(id) =>
           Map("source" -> id)
-        case externalAccount: BankAccountData.ExternalAccountObject =>
+        case externalAccount: BankAccountData.ExternalAccount.Object =>
           val map = Map(
             "account_number" -> Option(externalAccount.accountNumber),
             "country" -> Option(externalAccount.country),
@@ -253,7 +335,7 @@ object BankAccounts extends LazyLogging {
             case (k, Some(v)) => (k, v)
           }
           mapToPostParams(Option(map), "external_account")
-        case source: BankAccountData.SourceObject =>
+        case source: BankAccountData.Source.Object =>
           val map = Map(
             "account_number" -> Option(source.accountNumber),
             "country" -> Option(source.country),
@@ -296,6 +378,21 @@ object BankAccounts extends LazyLogging {
     createRequestDELETE(finalUrl, idempotencyKey, logger)
 
   }
+
+  /**
+    * @see https://stripe.com/docs/api#list_bank_accounts
+    * @param endingBefore  A cursor for use in pagination. [[endingBefore]] is an object ID 
+    *                      that defines your place in the list. For instance, if you make a 
+    *                      list request and receive 100 objects, starting with obj_bar, your 
+    *                      subsequent call can include [[endingBefore]]=obj_bar in order to 
+    *                      fetch the previous page of the list.
+    * @param limit         A limit on the number of objects to be returned. Limit can range between 1 and 100 items.
+    * @param startingAfter A cursor for use in pagination. [[startingAfter]] is an object ID 
+    *                      that defines your place in the list. For instance, if you make a 
+    *                      list request and receive 100 objects, ending with obj_foo, your 
+    *                      subsequent call can include [[startingAfter]]=obj_foo in order 
+    *                      to fetch the next page of the list.
+    */
 
   case class BankAccountListInput(endingBefore: Option[String],
                                   limit: Option[Long],

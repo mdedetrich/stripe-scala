@@ -56,6 +56,31 @@ object Plans extends LazyLogging {
 
   implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
+  /**
+    * @see https://stripe.com/docs/api#plan_object
+    * @param id
+    * @param amount              The amount in cents to be charged on the interval specified
+    * @param created
+    * @param currency            Currency in which subscription will be charged
+    * @param interval            One of [[Interval.Day]], [[Interval.Week]], [[Interval.Month]] or
+    *                            [[Interval.Year]]. The frequency with which a subscription
+    *                            should be billed.
+    * @param intervalCount       The number of intervals (specified in the [[interval]]
+    *                            property) between each subscription billing. For example,
+    *                            \[[interval]]=[[Interval.Month]] and [[intervalCount]]=3
+    *                            bills every 3 months.
+    * @param livemode
+    * @param metadata            A set of key/value pairs that you can attach to a plan object.
+    *                            It can be useful for storing additional information about the
+    *                            plan in a structured format.
+    * @param name                Display name of the plan
+    * @param statementDescriptor Extra information about a charge for the customer’s
+    *                            credit card statement.
+    * @param trialPeriodDays     Number of trial period days granted when
+    *                            subscribing a customer to this plan.
+    *                            [[None]] if the plan has no trial period.
+    */
+
   case class Plan(id: String,
                   amount: BigDecimal,
                   created: DateTime,
@@ -65,12 +90,8 @@ object Plans extends LazyLogging {
                   livemode: Boolean,
                   metadata: Option[Map[String, String]],
                   name: String,
-                  quantity: Option[Long],
-                  start: Option[DateTime],
-                  status: Option[Status],
-                  taxPercent: Option[BigDecimal],
-                  trialEnd: Option[DateTime],
-                  trialStart: Option[DateTime]
+                  statementDescriptor: Option[String],
+                  trialPeriodDays: Option[Long]
                  )
 
   object Plan {
@@ -92,10 +113,6 @@ object Plans extends LazyLogging {
       None,
       name,
       None,
-      None,
-      None,
-      None,
-      None,
       None
     )
   }
@@ -110,12 +127,8 @@ object Plans extends LazyLogging {
       (__ \ "livemode").read[Boolean] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "name").read[String] ~
-      (__ \ "quantity").readNullable[Long] ~
-      (__ \ "start").readNullable[DateTime](stripeDateTimeReads) ~
-      (__ \ "status").readNullable[Status] ~
-      (__ \ "tax_percent").readNullable[BigDecimal] ~
-      (__ \ "trial_end").readNullable[DateTime](stripeDateTimeReads) ~
-      (__ \ "trial_start").readNullable[DateTime](stripeDateTimeReads)
+      (__ \ "statement_descriptor").readNullable[String] ~
+      (__ \ "trial_period_days").readNullable[Long]
     ).tupled.map((Plan.apply _).tupled)
 
   implicit val planWrites: Writes[Plan] =
@@ -130,14 +143,49 @@ object Plans extends LazyLogging {
       "livemode" -> plan.livemode,
       "metadata" -> plan.metadata,
       "name" -> plan.name,
-      "quantity" -> plan.quantity,
-      "start" -> plan.start.map(x => Json.toJson(x)(stripeDateTimeWrites)),
-      "status" -> plan.status,
-      "tax_percent" -> plan.taxPercent,
-      "trial_end" -> plan.trialEnd.map(x => Json.toJson(x)(stripeDateTimeWrites)),
-      "trial_start" -> plan.trialStart.map(x => Json.toJson(x)(stripeDateTimeWrites))
+      "statement_descriptor" -> plan.statementDescriptor,
+      "trial_period_days" -> plan.trialPeriodDays
     ))
 
+  /**
+    * @see https://stripe.com/docs/api#create_plan
+    * @param id                  Unique string of your choice that will be used
+    *                            to identify this plan when subscribing a customer.
+    *                            This could be an identifier like “gold” or a
+    *                            primary key from your own database.
+    * @param amount              A positive integer in cents (or 0 for a free plan)
+    *                            representing how much to charge (on a recurring basis).
+    * @param currency            3-letter ISO code for currency.
+    * @param interval            Specifies billing frequency. Either [[Interval.Day]],
+    *                            [[Interval.Week]], [[Interval.Month]] or [[Interval.Year]].
+    * @param name                Name of the plan, to be displayed on invoices and in
+    *                            the web interface.
+    * @param intervalCount       The number of intervals between each subscription
+    *                            billing. For example, [[interval]]=[[Interval.Month]]
+    *                            and [[intervalCount]]=3 bills every 3 months. Maximum of
+    *                            one year interval allowed (1 year, 12 months, or 52 weeks).
+    * @param metadata            A set of key/value pairs that you can attach to a plan object.
+    *                            It can be useful for storing additional information about
+    *                            the plan in a structured format. This will be unset if you
+    *                            POST an empty value.
+    * @param statementDescriptor An arbitrary string to be displayed on your
+    *                            customer’s credit card statement. This may be up to
+    *                            22 characters. As an example, if your website is
+    *                            RunClub and the item you’re charging for is your
+    *                            Silver Plan, you may want to specify a [[statementDescriptor]]
+    *                            of RunClub Silver Plan. The statement description may not include `<>"'`
+    *                            characters, and will appear on your customer’s statement in
+    *                            capital letters. Non-ASCII characters are automatically stripped.
+    *                            While most banks display this information consistently,
+    *                            some may display it incorrectly or not at all.
+    * @param trialPeriodDays     Specifies a trial period in (an integer number of)
+    *                            days. If you include a trial period, the customer
+    *                            won’t be billed for the first time until the trial period ends.
+    *                            If the customer cancels before the trial period is over,
+    *                            she’ll never be billed at all.
+    * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
+    * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
+    */
   case class PlanInput(id: String,
                        amount: BigDecimal,
                        currency: Currency,
@@ -147,7 +195,21 @@ object Plans extends LazyLogging {
                        metadata: Option[Map[String, String]],
                        statementDescriptor: Option[String],
                        trialPeriodDays: Option[Long]
-                      )
+                      ) {
+    statementDescriptor match {
+      case Some(sD) if sD.length > 22 =>
+        throw StatementDescriptorTooLong(sD.length)
+      case Some(sD) if sD.contains("<") =>
+        throw StatementDescriptorInvalidCharacter("<")
+      case Some(sD) if sD.contains(">") =>
+        throw StatementDescriptorInvalidCharacter(">")
+      case Some(sD) if sD.contains("\"") =>
+        throw StatementDescriptorInvalidCharacter("\"")
+      case Some(sD) if sD.contains("\'") =>
+        throw StatementDescriptorInvalidCharacter("\'")
+      case _ =>
+    }
+  }
 
   object PlanInput {
     def default(id: String,
@@ -239,6 +301,27 @@ object Plans extends LazyLogging {
 
   }
 
+  /**
+    * @see https://stripe.com/docs/api#list_plans
+    * @param created       A filter on the list based on the object
+    *                      [[created]] field. The value can be a string
+    *                      with an integer Unix timestamp, or it can be a
+    *                      dictionary with the following options:
+    * @param endingBefore  A cursor for use in pagination. [[endingBefore]] is an
+    *                      object ID that defines your place in the list.
+    *                      For instance, if you make a list request and
+    *                      receive 100 objects, starting with obj_bar,
+    *                      your subsequent call can include [[endingBefore]]=obj_bar
+    *                      in order to fetch the previous page of the list.
+    * @param limit         A limit on the number of objects to be returned.
+    *                      Limit can range between 1 and 100 items.
+    * @param startingAfter A cursor for use in pagination. [[startingAfter]] is
+    *                      an object ID that defines your place in the list.
+    *                      For instance, if you make a list request and receive 100
+    *                      objects, ending with obj_foo, your subsequent call
+    *                      can include [[startingAfter]]=obj_foo in order to
+    *                      fetch the next page of the list.
+    */
   case class PlanListInput(created: Option[ListFilterInput],
                            endingBefore: Option[String],
                            limit: Option[Long],

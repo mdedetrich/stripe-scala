@@ -152,10 +152,8 @@ object Events {
   }
 
 
-  case class Data[A](
-                      `object`: A,
-                      previousAttributes: Option[A]
-                    )
+  case class Data[A](`object`: A,
+                     previousAttributes: Option[A])
 
   case class Event[A <: StripeObject](
                                        id: String,

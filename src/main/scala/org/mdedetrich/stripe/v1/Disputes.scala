@@ -44,7 +44,7 @@ object Disputes extends LazyLogging {
 
   // This is due to http://stackoverflow.com/questions/28167971/scala-case-having-22-fields-but-having-issue-with-play-json-in-scala-2-11-5
 
-  private val disputeEvidenceReadsOne = (
+  private[this] val disputeEvidenceReadsOne = (
     (__ \ "access_activity_log").readNullable[String] ~
       (__ \ "billing_address").readNullable[String] ~
       (__ \ "cancellation_policy").readNullable[String] ~
@@ -68,7 +68,7 @@ object Disputes extends LazyLogging {
       (__ \ "shipping_address").readNullable[String]
     ).tupled
 
-  private val disputeEvidenceReadsTwo = (
+  private[this] val disputeEvidenceReadsTwo = (
     (__ \ "shipping_carrier").readNullable[String] ~
       (__ \ "shipping_date").readNullable[String] ~
       (__ \ "shipping_documentation").readNullable[String] ~

@@ -5,6 +5,7 @@ import enumeratum._
 import org.joda.time.DateTime
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.Cards._
+import org.mdedetrich.stripe.v1.Charges.FraudDetails.{StripeReport, UserReport}
 import org.mdedetrich.stripe.v1.Disputes._
 import org.mdedetrich.stripe.v1.Errors._
 import org.mdedetrich.stripe.v1.Refunds.RefundList
@@ -20,23 +21,63 @@ import scala.util.Try
 
 object Charges extends LazyLogging {
 
-  /**
-    * @see https://stripe.com/docs/fraud
-    * @param stripeReport
-    */
+  sealed trait FraudDetails
 
-  case class FraudDetails(stripeReport: String)
+  object FraudDetails {
+
+    sealed abstract class UserReport(val id: String) extends EnumEntry with FraudDetails {
+      override val entryName = id
+    }
+
+    object UserReport extends Enum[UserReport] {
+
+      val values = findValues
+
+      case object Safe extends UserReport("safe")
+
+      case object Fraudulent extends UserReport("fraudulent")
+
+    }
+
+    sealed abstract class StripeReport(val id: String) extends EnumEntry with FraudDetails {
+      override val entryName = id
+    }
+
+    object StripeReport extends Enum[UserReport] {
+
+      val values = findValues
+
+      case object Fraudulent extends StripeReport("fraudulent")
+
+    }
+
+  }
 
   implicit val fraudDetailsReads: Reads[FraudDetails] =
-    (__ \ "stripe_report").read[String]
-      .map { stripeReport => FraudDetails(stripeReport) }
+    (__ \ "user_report").readNullable[String].flatMap {
+      case Some("safe") => Reads[FraudDetails](_ => JsSuccess(FraudDetails.UserReport.Safe))
+      case Some("fraudulent") => Reads[FraudDetails](_ => JsSuccess(FraudDetails.UserReport.Safe))
+      case _ =>
+        (__ \ "stripe_report").readNullable[String].flatMap {
+          case Some("fraudulent") => Reads[FraudDetails](_ => JsSuccess(FraudDetails.StripeReport.Fraudulent))
+          case _ => Reads[FraudDetails](_ => JsError(ValidationError("UnknownFraudDetails")))
+        }
+    }
 
   implicit val fraudDetailsWrites: Writes[FraudDetails] =
-    Writes((fraudDetails: FraudDetails) =>
-      Json.obj(
-        "stripe_report" -> fraudDetails.stripeReport
-      )
-    )
+    Writes { (fraudDetails: FraudDetails) =>
+      fraudDetails match {
+        case userReport: UserReport =>
+          Json.obj(
+            "user_report" -> userReport.id
+          )
+        case stripeReport: StripeReport =>
+          Json.obj(
+            "stripe_report" -> stripeReport.id
+          )
+      }
+    }
+
 
   sealed abstract class Status(val id: String) extends EnumEntry {
     override val entryName = id
@@ -50,9 +91,72 @@ object Charges extends LazyLogging {
 
     case object Failed extends Status("failed")
 
+    case object Pending extends Status("pending")
+
   }
 
   implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
+
+  /**
+    * https://stripe.com/docs/api#charges
+    *
+    * @param id
+    * @param amount              Amount charged in cents
+    * @param amountRefunded      Amount in cents refunded (can be less than the 
+    *                            amount attribute on the charge if a partial 
+    *                            refund was issued).
+    * @param applicationFee      The application fee (if any) for the charge. 
+    *                            See the Connect documentation for details.
+    * @param balanceTransaction  ID of the balance transaction that describes the 
+    *                            impact of this charge on your account balance 
+    *                            (not including refunds or disputes).
+    * @param captured            If the charge was created without capturing, 
+    *                            this boolean represents whether or not it is still 
+    *                            uncaptured or has since been captured.
+    * @param created
+    * @param currency            Three-letter ISO currency code representing 
+    *                            the currency in which the charge was made.
+    * @param customer            ID of the customer this charge is for if one exists.
+    * @param description
+    * @param destination         The account (if any) the charge was made on behalf of. 
+    *                            See the Connect documentation for details.
+    * @param dispute             Details about the dispute if the charge has been disputed.
+    * @param failureCode         Error code explaining reason for charge failure if 
+    *                            available (see the errors section for a list of codes).
+    * @param failureMessage      Message to user further explaining reason for charge 
+    *                            failure if available.
+    * @param fraudDetails        Hash with information on fraud assessments for the charge. 
+    *                            Assessments reported by you have the key [[FraudDetails.UserReport]] and, 
+    *                            if set, possible values of [[FraudDetails.UserReport.Safe]] and 
+    *                            [[FraudDetails.UserReport.Fraudulent]]. Assessments 
+    *                            from Stripe have the key [[FraudDetails.StripeReport]] and, if set, 
+    *                            the value [[FraudDetails.StripeReport.Fraudulent]].
+    * @param invoice             ID of the invoice this charge is for if one exists.
+    * @param livemode
+    * @param metadata            A set of key/value pairs that you can attach to a charge object. 
+    *                            It can be useful for storing additional information about the charge 
+    *                            in a structured format.
+    * @param order               ID of the order this charge is for if one exists.
+    * @param paid                true if the charge succeeded, or was successfully 
+    *                            authorized for later capture.
+    * @param receiptEmail        This is the email address that the receipt for this charge was sent to.
+    * @param receiptNumber       This is the transaction number that appears on email 
+    *                            receipts sent for this charge.
+    * @param refunded            Whether or not the charge has been fully refunded. 
+    *                            If the charge is only partially refunded, 
+    *                            this attribute will still be false.
+    * @param refunds             A list of refunds that have been applied to the charge.
+    * @param shipping            Shipping information for the charge.
+    * @param source              For most Stripe users, the source of every charge is a credit or debit card. 
+    *                            This hash is then the card object describing that card.
+    * @param sourceTransfer      The transfer ID which created this charge. Only present if the 
+    *                            charge came from another Stripe account. See the Connect 
+    *                            documentation for details.
+    * @param statementDescriptor Extra information about a charge. This will appear 
+    *                            on your customer’s credit card statement.
+    * @param status              The status of the payment is either [[Status.Succeeded]], 
+    *                            [[Status.Pending]], or [[Status.Failed]].
+    */
 
   case class Charge(id: String,
                     amount: BigDecimal,
@@ -80,6 +184,7 @@ object Charges extends LazyLogging {
                     refunds: Option[RefundList],
                     shipping: Option[Shipping],
                     source: Card,
+                    sourceTransfer: Option[String],
                     statementDescriptor: Option[String],
                     status: Status)
 
@@ -125,6 +230,7 @@ object Charges extends LazyLogging {
       None,
       source,
       None,
+      None,
       status
     )
   }
@@ -159,6 +265,7 @@ object Charges extends LazyLogging {
       (__ \ "refunds").readNullable[RefundList] ~
       (__ \ "shipping").readNullable[Shipping] ~
       (__ \ "source").read[Card] ~
+      (__ \ "source_transfer").readNullable[String] ~
       (__ \ "statement_descriptor").readNullable[String] ~
       (__ \ "status").read[Status]
     ).tupled
@@ -194,6 +301,7 @@ object Charges extends LazyLogging {
     refunds,
     shipping,
     source,
+    sourceTransfer,
     statementDescriptor,
     status
       ) = two
@@ -224,6 +332,7 @@ object Charges extends LazyLogging {
       refunds,
       shipping,
       source,
+      sourceTransfer,
       statementDescriptor,
       status
     )
@@ -294,7 +403,7 @@ object Charges extends LazyLogging {
             (__ \ "address_zip").readNullable[String]
           ).tupled.map((Source.Card.apply _).tupled)
       case jsString: JsString =>
-        __.read[String].map { customerId => Source.Customer(customerId) }
+        Reads[Source](_ => JsSuccess(Source.Customer(jsString.value)))
       case _ =>
         Reads[Source](_ => JsError(ValidationError("InvalidSource")))
     }
@@ -337,6 +446,57 @@ object Charges extends LazyLogging {
     }
     )
 
+  /**
+    * @see https://stripe.com/docs/api#create_charge
+    * @param amount              A positive integer in the smallest currency unit (e.g 100 cents to charge $1.00,
+    *                            or 1 to charge ¥1, a 0-decimal currency) representing how much to charge the card.
+    *                            The minimum amount is $0.50 (or equivalent in charge currency).
+    * @param currency            3-letter ISO code for currency.
+    * @param applicationFee      A fee in cents that will be applied to the charge and transferred to
+    *                            the application owner's Stripe account. To use an application fee,
+    *                            the request must be made on behalf of another account, using the
+    *                            Stripe-Account header, an OAuth key, or the [[Charge.destination]] parameter.
+    *                            For more information, see the application fees documentation.
+    * @param capture             Whether or not to immediately capture the charge. When false, the charge issues
+    *                            an authorization (or pre-authorization), and will need to be captured later.
+    *                            Uncaptured charges expire in 7 days. For more information, see authorizing charges and settling later.
+    * @param description         An arbitrary string which you can attach to a charge object.
+    *                            It is displayed when in the web interface alongside the charge.
+    *                            Note that if you use Stripe to send automatic email receipts to your customers,
+    *                            your receipt emails will include the [[description]] of the charge(s) that they are describing.
+    * @param destination         An account to make the charge on behalf of. If specified, the charge will be attributed
+    *                            to the destination account for tax reporting, and the funds from the charge will
+    *                            be transferred to the destination account. The ID of the resulting transfer will be returned
+    *                            in the transfer field of the response. See the documentation for details.
+    * @param metadata            A set of key/value pairs that you can attach to a charge object. It can be useful for storing
+    *                            additional information about the customer in a structured format. It's often a good idea
+    *                            to store an email address in metadata for tracking later.
+    * @param receiptEmail        The email address to send this charge's receipt to.
+    *                            The receipt will not be sent until the charge is paid. If this charge is
+    *                            for a customer, the email address specified here will override the customer's
+    *                            email address. Receipts will not be sent for test mode charges. If [[receiptEmail]]
+    *                            is specified for a charge in live mode, a receipt will be sent regardless of your email settings.
+    * @param shipping            Shipping information for the charge. Helps prevent fraud on charges for physical goods.
+    *                            For more information, see the Charge object documentation.
+    * @param customer            The ID of an existing customer that will be charged in this request.
+    * @param source              A payment source to be charged, such as a credit card. If you also pass a
+    *                            customer ID, the source must be the ID of a source belonging to the customer.
+    *                            Otherwise, if you do not pass a customer ID, the source you provide must
+    *                            either be a token, like the ones returned by Stripe.js, or a dictionary
+    *                            containing a user's credit card details, with the options described below.
+    *                            Although not all information is required, the extra info helps prevent fraud.
+    * @param statementDescriptor An arbitrary string to be displayed on your customer's credit
+    *                            card statement. This may be up to 22 characters. As an example,
+    *                            if your website is RunClub and the item you're charging for
+    *                            is a race ticket, you may want to specify a [[statementDescriptor]]
+    *                            of RunClub 5K race ticket. The statement description may not include `<>"'` characters,
+    *                            and will appear on your customer's statement in capital letters.
+    *                            Non-ASCII characters are automatically stripped. While most banks display
+    *                            this information consistently, some may display it incorrectly or not at all.
+    * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
+    * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
+    */
+
   case class ChargeInput(amount: BigDecimal,
                          currency: Currency,
                          applicationFee: Option[BigDecimal],
@@ -348,7 +508,21 @@ object Charges extends LazyLogging {
                          shipping: Option[Shipping],
                          customer: Option[String],
                          source: Source,
-                         statementDescriptor: Option[String]) extends StripeObject
+                         statementDescriptor: Option[String]) extends StripeObject {
+    statementDescriptor match {
+      case Some(sD) if sD.length > 22 =>
+        throw StatementDescriptorTooLong(sD.length)
+      case Some(sD) if sD.contains("<") =>
+        throw StatementDescriptorInvalidCharacter("<")
+      case Some(sD) if sD.contains(">") =>
+        throw StatementDescriptorInvalidCharacter(">")
+      case Some(sD) if sD.contains("\"") =>
+        throw StatementDescriptorInvalidCharacter("\"")
+      case Some(sD) if sD.contains("\'") =>
+        throw StatementDescriptorInvalidCharacter("\'")
+      case _ =>
+    }
+  }
 
   object ChargeInput {
     def default(amount: BigDecimal,
@@ -466,5 +640,7 @@ object Charges extends LazyLogging {
     val finalUrl = endpoint.url + "/v1/charges"
 
     createRequestPOST[Charge](finalUrl, postFormParameters, idempotencyKey, logger)
+
   }
+
 }

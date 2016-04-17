@@ -15,6 +15,10 @@ import play.api.libs.json._
 import scala.concurrent.Future
 import scala.util.Try
 
+/**
+  * @see https://stripe.com/docs/api#subscriptions
+  */
+
 object Subscriptions extends LazyLogging {
 
   sealed abstract class Status(val id: String) extends EnumEntry {
@@ -39,6 +43,73 @@ object Subscriptions extends LazyLogging {
 
   implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
+  /**
+    * @see https://stripe.com/docs/api#subscription_object
+    * @param id
+    * @param applicationFeePercent A positive decimal that represents the fee
+    *                              percentage of the subscription invoice amount
+    *                              that will be transferred to the application
+    *                              owner’s Stripe account each billing period.
+    * @param cancelAtPeriodEnd     If the subscription has been canceled with the
+    *                              at_period_end flag set to true,
+    *                              [[cancelAtPeriodEnd]] on the subscription will
+    *                              be true. You can use this attribute to determine
+    *                              whether a subscription that has a status of
+    *                              active is scheduled to be canceled at the end
+    *                              of the current period.
+    * @param canceledAt            If the subscription has been canceled, the date
+    *                              of that cancellation. If the subscription was
+    *                              canceled with [[cancelAtPeriodEnd]], [[canceledAt]]
+    *                              will still reflect the date of the initial cancellation
+    *                              request, not the end of the subscription period when
+    *                              the subscription is automatically moved to a canceled state.
+    * @param currentPeriodEnd      End of the current period that the
+    *                              subscription has been invoiced for.
+    *                              At the end of this period, a new
+    *                              invoice will be created.
+    * @param currentPeriodStart    Start of the current period that the
+    *                              subscription has been invoiced for
+    * @param customer
+    * @param discount              Describes the current discount applied
+    *                              to this subscription, if there is one. When
+    *                              billing, a discount applied to a subscription
+    *                              overrides a discount applied on a customer-wide
+    *                              basis.
+    * @param endedAt               If the subscription has ended (either because
+    *                              it was canceled or because the customer was
+    *                              switched to a subscription to a new plan), the date
+    *                              the subscription ended
+    * @param metadata              A set of key/value pairs that you can
+    *                              attach to a subscription object. It
+    *                              can be useful for storing additional
+    *                              information about the subscription in
+    *                              a structured format.
+    * @param plan                  Hash describing the plan the customer is subscribed to
+    * @param quantity
+    * @param start                 Date the subscription started
+    * @param status                Possible values are [[Status.Trialing]], [[Status.Active]],
+    *                              [[Status.PastDue]], [[Status.Canceled]], or [[Status.Unpaid]].
+    *                              A subscription still in its trial period is trialing and
+    *                              moves to active when the trial period is over. When payment
+    *                              to renew the subscription fails, the subscription becomes
+    *                              [[Status.PastDue]]. After Stripe has exhausted all payment
+    *                              retry attempts, the subscription ends up with a status of either
+    *                              [[Status.Canceled]] or [[Status.Unpaid]] depending on your retry
+    *                              settings. Note that when a subscription has a status of
+    *                              [[Status.Unpaid]], no subsequent invoices will be attempted
+    *                              (invoices will be created, but then immediately automatically
+    *                              closed. Additionally, updating customer card details will
+    *                              not lead to Stripe retrying the latest invoice.). After
+    *                              receiving updated card details from a customer,
+    *                              you may choose to reopen and pay their closed invoices.
+    * @param taxPercent            If provided, each invoice created by this
+    *                              subscription will apply the tax rate,
+    *                              increasing the amount billed to the customer.
+    * @param trialEnd              If the subscription has a trial,
+    *                              the end of that trial.
+    * @param trialStart            If the subscription has a trial,
+    *                              the beginning of that trial.
+    */
   case class Subscription(id: String,
                           applicationFeePercent: Option[BigDecimal],
                           cancelAtPeriodEnd: Boolean,
@@ -138,6 +209,27 @@ object Subscriptions extends LazyLogging {
 
     case class Token(id: String) extends Source
 
+    /**
+      * @see https://stripe.com/docs/api#create_subscription-source
+      * @param expMonth Two digit number representing the card's
+      *                 expiration month.
+      * @param expYear  Two or four digit number representing
+      *                 the card's expiration year.
+      * @param number   The card number, as a string
+      *                 without any separators.
+      * @param addressCountry
+      * @param addressLine1
+      * @param addressLine2
+      * @param addressState
+      * @param addressZip
+      * @param cvc      Card security code. Required unless
+      *                 your account is registered in
+      *                 Australia, Canada, or the United States.
+      *                 Highly recommended to always include
+      *                 this value.
+      * @param name     Cardholder's full name.
+      */
+
     case class Card(expMonth: Int,
                     expYear: Int,
                     number: String,
@@ -206,6 +298,82 @@ object Subscriptions extends LazyLogging {
       }
     )
 
+  /**
+    * @see https://stripe.com/docs/api#create_subscription-source
+    * @param applicationFeePercent A positive decimal (with
+    *                              at most two decimal places) between
+    *                              1 and 100. This represents the percentage
+    *                              of the subscription invoice subtotal
+    *                              that will be transferred to the
+    *                              application owner’s Stripe account.
+    *                              The request must be made with an
+    *                              OAuth key in order to set an application
+    *                              fee percentage. For more information,
+    *                              see the application fees
+    * @param coupon                The code of the coupon to apply to
+    *                              this subscription. A coupon applied to
+    *                              a subscription will only affect
+    *                              invoices created for that particular
+    *                              subscription.
+    * @param plan                  The identifier of the plan
+    *                              to subscribe the customer to.
+    * @param source                The source can either be a token, like the ones
+    *                              returned by our Stripe.js, or a dictionary
+    *                              containing a user's credit card details
+    *                              (with the options shown below). You must
+    *                              provide a source if the customer does not
+    *                              already have a valid source attached,
+    *                              and you are subscribing the customer
+    *                              for a plan that is not free. Passing
+    *                              [[source]] will create a new source object,
+    *                              make it the customer default source,
+    *                              and delete the old customer default
+    *                              if one exists. If you want to add an
+    *                              additional source to use with subscriptions,
+    *                              instead use the card creation API to add
+    *                              the card and then the customer update API
+    *                              to set it as the default. Whenever
+    *                              you attach a card to a customer, Stripe
+    *                              will automatically validate the card.
+    * @param quantity              The quantity you'd like to apply to
+    *                              the subscription you're creating.
+    *                              For example, if your plan is $10/user/month,
+    *                              and your customer has 5 users, you could pass
+    *                              5 as the quantity to have the customer
+    *                              charged $50 (5 x $10) monthly. If you
+    *                              update a subscription but don't change
+    *                              the plan ID (e.g. changing only the trial_end),
+    *                              the subscription will inherit the old
+    *                              subscription's quantity attribute unless
+    *                              you pass a new quantity parameter. If you
+    *                              update a subscription and change the plan ID,
+    *                              the new subscription will not inherit the
+    *                              quantity attribute and will default to
+    *                              1 unless you pass a quantity parameter.
+    * @param metadata              A set of key/value pairs that you
+    *                              can attach to a subscription object.
+    *                              It can be useful for storing additional
+    *                              information about the subscription in a
+    *                              structured format.
+    * @param taxPercent            A positive decimal (with at most
+    *                              two decimal places) between 1 and 100.
+    *                              This represents the percentage of the
+    *                              subscription invoice subtotal that
+    *                              will be calculated and added as tax to
+    *                              the final amount each billing period.
+    *                              For example, a plan which charges
+    *                              $10/month with a [[taxPercent]] of 20.0
+    *                              will charge $12 per invoice.
+    * @param trialEnd              Unix timestamp representing the end
+    *                              of the trial period the customer
+    *                              will get before being charged for
+    *                              the first time. If set, [[trialEnd]]
+    *                              will override the default trial period
+    *                              of the plan the customer is being
+    *                              subscribed to. The special value now
+    *                              can be provided to end the customer's
+    *                              trial immediately.
+    */
   case class SubscriptionInput(applicationFeePercent: Option[BigDecimal],
                                coupon: Option[String],
                                plan: String,

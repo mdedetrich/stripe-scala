@@ -12,7 +12,7 @@ reading/writing JSON from/to scala case classes). It also provides a very powerf
 - [dispatch](https://github.com/dispatch/reboot) for making HTTP requests
 - [jawn](https://github.com/non/jawn) for parsing the response from dispatch to a play-json
 - [ficus](https://github.com/iheartradio/ficus) for providing config (via [typesafe-config](https://github.com/typesafehub/config))
-- [nscala-time](https://github.com/nscala-time/nscala-time) for date/time handling (via [JodaTime](http://www.joda.org/joda-time/))
+- [joda-time](http://www.joda.org/joda-time/) for date/time handling
 - [enumeratum](https://github.com/lloydmeta/enumeratum) for providing typesafe enumerations on stripe enum models as well 
 - [scala-uri](https://github.com/NET-A-PORTER/scala-uri) for providing a URI DSL to generate query parameters for list operations
 play-json formats for such models

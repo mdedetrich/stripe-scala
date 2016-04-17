@@ -1,11 +1,11 @@
 package org.mdedetrich.stripe.v1
 
-import com.github.nscala_time.time.Imports._
 import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import org.mdedetrich.playjson.Utils._
 import enumeratum._
+import org.joda.time.DateTime
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 
 import scala.concurrent.Future
@@ -33,6 +33,25 @@ object Refunds extends LazyLogging {
   }
 
   implicit val reasonFormats = EnumFormats.formats(Reason, insensitive = true)
+
+  /**
+    * @see https://stripe.com/docs/api#refund_object
+    * @param id
+    * @param amount             Amount, in cents.
+    * @param balanceTransaction Balance transaction that describes
+    *                           the impact on your account balance.
+    * @param charge             ID of the charge that was refunded.
+    * @param created
+    * @param currency           Three-letter ISO code representing the currency.
+    * @param metadata           A set of key/value pairs that you can attach to
+    *                           the object. It can be useful for storing additional
+    *                           information in a structured format.
+    * @param reason             Reason for the refund. If set, possible values are
+    *                           [[Reason.Duplicate]], [[Reason.Fraudulent]], and
+    *                           [[Reason.RequestedByCustomer]].
+    * @param receiptNumber      This is the transaction number that appears on
+    *                           email receipts sent for this refund.
+    */
 
   case class Refund(id: String,
                     amount: BigDecimal,
@@ -72,6 +91,43 @@ object Refunds extends LazyLogging {
         "receipt_number" -> refundData.receiptNumber
       )
     )
+
+  /**
+    * @see https://stripe.com/docs/api#create_refund
+    * @param charge               The identifier of the charge to refund.
+    * @param amount               A positive integer in cents representing
+    *                             how much of this charge to refund. Can only
+    *                             refund up to the unrefunded amount remaining
+    *                             of the charge.
+    * @param metadata             A set of key/value pairs that you can attach
+    *                             to a refund object. It can be useful for
+    *                             storing additional information about the
+    *                             refund in a structured format. You can unset
+    *                             individual keys if you POST an empty value
+    *                             for that key. You can clear all keys if you
+    *                             POST an empty value for metadata.
+    * @param reason               String indicating the reason for the refund.
+    *                             If set, possible values are [[Reason.Duplicate]],
+    *                             [[Reason.Fraudulent]], and [[Reason.RequestedByCustomer]].
+    *                             Specifying fraudulent as the reason when you believe the
+    *                             charge to be fraudulent will help us improve our
+    *                             fraud detection algorithms.
+    * @param refundApplicationFee Boolean indicating whether the
+    *                             application fee should be refunded
+    *                             when refunding this charge. If a full
+    *                             charge refund is given, the full application
+    *                             fee will be refunded. Else, the application
+    *                             fee will be refunded with an amount proportional
+    *                             to the amount of the charge refunded. An application
+    *                             fee can only be refunded by the application that
+    *                             created the charge.
+    * @param reverseTransfer      Boolean indicating whether the transfer
+    *                             should be reversed when refunding this charge.
+    *                             The transfer will be reversed for the same amount
+    *                             being refunded (either the entire or partial amount).
+    *                             A transfer can only be reversed by the application
+    *                             that created the charge.
+    */
 
   case class RefundInput(charge: String,
                          amount: Option[BigDecimal],
@@ -136,11 +192,32 @@ object Refunds extends LazyLogging {
 
   }
 
+  /**
+    * @see https://stripe.com/docs/api#list_refunds
+    * @param charge        Only return refunds for the
+    *                      charge specified by this charge ID.
+    * @param endingBefore  A cursor for use in pagination. [[endingBefore]]
+    *                      is an object ID that defines your place in the list.
+    *                      For instance, if you make a list request and
+    *                      receive 100 objects, starting with obj_bar,
+    *                      your subsequent call can include [[endingBefore]]=obj_bar
+    *                      in order to fetch the previous page of the list.
+    * @param limit         A limit on the number of objects to be returned.
+    *                      Limit can range between 1 and 100 items.
+    * @param startingAfter A cursor for use in pagination. [[startingAfter]]
+    *                      is an object ID that defines your place in
+    *                      the list. For instance, if you make a list
+    *                      request and receive 100 objects, ending
+    *                      with obj_foo, your subsequent call can include
+    *                      [[startingAfter]]=obj_foo in order to fetch the
+    *                      next page of the list.
+    */
+
   case class RefundListInput(charge: Option[String],
                              endingBefore: Option[String],
                              limit: Option[Long],
                              startingAfter: Option[String])
-  
+
   object RefundListInput {
     def default: RefundListInput = RefundListInput(
       None,
@@ -165,7 +242,7 @@ object Refunds extends LazyLogging {
     implicit val refundListWrites: Writes[RefundList] =
       listWrites
   }
-  
+
   def list(refundListInput: RefundListInput,
            includeTotalCount: Boolean)
           (implicit apiKey: ApiKey,
@@ -189,7 +266,7 @@ object Refunds extends LazyLogging {
     }
 
     createRequestGET[RefundList](finalUrl, logger)
-    
+
   }
 
 }

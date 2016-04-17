@@ -5,6 +5,16 @@ import play.api.libs.functional.syntax._
 
 object Shippings {
 
+  /**
+    * @see https://stripe.com/docs/api#charge_object-shipping-address
+    * @param city       City/Suburb/Town/Village
+    * @param country    2-letter country code
+    * @param line1      Address line 1 (Street address/PO Box/Company name)
+    * @param line2      Address line 2 (Apartment/Suite/Unit/Building)
+    * @param postalCode Zip/Postal Code
+    * @param state      State/Province/County
+    */
+
   case class Address(city: Option[String],
                      country: Option[String],
                      line1: Option[String],
@@ -33,6 +43,20 @@ object Shippings {
         "state" -> address.state
       )
     )
+
+  /**
+    * @see https://stripe.com/docs/api#charge_object-shipping
+    * @param address        Shipping address.
+    * @param carrier        The delivery service that shipped a physical product, 
+    *                       such as Fedex, UPS, USPS, etc.
+    * @param name           Recipient name.
+    * @param phone          Recipient phone (including extension).
+    * @param trackingNumber The tracking number for a physical product, 
+    *                       obtained from the delivery service.
+    *                       If multiple tracking numbers
+    *                       were generated for this purchase, please
+    *                       separate them with commas.
+    */
 
   case class Shipping(address: Option[Address],
                       carrier: Option[String],

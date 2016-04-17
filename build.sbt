@@ -1,4 +1,4 @@
-name := "stripe-scala"
+name := "Stripe Scala"
 
 val currentScalaVersion = "2.11.8"
 
@@ -35,7 +35,7 @@ val enumeratumVersion = "1.3.7"
 
 libraryDependencies ++= Seq(
   "net.databinder.dispatch" %% "dispatch-core" % "0.11.3",
-  "com.github.nscala-time" %% "nscala-time" % "2.8.0",
+  "joda-time" % "joda-time" % "2.9.2",
   "com.beachape" %% "enumeratum" % enumeratumVersion,
   "com.beachape" %% "enumeratum-play-json" % enumeratumVersion,
   "org.spire-math" %% "jawn-parser" % jawnVersion,

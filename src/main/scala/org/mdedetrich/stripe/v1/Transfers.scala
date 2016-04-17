@@ -122,6 +122,8 @@ object Transfers extends LazyLogging {
 
     case object BitcoinReceiver extends SourceType("bitcoin_receiver")
 
+    case object BankAccount extends SourceType("bank_account")
+
   }
 
   implicit val sourceTypeFormats = EnumFormats.formats(SourceType, insensitive = true)
@@ -222,16 +224,38 @@ object Transfers extends LazyLogging {
     )
 
   /**
-    * Thrown in the statement descriptor is too long
-    *
-    * @see https://stripe.com/docs/api#create_transfer-statement_descriptor
-    * @param length The length of the requested statement descriptor
+    * @see https://stripe.com/docs/api#create_transfer
+    * @param amount              A positive integer in cents representing how much to transfer.
+    * @param currency            3-letter ISO code for currency.
+    * @param destination         The id of a bank account or a card to send the transfer to,
+    *                            or the string default_for_currency to use the default
+    *                            external account for the specified currency. If you use
+    *                            Stripe Connect, this can be the the id of a connected Stripe
+    *                            account; see the details about when such transfers are permitted.
+    * @param description         An arbitrary string which you can attach to a transfer object.
+    *                            It is displayed when in the web interface alongside the transfer.
+    * @param metadata            A set of key/value pairs that you can attach to a transfer object.
+    *                            It can be useful for storing additional information about the
+    *                            transfer in a structured format.
+    * @param sourceTransaction   You can use this parameter to transfer funds
+    *                            from a charge (or other transaction) before they
+    *                            are added to your available balance. A pending balance
+    *                            will transfer immediately but the funds will not become
+    *                            available until the original charge becomes available.
+    *                            See the Connect documentation for details.
+    * @param statementDescriptor A string to be displayed on the recipient's bank or card statement.
+    *                            This may be at most 22 characters. Attempting to use a [[statementDescriptor]]
+    *                            longer than 22 characters will return an error.
+    *                            Note: Most banks will truncate this information and/or display it inconsistently.
+    *                            Some may not display it at all.
+    * @param sourceType          The source balance to draw this transfer from.
+    *                            Balances for different payment sources are kept separately.
+    *                            You can find the amounts with the balances API. Valid options are:
+    *                            [[SourceType.AlipayAccount]], [[SourceType.BankAccount]], [[SourceType.BitcoinReceiver]], and
+    *                            [[SourceType.Card]].
+    * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
+    * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
     */
-  
-  case class StatementDescriptorTooLong(length: Int) extends Exception {
-    override def getMessage = s"Statement Descriptor must not be longer than 22 characters, input was $length characters"
-  }
-
   case class TransferInput(amount: BigDecimal,
                            currency: Currency,
                            destination: String,
@@ -244,7 +268,15 @@ object Transfers extends LazyLogging {
     statementDescriptor match {
       case Some(sD) if sD.length > 22 =>
         throw StatementDescriptorTooLong(sD.length)
-      case None =>
+      case Some(sD) if sD.contains("<") =>
+        throw StatementDescriptorInvalidCharacter("<")
+      case Some(sD) if sD.contains(">") =>
+        throw StatementDescriptorInvalidCharacter(">")
+      case Some(sD) if sD.contains("\"") =>
+        throw StatementDescriptorInvalidCharacter("\"")
+      case Some(sD) if sD.contains("\'") =>
+        throw StatementDescriptorInvalidCharacter("\'")
+      case _ =>
     }
   }
 
@@ -360,6 +392,5 @@ object Transfers extends LazyLogging {
     createRequestGET[TransferList](finalUrl, logger)
 
   }
-
 
 }
