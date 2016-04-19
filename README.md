@@ -128,8 +128,8 @@ with metadata easier. If the map for the metadata happens to empty, the metadata
 ### Timestamps
 
 Stripe represents all of its timestamps as unix timestamp numbers (https://support.stripe.com/questions/what-timezone-does-the-dashboard-and-api-use)
-however stripe-scala models store these timestamps as a JodaTime `DateTime`. stripe-scala handles converting the unix timestamp
-to `DateTime` and vice versa by using custom play-json writers/readers for JSON (`stripeDateTimeReads`/`stripeDateTimeWrites`) and
+however stripe-scala models store these timestamps as an `OffsetDateTime`. stripe-scala handles converting the unix timestamp
+to `OffsetDateTime` and vice versa by using custom play-json writers/readers for JSON (`stripeDateTimeReads`/`stripeDateTimeWrites`) and
 `stripeDateTimeParamWrites` for form parameters.
 
 These functions are exposed publicly via the [package object](https://github.com/mdedetrich/stripe-scala/blob/master/src/main/scala/org/mdedetrich/stripe/v1/package.scala).
