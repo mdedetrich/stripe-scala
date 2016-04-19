@@ -1,8 +1,8 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
-import org.joda.time.DateTime
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
@@ -60,7 +60,7 @@ object Coupons extends LazyLogging {
 
   case class Coupon(id: String,
                     amountOff: Option[Long],
-                    created: DateTime,
+                    created: OffsetDateTime,
                     currency: Option[Currency],
                     duration: Duration,
                     durationInMonths: Option[Long],
@@ -68,14 +68,14 @@ object Coupons extends LazyLogging {
                     maxRedemptions: Option[Long],
                     metadata: Option[Map[String, String]],
                     percentOff: Option[BigDecimal],
-                    redeemBy: Option[DateTime],
+                    redeemBy: Option[OffsetDateTime],
                     timesRedeemed: Long,
                     valid: Boolean
                    ) extends StripeObject
 
   object Coupon {
     def default(id: String,
-                created: DateTime,
+                created: OffsetDateTime,
                 duration: Duration,
                 livemode: Boolean,
                 timesRedeemed: Long,
@@ -99,7 +99,7 @@ object Coupons extends LazyLogging {
   implicit val couponReads: Reads[Coupon] = (
     (__ \ "id").read[String] ~
       (__ \ "amount_off").readNullable[Long] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").readNullable[Currency] ~
       (__ \ "duration").read[Duration] ~
       (__ \ "duration_in_months").readNullable[Long] ~
@@ -107,7 +107,7 @@ object Coupons extends LazyLogging {
       (__ \ "max_redemptions").readNullable[Long] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "percent_off").readNullable[BigDecimal] ~
-      (__ \ "redeem_by").readNullable[DateTime](stripeDateTimeReads) ~
+      (__ \ "redeem_by").readNullable[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "times_redeemed").read[Long] ~
       (__ \ "valid").read[Boolean]
     ).tupled.map((Coupon.apply _).tupled)
@@ -172,7 +172,7 @@ object Coupons extends LazyLogging {
                          maxRedemptions: Option[Long],
                          metadata: Option[Map[String, String]],
                          percentOff: Option[BigDecimal],
-                         redeemBy: Option[DateTime]
+                         redeemBy: Option[OffsetDateTime]
                         )
 
   object CouponInput {
@@ -198,7 +198,7 @@ object Coupons extends LazyLogging {
       (__ \ "max_redemptions").readNullable[Long] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "percent_off").readNullable[BigDecimal] ~
-      (__ \ "redeemBy").readNullable[DateTime](stripeDateTimeReads)
+      (__ \ "redeemBy").readNullable[OffsetDateTime](stripeDateTimeReads)
     ).tupled.map((CouponInput.apply _).tupled)
 
   implicit val couponInputWrites: Writes[CouponInput] =

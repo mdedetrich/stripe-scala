@@ -1,7 +1,7 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
-import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import org.mdedetrich.playjson.Utils._
@@ -33,7 +33,7 @@ object TransferReversals extends LazyLogging {
   case class TransferReversal(id: String,
                               amount: BigDecimal,
                               balanceTransaction: String,
-                              created: DateTime,
+                              created: OffsetDateTime,
                               currency: Currency,
                               metadata: Option[Map[String, String]],
                               transfer: String) extends StripeObject
@@ -42,7 +42,7 @@ object TransferReversals extends LazyLogging {
     (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "balance_transaction").read[String] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "transfer").read[String]

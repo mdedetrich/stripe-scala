@@ -1,8 +1,8 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
-import org.joda.time.DateTime
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.BitcoinReceivers.BitcoinReceiver
 import org.mdedetrich.stripe.v1.Cards.Card
@@ -875,7 +875,7 @@ object BitcoinReceivers extends LazyLogging {
   case class Transaction(id: String,
                          amount: BigDecimal,
                          bitcoinAmount: BigDecimal,
-                         created: DateTime,
+                         created: OffsetDateTime,
                          currency: Currency,
                          receiver: String
                         )
@@ -884,7 +884,7 @@ object BitcoinReceivers extends LazyLogging {
     (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "bitcoin_amount").read[BigDecimal] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "receiver").read[String]
     ).tupled.map((Transaction.apply _).tupled)
@@ -971,7 +971,7 @@ object BitcoinReceivers extends LazyLogging {
                              bitcoinAmount: BigDecimal,
                              bitcoinAmountReceived: BigDecimal,
                              bitcoinUri: String,
-                             created: DateTime,
+                             created: OffsetDateTime,
                              currency: Currency,
                              customer: String,
                              description: String,
@@ -995,7 +995,7 @@ object BitcoinReceivers extends LazyLogging {
                 bitcoinAmount: BigDecimal,
                 bitcoinAmountReceived: BigDecimal,
                 bitcoinUri: String,
-                created: DateTime,
+                created: OffsetDateTime,
                 currency: Currency,
                 customer: String,
                 description: String,
@@ -1038,7 +1038,7 @@ object BitcoinReceivers extends LazyLogging {
       (__ \ "bitcoin_amount").read[BigDecimal] ~
       (__ \ "bitcoin_amount_received").read[BigDecimal] ~
       (__ \ "bitcoin_uri").read[String] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "customer").read[String] ~
       (__ \ "description").read[String] ~

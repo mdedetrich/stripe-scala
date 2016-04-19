@@ -1,7 +1,7 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import enumeratum._
-import org.joda.time.DateTime
 
 object Events {
 
@@ -158,7 +158,7 @@ object Events {
   case class Event[A <: StripeObject](
                                        id: String,
                                        apiVersion: String,
-                                       created: DateTime,
+                                       created: OffsetDateTime,
                                        data: Data[A],
                                        livemode: Boolean,
                                        pendingWebhooks: Long,

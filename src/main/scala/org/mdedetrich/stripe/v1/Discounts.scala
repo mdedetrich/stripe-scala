@@ -1,6 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import org.joda.time.DateTime
+import java.time.OffsetDateTime
 import org.mdedetrich.stripe.v1.Coupons._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -9,16 +9,16 @@ object Discounts {
 
   case class Discount(coupon: Coupon,
                       customer: String,
-                      end: DateTime,
-                      start: DateTime,
+                      end: OffsetDateTime,
+                      start: OffsetDateTime,
                       subscription: Option[String]
                      ) extends StripeObject
 
   implicit val discountReads: Reads[Discount] = (
     (__ \ "coupon").read[Coupon] ~
       (__ \ "customer").read[String] ~
-      (__ \ "end").read[DateTime](stripeDateTimeReads) ~
-      (__ \ "start").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "end").read[OffsetDateTime](stripeDateTimeReads) ~
+      (__ \ "start").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "subscription").readNullable[String]
     ).tupled.map((Discount.apply _).tupled)
 

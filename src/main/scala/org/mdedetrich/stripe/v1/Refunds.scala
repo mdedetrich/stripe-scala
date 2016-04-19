@@ -1,11 +1,11 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import org.mdedetrich.playjson.Utils._
 import enumeratum._
-import org.joda.time.DateTime
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 
 import scala.concurrent.Future
@@ -57,7 +57,7 @@ object Refunds extends LazyLogging {
                     amount: BigDecimal,
                     balanceTransaction: String,
                     charge: String,
-                    created: DateTime,
+                    created: OffsetDateTime,
                     currency: Currency,
                     metadata: Option[Map[String, String]],
                     reason: Reason,
@@ -69,7 +69,7 @@ object Refunds extends LazyLogging {
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "balance_transaction").read[String] ~
       (__ \ "charge").read[String] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "reason").read[Reason] ~

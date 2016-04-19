@@ -1,8 +1,8 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
-import org.joda.time.DateTime
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.Cards._
 import org.mdedetrich.stripe.v1.Charges.FraudDetails.{StripeReport, UserReport}
@@ -164,7 +164,7 @@ object Charges extends LazyLogging {
                     applicationFee: Option[String],
                     balanceTransaction: String,
                     captured: Boolean,
-                    created: DateTime,
+                    created: OffsetDateTime,
                     currency: Currency,
                     customer: Option[String],
                     description: String,
@@ -194,7 +194,7 @@ object Charges extends LazyLogging {
                 amountRefunded: BigDecimal,
                 balanceTransaction: String,
                 captured: Boolean,
-                created: DateTime,
+                created: OffsetDateTime,
                 currency: Currency,
                 description: String,
                 livemode: Boolean,
@@ -242,7 +242,7 @@ object Charges extends LazyLogging {
       (__ \ "application_fee").readNullable[String] ~
       (__ \ "balance_transaction").read[String] ~
       (__ \ "captured").read[Boolean] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "customer").readNullable[String] ~
       (__ \ "description").read[String] ~

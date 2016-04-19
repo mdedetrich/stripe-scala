@@ -1,7 +1,7 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
-import org.joda.time.DateTime
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.v1.Discounts.Discount
@@ -21,7 +21,7 @@ object Customers extends LazyLogging {
 
   case class Customer(id: String,
                       accountBalance: BigDecimal,
-                      created: DateTime,
+                      created: OffsetDateTime,
                       currency: Currency,
                       defaultSource: Option[String],
                       delinquent: Boolean,
@@ -37,7 +37,7 @@ object Customers extends LazyLogging {
   object Customer {
     def default(id: String,
                 accountBalance: BigDecimal,
-                created: DateTime,
+                created: OffsetDateTime,
                 currency: Currency,
                 delinquent: Boolean,
                 livemode: Boolean,
@@ -64,7 +64,7 @@ object Customers extends LazyLogging {
   implicit val customerReads: Reads[Customer] = (
     (__ \ "id").read[String] ~
       (__ \ "account_balance").read[BigDecimal] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "default_source").readNullable[String] ~
       (__ \ "delinquent").read[Boolean] ~
@@ -221,7 +221,7 @@ object Customers extends LazyLogging {
                            shipping: Option[Shipping],
                            source: Option[Source],
                            taxPercent: Option[BigDecimal],
-                           trialEnd: Option[DateTime]
+                           trialEnd: Option[OffsetDateTime]
                           )
 
   object CustomerInput {
@@ -251,7 +251,7 @@ object Customers extends LazyLogging {
       (__ \ "shipping").readNullable[Shipping] ~
       (__ \ "source").readNullable[Source] ~
       (__ \ "tax_percent").readNullable[BigDecimal] ~
-      (__ \ "trial_end").readNullable[DateTime](stripeDateTimeReads)
+      (__ \ "trial_end").readNullable[OffsetDateTime](stripeDateTimeReads)
     ).tupled.map((CustomerInput.apply _).tupled)
 
   implicit val customerInputWrites: Writes[CustomerInput] =

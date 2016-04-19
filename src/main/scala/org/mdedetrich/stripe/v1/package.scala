@@ -1,9 +1,12 @@
 package org.mdedetrich.stripe
 
+import java.time.{Instant, OffsetDateTime, ZoneOffset}
+
 import com.ning.http.client.Response
 import com.typesafe.scalalogging.Logger
 import jawn.support.play.Parser
-import org.joda.time.DateTime
+import java.time.temporal.ChronoField
+
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.v1.Errors.{Error, StripeServerError, UnhandledServerError}
 import play.api.libs.json._
@@ -187,17 +190,19 @@ package object v1 {
 
   // Stripe stores timestamps in Unix time https://support.stripe.com/questions/what-timezone-does-the-dashboard-and-api-use
 
-  def stripeDateTimeParamWrites(dateTime: DateTime): String = (dateTime.getMillis / 1000).toString
+  def stripeDateTimeParamWrites(dateTime: OffsetDateTime): String = dateTime.get(ChronoField.OFFSET_SECONDS).toString
 
-  val stripeDateTimeReads: Reads[DateTime] =
-    Reads.of[Long].map { timestamp => new DateTime(timestamp * 1000) }
-
-  val stripeDateTimeWrites: Writes[DateTime] =
-    Writes { (dateTime: DateTime) =>
-      JsNumber(dateTime.getMillis / 1000)
+  val stripeDateTimeReads: Reads[OffsetDateTime] =
+    Reads.of[Long].map { timestamp =>
+      OffsetDateTime.ofInstant(Instant.ofEpochSecond(timestamp),ZoneOffset.UTC)
     }
 
-  val stripeDateTimeFormats: Format[DateTime] = Format(stripeDateTimeReads, stripeDateTimeWrites)
+  val stripeDateTimeWrites: Writes[OffsetDateTime] =
+    Writes { (dateTime: OffsetDateTime) =>
+      JsNumber(dateTime.get(ChronoField.OFFSET_SECONDS))
+    }
+
+  val stripeDateTimeFormats: Format[OffsetDateTime] = Format(stripeDateTimeReads, stripeDateTimeWrites)
 
   /**
     * A function which does the simplest ideal handling for making a stripe request.

@@ -1,6 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import org.joda.time.DateTime
+import java.time.OffsetDateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import org.mdedetrich.playjson.Utils._
@@ -33,7 +33,7 @@ object Alipays {
     */
 
   case class AliPay(id: String,
-                    created: DateTime,
+                    created: OffsetDateTime,
                     customer: Option[String],
                     fingerprint: Option[String],
                     livemode: Boolean,
@@ -47,7 +47,7 @@ object Alipays {
 
   object AliPay {
     def default(id: String,
-                created: DateTime,
+                created: OffsetDateTime,
                 livemode: Boolean,
                 reusable: Boolean,
                 used: Boolean,
@@ -68,7 +68,7 @@ object Alipays {
 
   implicit val alipayReads: Reads[AliPay] = (
     (__ \ "id").read[String] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "customer").readNullable[String] ~
       (__ \ "fingerprint").readNullable[String] ~
       (__ \ "livemode").read[Boolean] ~

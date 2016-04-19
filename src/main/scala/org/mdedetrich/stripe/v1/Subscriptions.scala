@@ -1,8 +1,8 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
-import org.joda.time.DateTime
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.Plans.Plan
@@ -113,31 +113,31 @@ object Subscriptions extends LazyLogging {
   case class Subscription(id: String,
                           applicationFeePercent: Option[BigDecimal],
                           cancelAtPeriodEnd: Boolean,
-                          canceledAt: Option[DateTime],
-                          currentPeriodEnd: DateTime,
-                          currentPeriodStart: DateTime,
+                          canceledAt: Option[OffsetDateTime],
+                          currentPeriodEnd: OffsetDateTime,
+                          currentPeriodStart: OffsetDateTime,
                           customer: String,
                           discount: Option[Discount],
-                          endedAt: Option[DateTime],
+                          endedAt: Option[OffsetDateTime],
                           metadata: Option[Map[String, String]],
                           plan: Plan,
                           quantity: Long,
-                          start: DateTime,
+                          start: OffsetDateTime,
                           status: Status,
                           taxPercent: Option[BigDecimal],
-                          trialEnd: Option[DateTime],
-                          trialStart: Option[DateTime]
+                          trialEnd: Option[OffsetDateTime],
+                          trialStart: Option[OffsetDateTime]
                          )
 
   object Subscription {
     def default(id: String,
                 cancelAtPeriod: Boolean,
                 customer: String,
-                currentPeriodEnd: DateTime,
-                currentPeriodStart: DateTime,
+                currentPeriodEnd: OffsetDateTime,
+                currentPeriodStart: OffsetDateTime,
                 plan: Plan,
                 quantity: Long,
-                start: DateTime,
+                start: OffsetDateTime,
                 status: Status) = Subscription(
       id,
       None,
@@ -163,20 +163,20 @@ object Subscriptions extends LazyLogging {
     (__ \ "id").read[String] ~
       (__ \ "application_fee_percent").readNullable[BigDecimal] ~
       (__ \ "cancel_at_period_end").read[Boolean] ~
-      (__ \ "canceled_at").readNullable[DateTime](stripeDateTimeReads) ~
-      (__ \ "current_period_end").read[DateTime](stripeDateTimeReads) ~
-      (__ \ "current_period_start").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "canceled_at").readNullable[OffsetDateTime](stripeDateTimeReads) ~
+      (__ \ "current_period_end").read[OffsetDateTime](stripeDateTimeReads) ~
+      (__ \ "current_period_start").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "customer").read[String] ~
       (__ \ "discount").readNullable[Discount] ~
-      (__ \ "ended_at").readNullable[DateTime](stripeDateTimeReads) ~
+      (__ \ "ended_at").readNullable[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "plan").read[Plan] ~
       (__ \ "quantity").read[Long] ~
-      (__ \ "start").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "start").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "status").read[Status] ~
       (__ \ "tax_percent").readNullable[BigDecimal] ~
-      (__ \ "trial_end").readNullable[DateTime](stripeDateTimeReads) ~
-      (__ \ "trial_start").readNullable[DateTime](stripeDateTimeReads)
+      (__ \ "trial_end").readNullable[OffsetDateTime](stripeDateTimeReads) ~
+      (__ \ "trial_start").readNullable[OffsetDateTime](stripeDateTimeReads)
     ).tupled.map((Subscription.apply _).tupled)
 
   implicit val subscriptionWrites: Writes[Subscription] =
@@ -195,7 +195,7 @@ object Subscriptions extends LazyLogging {
         "metadata" -> subscription.metadata,
         "plan" -> subscription.plan,
         "quantity" -> subscription.quantity,
-        "start" -> subscription.start,
+        "start" -> Json.toJson(subscription.start)(stripeDateTimeWrites),
         "status" -> subscription.status,
         "tax_percent" -> subscription.taxPercent,
         "trial_end" -> subscription.trialEnd.map(x => Json.toJson(x)(stripeDateTimeWrites)),
@@ -381,7 +381,7 @@ object Subscriptions extends LazyLogging {
                                quantity: Option[Long],
                                metadata: Option[Map[String, String]],
                                taxPercent: Option[BigDecimal],
-                               trialEnd: Option[DateTime]
+                               trialEnd: Option[OffsetDateTime]
                               )
 
   object SubscriptionInput {

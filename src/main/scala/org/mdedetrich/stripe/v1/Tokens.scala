@@ -1,8 +1,8 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
-import org.joda.time.DateTime
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -51,7 +51,7 @@ object Tokens extends LazyLogging {
                    bankAccount: Option[BankAccounts.BankAccount],
                    card: Option[Cards.Card],
                    clientIp: Option[String],
-                   created: DateTime,
+                   created: OffsetDateTime,
                    livemode: Boolean,
                    `type`: Type,
                    used: Boolean
@@ -59,7 +59,7 @@ object Tokens extends LazyLogging {
 
   object Token {
     def default(id: String,
-                created: DateTime,
+                created: OffsetDateTime,
                 livemode: Boolean,
                 `type`: Type,
                 used: Boolean): Token = Token(
@@ -79,7 +79,7 @@ object Tokens extends LazyLogging {
       (__ \ "bank_account").readNullable[BankAccounts.BankAccount] ~
       (__ \ "card").readNullable[Cards.Card] ~
       (__ \ "client_ip").readNullable[String] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "livemode").read[Boolean] ~
       (__ \ "type").read[Type] ~
       (__ \ "used").read[Boolean]
@@ -92,7 +92,7 @@ object Tokens extends LazyLogging {
         "bank_account" -> token.bankAccount,
         "card" -> token.card,
         "client_ip" -> token.clientIp,
-        "created" -> token.created,
+        "created" -> Json.toJson(token.created)(stripeDateTimeWrites),
         "livemode" -> token.livemode,
         "type" -> token.`type`,
         "used" -> token.used

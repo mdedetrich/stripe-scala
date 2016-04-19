@@ -1,8 +1,8 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
-import org.joda.time.DateTime
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
@@ -83,7 +83,7 @@ object Plans extends LazyLogging {
 
   case class Plan(id: String,
                   amount: BigDecimal,
-                  created: DateTime,
+                  created: OffsetDateTime,
                   currency: Currency,
                   interval: Interval,
                   intervalCount: Long,
@@ -97,7 +97,7 @@ object Plans extends LazyLogging {
   object Plan {
     def default(id: String,
                 amount: BigDecimal,
-                created: DateTime,
+                created: OffsetDateTime,
                 currency: Currency,
                 interval: Interval,
                 intervalCount: Long,
@@ -120,7 +120,7 @@ object Plans extends LazyLogging {
   implicit val planReads: Reads[Plan] = (
     (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "interval").read[Interval] ~
       (__ \ "interval_count").read[Long] ~

@@ -1,8 +1,8 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
-import org.joda.time.DateTime
 import org.mdedetrich.stripe.{ApiKey, Endpoint}
 import org.mdedetrich.stripe.v1.Transfers._
 import play.api.libs.json._
@@ -124,8 +124,8 @@ object Balances extends LazyLogging {
 
   case class BalanceTransaction(id: String,
                                 amount: BigDecimal,
-                                availableOn: DateTime,
-                                created: DateTime,
+                                availableOn: OffsetDateTime,
+                                created: OffsetDateTime,
                                 currency: Currency,
                                 description: String,
                                 fee: BigDecimal,
@@ -139,8 +139,8 @@ object Balances extends LazyLogging {
   implicit val balanceTransactionReads: Reads[BalanceTransaction] = (
     (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
-      (__ \ "available_on").read[DateTime](stripeDateTimeReads) ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "available_on").read[OffsetDateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "description").read[String] ~
       (__ \ "fee").read[BigDecimal] ~

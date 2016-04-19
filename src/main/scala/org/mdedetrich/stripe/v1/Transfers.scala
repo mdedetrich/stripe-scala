@@ -1,7 +1,7 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import enumeratum._
-import org.joda.time.DateTime
 import org.mdedetrich.stripe.v1.TransferReversals._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -134,9 +134,9 @@ object Transfers extends LazyLogging {
                       applicationFee: BigDecimal,
                       balanceTransaction: String,
                       bankAccount: BankAccount,
-                      created: DateTime,
+                      created: OffsetDateTime,
                       currency: Currency,
-                      date: DateTime,
+                      date: OffsetDateTime,
                       description: String,
                       destination: String,
                       destinationPayment: Option[String],
@@ -162,9 +162,9 @@ object Transfers extends LazyLogging {
       (__ \ "application_fee").read[BigDecimal] ~
       (__ \ "balance_transaction").read[String] ~
       (__ \ "bank_account").read[BankAccount] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
-      (__ \ "date").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "date").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "description").read[String] ~
       (__ \ "destination").read[String] ~
       (__ \ "destination_payment").readNullable[String] ~

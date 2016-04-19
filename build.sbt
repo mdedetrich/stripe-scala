@@ -35,7 +35,6 @@ val enumeratumVersion = "1.3.7"
 
 libraryDependencies ++= Seq(
   "net.databinder.dispatch" %% "dispatch-core" % "0.11.3",
-  "joda-time" % "joda-time" % "2.9.2",
   "com.beachape" %% "enumeratum" % enumeratumVersion,
   "com.beachape" %% "enumeratum-play-json" % enumeratumVersion,
   "org.spire-math" %% "jawn-parser" % jawnVersion,

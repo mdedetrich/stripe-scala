@@ -1,8 +1,8 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
-import org.joda.time.DateTime
 import org.mdedetrich.stripe.v1.Balances._
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -174,13 +174,13 @@ object Disputes extends LazyLogging {
       )
     )
 
-  case class EvidenceDetails(dueBy: DateTime,
+  case class EvidenceDetails(dueBy: OffsetDateTime,
                              hasEvidence: Boolean,
                              pastDue: Boolean,
                              submissionCount: Long)
 
   implicit val evidenceDetailsReads: Reads[EvidenceDetails] = (
-    (__ \ "due_by").read[DateTime](stripeDateTimeReads) ~
+    (__ \ "due_by").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "has_evidence").read[Boolean] ~
       (__ \ "past_due").read[Boolean] ~
       (__ \ "submission_count").read[Long]
@@ -266,7 +266,7 @@ object Disputes extends LazyLogging {
                      amount: BigDecimal,
                      balanceTransactions: List[BalanceTransaction],
                      charge: String,
-                     created: DateTime,
+                     created: OffsetDateTime,
                      currency: Currency,
                      evidence: DisputeEvidence,
                      evidenceDetails: EvidenceDetails,
@@ -281,7 +281,7 @@ object Disputes extends LazyLogging {
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "balance_transactions").read[List[BalanceTransaction]] ~
       (__ \ "charge").read[String] ~
-      (__ \ "created").read[DateTime](stripeDateTimeReads) ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "evidence").read[DisputeEvidence] ~
       (__ \ "evidence_details").read[EvidenceDetails] ~

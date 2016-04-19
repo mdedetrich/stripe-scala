@@ -1,6 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import org.joda.time.DateTime
+import java.time.OffsetDateTime
 import play.api.data.validation.ValidationError
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
@@ -13,12 +13,12 @@ sealed abstract class ListFilterInput
 
 object ListFilterInput {
 
-  case class Timestamp(timestamp: DateTime) extends ListFilterInput
+  case class Timestamp(timestamp: OffsetDateTime) extends ListFilterInput
 
-  case class Object(gt: Option[DateTime],
-                    gte: Option[DateTime],
-                    lt: Option[DateTime],
-                    lte: Option[DateTime]
+  case class Object(gt: Option[OffsetDateTime],
+                    gte: Option[OffsetDateTime],
+                    lt: Option[OffsetDateTime],
+                    lte: Option[OffsetDateTime]
                    ) extends ListFilterInput
 
   object Object {
@@ -46,10 +46,10 @@ object ListFilterInput {
   implicit val objectWrites: Writes[Object] =
     Writes((o: Object) =>
       Json.obj(
-        "gt" -> o.gt,
-        "gte" -> o.gte,
-        "lt" -> o.lt,
-        "gte" -> o.lte
+        "gt" -> o.gt.map(Json.toJson(_)(stripeDateTimeWrites)),
+        "gte" -> o.gte.map(Json.toJson(_)(stripeDateTimeWrites)),
+        "lt" -> o.lt.map(Json.toJson(_)(stripeDateTimeWrites)),
+        "gte" -> o.lte.map(Json.toJson(_)(stripeDateTimeWrites))
       )
     )
 
