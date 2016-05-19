@@ -16,10 +16,10 @@ case object CurrencyGroup2 extends CurrencyGroup
   * @param currencyGroup   Which currency group the currency is in                       
   * @param americanExpress Whether the code supports American Express on Stripe
   */
-
 sealed abstract class Currency(val iso: String,
                                val currencyGroup: CurrencyGroup,
-                               val americanExpress: Boolean = true) extends EnumEntry {
+                               val americanExpress: Boolean = true)
+    extends EnumEntry {
   override val entryName = iso
 }
 
@@ -27,11 +27,13 @@ object Currency extends Enum[Currency] {
 
   val values = findValues
 
-  case object `United Arab Emirates Dirham` extends Currency("AED", CurrencyGroup1)
+  case object `United Arab Emirates Dirham`
+      extends Currency("AED", CurrencyGroup1)
 
   case object `Albanian Lek` extends Currency("ALL", CurrencyGroup1)
 
-  case object `Netherlands Antillean Gulden` extends Currency("ANG", CurrencyGroup1)
+  case object `Netherlands Antillean Gulden`
+      extends Currency("ANG", CurrencyGroup1)
 
   case object `Argentine Peso` extends Currency("ARS", CurrencyGroup1, false)
 
@@ -49,7 +51,8 @@ object Currency extends Enum[Currency] {
 
   case object `Brunei Dollar` extends Currency("BND", CurrencyGroup1)
 
-  case object `Bolivian Boliviano` extends Currency("BOB", CurrencyGroup1, false)
+  case object `Bolivian Boliviano`
+      extends Currency("BOB", CurrencyGroup1, false)
 
   case object `Brazilian Real` extends Currency("BRL", CurrencyGroup1, false)
 
@@ -65,13 +68,16 @@ object Currency extends Enum[Currency] {
 
   case object `Chilean Peso` extends Currency("CLP", CurrencyGroup1, false)
 
-  case object `Chinese Renminbi Yuan` extends Currency("CNY", CurrencyGroup1, false)
+  case object `Chinese Renminbi Yuan`
+      extends Currency("CNY", CurrencyGroup1, false)
 
   case object `Colombian Peso` extends Currency("COP", CurrencyGroup1, false)
 
-  case object `Costa Rican Colón` extends Currency("CRC", CurrencyGroup1, false)
+  case object `Costa Rican Colón`
+      extends Currency("CRC", CurrencyGroup1, false)
 
-  case object `Cape Verdean Escudo` extends Currency("CVE", CurrencyGroup1, false)
+  case object `Cape Verdean Escudo`
+      extends Currency("CVE", CurrencyGroup1, false)
 
   case object `Czech Koruna` extends Currency("CZK", CurrencyGroup1, false)
 
@@ -91,7 +97,8 @@ object Currency extends Enum[Currency] {
 
   case object `Fijian Dollar` extends Currency("FJD", CurrencyGroup1)
 
-  case object `Falkland Islands Pound` extends Currency("FKP", CurrencyGroup1, false)
+  case object `Falkland Islands Pound`
+      extends Currency("FKP", CurrencyGroup1, false)
 
   case object `British Pound` extends Currency("GBP", CurrencyGroup1)
 
@@ -101,7 +108,8 @@ object Currency extends Enum[Currency] {
 
   case object `Guinean Franc` extends Currency("GNF", CurrencyGroup1, false)
 
-  case object `Guatemalan Quetzal` extends Currency("GTQ", CurrencyGroup1, false)
+  case object `Guatemalan Quetzal`
+      extends Currency("GTQ", CurrencyGroup1, false)
 
   case object `Guyanese Dollar` extends Currency("GYD", CurrencyGroup1)
 
@@ -179,11 +187,14 @@ object Currency extends Enum[Currency] {
 
   case object `New Zealand Dollar` extends Currency("NZD", CurrencyGroup1)
 
-  case object `Panamanian Balboa` extends Currency("PAB", CurrencyGroup1, false)
+  case object `Panamanian Balboa`
+      extends Currency("PAB", CurrencyGroup1, false)
 
-  case object `Peruvian Nuevo Sol` extends Currency("PEN", CurrencyGroup1, false)
+  case object `Peruvian Nuevo Sol`
+      extends Currency("PEN", CurrencyGroup1, false)
 
-  case object `Papua New Guinean Kina` extends Currency("PGK", CurrencyGroup1, false)
+  case object `Papua New Guinean Kina`
+      extends Currency("PGK", CurrencyGroup1, false)
 
   case object `Philippine Peso` extends Currency("PHP", CurrencyGroup1)
 
@@ -191,7 +202,8 @@ object Currency extends Enum[Currency] {
 
   case object `Polish Złoty` extends Currency("PLN", CurrencyGroup1)
 
-  case object `Paraguayan Guaraní` extends Currency("PYG", CurrencyGroup1, false)
+  case object `Paraguayan Guaraní`
+      extends Currency("PYG", CurrencyGroup1, false)
 
   case object `Qatari Riyal` extends Currency("QAR", CurrencyGroup1, false)
 
@@ -213,7 +225,8 @@ object Currency extends Enum[Currency] {
 
   case object `Somali Shilling` extends Currency("SOS", CurrencyGroup1)
 
-  case object `São Tomé and Príncipe Dobra` extends Currency("STD", CurrencyGroup1)
+  case object `São Tomé and Príncipe Dobra`
+      extends Currency("STD", CurrencyGroup1)
 
   case object `Salvadoran Colón` extends Currency("SVC", CurrencyGroup1, false)
 
@@ -223,7 +236,8 @@ object Currency extends Enum[Currency] {
 
   case object `Tongan Paʻanga` extends Currency("TOP", CurrencyGroup1)
 
-  case object `Trinidad and Tobago Dollar` extends Currency("TTD", CurrencyGroup1)
+  case object `Trinidad and Tobago Dollar`
+      extends Currency("TTD", CurrencyGroup1)
 
   case object `New Taiwan Dollar` extends Currency("TWD", CurrencyGroup1)
 
@@ -245,9 +259,11 @@ object Currency extends Enum[Currency] {
 
   case object `Samoan Tala` extends Currency("WST", CurrencyGroup1)
 
-  case object `Central African Cfa Franc` extends Currency("XAF", CurrencyGroup1)
+  case object `Central African Cfa Franc`
+      extends Currency("XAF", CurrencyGroup1)
 
-  case object `West African Cfa Franc` extends Currency("XOF", CurrencyGroup1, false)
+  case object `West African Cfa Franc`
+      extends Currency("XOF", CurrencyGroup1, false)
 
   case object `Cfp Franc` extends Currency("XPF", CurrencyGroup1, false)
 
@@ -263,7 +279,8 @@ object Currency extends Enum[Currency] {
 
   case object `Azerbaijani Manat` extends Currency("AZN", CurrencyGroup2)
 
-  case object `Bosnia & Herzegovina Convertible Mark` extends Currency("BAM", CurrencyGroup2)
+  case object `Bosnia & Herzegovina Convertible Mark`
+      extends Currency("BAM", CurrencyGroup2)
 
   case object `Bulgarian Lev` extends Currency("BGN", CurrencyGroup2)
 
@@ -295,6 +312,6 @@ object Currency extends Enum[Currency] {
 
   case object `Zambian Kwacha` extends Currency("ZMW", CurrencyGroup2)
 
-  implicit val currencyFormats = EnumFormats.formats(Currency, insensitive = true)
-
+  implicit val currencyFormats =
+    EnumFormats.formats(Currency, insensitive = true)
 }

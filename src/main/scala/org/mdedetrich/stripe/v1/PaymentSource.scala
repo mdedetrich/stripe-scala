@@ -20,7 +20,6 @@ import scala.util.Try
   * [[PaymentSource]] is a supertype of the different available Stripe
   * payment types.
   */
-
 sealed trait PaymentSource
 
 object PaymentSource extends LazyLogging {
@@ -29,27 +28,33 @@ object PaymentSource extends LazyLogging {
     __.read[JsObject].flatMap { o =>
       (__ \ "object").read[String].flatMap {
         case "card" => __.read[Card].map(x => x: PaymentSource)
-        case "bitcoin_receiver" => __.read[BitcoinReceiver].map(x => x: PaymentSource)
-        case _ => Reads[PaymentSource](_ => JsError(ValidationError("UnknownPaymentSource")))
+        case "bitcoin_receiver" =>
+          __.read[BitcoinReceiver].map(x => x: PaymentSource)
+        case _ =>
+          Reads[PaymentSource](_ =>
+                JsError(ValidationError("UnknownPaymentSource")))
       }
     }
 
-  implicit val paymentSourceWrites: Writes[PaymentSource] =
-    Writes((paymentSource: PaymentSource) =>
-      paymentSource match {
-        case c: Card => Json.toJson(c)
-        case b: BitcoinReceiver => Json.toJson(b)
-      }
-    )
+  implicit val paymentSourceWrites: Writes[PaymentSource] = Writes(
+      (paymentSource: PaymentSource) =>
+        paymentSource match {
+      case c: Card => Json.toJson(c)
+      case b: BitcoinReceiver => Json.toJson(b)
+  })
 }
 
-case class PaymentSourceList(override val url: String,
-                             override val hasMore: Boolean,
-                             override val data: List[PaymentSource],
-                             override val totalCount: Option[Long]
-                            )(implicit reads: Reads[JsValue]) extends Collections.List[PaymentSource](
-  url, hasMore, data, totalCount
-)
+case class PaymentSourceList(
+    override val url: String,
+    override val hasMore: Boolean,
+    override val data: List[PaymentSource],
+    override val totalCount: Option[Long])(implicit reads: Reads[JsValue])
+    extends Collections.List[PaymentSource](
+        url,
+        hasMore,
+        data,
+        totalCount
+    )
 
 object PaymentSourceList extends ListJsonMappers[PaymentSource] {
 
@@ -58,8 +63,7 @@ object PaymentSourceList extends ListJsonMappers[PaymentSource] {
 
   implicit val paymentSourceListWritesInstance: Writes[PaymentSourceList] =
     Writes((paymentSourceList: PaymentSourceList) =>
-      listWrites.writes(paymentSourceList)
-    )
+          listWrites.writes(paymentSourceList))
 }
 
 object Cards extends LazyLogging {
@@ -85,7 +89,6 @@ object Cards extends LazyLogging {
     case object `Diners Club` extends Brand("Diners Club")
 
     case object Unknown extends Brand("Unknown")
-
   }
 
   implicit val brandFormats = EnumFormats.formats(Brand, insensitive = true)
@@ -104,7 +107,6 @@ object Cards extends LazyLogging {
     case object Unavailable extends Check("unavailable")
 
     case object Unchecked extends Check("unchecked")
-
   }
 
   implicit val checkFormats = EnumFormats.formats(Check, insensitive = true)
@@ -123,10 +125,10 @@ object Cards extends LazyLogging {
     case object Prepaid extends Funding("prepaid")
 
     case object Unknown extends Funding("unknown")
-
   }
 
-  implicit val fundingFormats = EnumFormats.formats(Funding, insensitive = true)
+  implicit val fundingFormats =
+    EnumFormats.formats(Funding, insensitive = true)
 
   sealed abstract class TokenizationMethod(val id: String) extends EnumEntry {
     override val entryName = id
@@ -139,10 +141,10 @@ object Cards extends LazyLogging {
     case object ApplePay extends TokenizationMethod("apple_pay")
 
     case object AndroidPay extends TokenizationMethod("android_pay")
-
   }
 
-  implicit val tokenizationMethodFormats = EnumFormats.formats(TokenizationMethod, insensitive = true)
+  implicit val tokenizationMethodFormats =
+    EnumFormats.formats(TokenizationMethod, insensitive = true)
 
   /**
     * @see https://stripe.com/docs/api#card_object
@@ -198,7 +200,6 @@ object Cards extends LazyLogging {
     *                           that was used. Can be [[TokenizationMethod.ApplePay]]
     *                           or [[TokenizationMethod.AndroidPay]].
     */
-
   case class Card(id: String,
                   account: Option[String],
                   addressCity: Option[String],
@@ -224,7 +225,9 @@ object Cards extends LazyLogging {
                   metadata: Option[Map[String, String]],
                   name: Option[String],
                   recipient: Option[String],
-                  tokenizationMethod: Option[TokenizationMethod]) extends StripeObject with PaymentSource
+                  tokenizationMethod: Option[TokenizationMethod])
+      extends StripeObject
+      with PaymentSource
 
   object Card {
     def default(id: String,
@@ -233,37 +236,37 @@ object Cards extends LazyLogging {
                 expYear: Int,
                 funding: Funding,
                 last4: String): Card = Card(
-      id,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      brand,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      expMonth,
-      expYear,
-      None,
-      funding,
-      last4,
-      None,
-      None,
-      None,
-      None
+        id,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        brand,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        expMonth,
+        expYear,
+        None,
+        funding,
+        last4,
+        None,
+        None,
+        None,
+        None
     )
   }
 
   private[this] val cardReadsOne = (
-    (__ \ "id").read[String] ~
+      (__ \ "id").read[String] ~
       (__ \ "account").readNullable[String] ~
       (__ \ "address_city").readNullable[String] ~
       (__ \ "address_country").readNullable[String] ~
@@ -285,106 +288,102 @@ object Cards extends LazyLogging {
       (__ \ "fingerprint").readNullable[String] ~
       (__ \ "funding").read[Funding] ~
       (__ \ "last4").read[String]
-    ).tupled
+  ).tupled
 
   private[this] val cardReadsTwo = (
-    (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
+      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "name").readNullable[String] ~
       (__ \ "recipient").readNullable[String] ~
       (__ \ "tokenization_method").readNullable[TokenizationMethod]
-    ).tupled
+  ).tupled
 
   implicit val cardReads: Reads[Card] = (
-    cardReadsOne ~ cardReadsTwo
-    ) { (one, two) =>
+      cardReadsOne ~ cardReadsTwo
+  ) { (one, two) =>
     val (id,
-    account,
-    addressCity,
-    addressCountry,
-    addressLine1,
-    addressLine1Check,
-    addressLine2,
-    addressState,
-    addressZip,
-    addressZipCheck,
-    brand,
-    country,
-    currency,
-    customer,
-    cvcCheck,
-    defaultForCurrency,
-    dynamicLast4,
-    expMonth,
-    expYear,
-    fingerprint,
-    funding,
-    last4) = one
+         account,
+         addressCity,
+         addressCountry,
+         addressLine1,
+         addressLine1Check,
+         addressLine2,
+         addressState,
+         addressZip,
+         addressZipCheck,
+         brand,
+         country,
+         currency,
+         customer,
+         cvcCheck,
+         defaultForCurrency,
+         dynamicLast4,
+         expMonth,
+         expYear,
+         fingerprint,
+         funding,
+         last4) = one
 
-    val (metadata,
-    name,
-    recipient,
-    tokenizationMethod) = two
+    val (metadata, name, recipient, tokenizationMethod) = two
 
     Card(id,
-      account,
-      addressCity,
-      addressCountry,
-      addressLine1,
-      addressLine1Check,
-      addressLine2,
-      addressState,
-      addressZip,
-      addressZipCheck,
-      brand,
-      country,
-      currency,
-      customer,
-      cvcCheck,
-      defaultForCurrency,
-      dynamicLast4,
-      expMonth,
-      expYear,
-      fingerprint,
-      funding,
-      last4,
-      metadata,
-      name,
-      recipient,
-      tokenizationMethod)
+         account,
+         addressCity,
+         addressCountry,
+         addressLine1,
+         addressLine1Check,
+         addressLine2,
+         addressState,
+         addressZip,
+         addressZipCheck,
+         brand,
+         country,
+         currency,
+         customer,
+         cvcCheck,
+         defaultForCurrency,
+         dynamicLast4,
+         expMonth,
+         expYear,
+         fingerprint,
+         funding,
+         last4,
+         metadata,
+         name,
+         recipient,
+         tokenizationMethod)
   }
 
-  implicit val cardWrites: Writes[Card] =
-    Writes((card: Card) =>
-      Json.obj(
-        "id" -> card.id,
-        "object" -> "card",
-        "account" -> card.account,
-        "address_city" -> card.addressCity,
-        "address_country" -> card.addressCountry,
-        "address_line1" -> card.addressLine1,
-        "address_line1_check" -> card.addressLine1Check,
-        "address_line2" -> card.addressLine2,
-        "address_state" -> card.addressState,
-        "address_zip" -> card.addressZip,
-        "address_zip_check" -> card.addressZipCheck,
-        "brand" -> card.brand,
-        "country" -> card.country,
-        "currency" -> card.currency,
-        "customer" -> card.customer,
-        "cvc_check" -> card.cvcCheck,
-        "default_for_currency" -> card.defaultForCurrency,
-        "dynamic_last4" -> card.dynamicLast4,
-        "exp_month" -> card.expMonth,
-        "exp_year" -> card.expYear,
-        "fingerprint" -> card.fingerprint,
-        "funding" -> card.funding,
-        "last4" -> card.last4,
-        "metadata" -> card.metadata,
-        "name" -> card.name,
-        "recipient" -> card.recipient,
-        "tokenization_method" -> card.tokenizationMethod
-      )
-    )
+  implicit val cardWrites: Writes[Card] = Writes(
+      (card: Card) =>
+        Json.obj(
+            "id" -> card.id,
+            "object" -> "card",
+            "account" -> card.account,
+            "address_city" -> card.addressCity,
+            "address_country" -> card.addressCountry,
+            "address_line1" -> card.addressLine1,
+            "address_line1_check" -> card.addressLine1Check,
+            "address_line2" -> card.addressLine2,
+            "address_state" -> card.addressState,
+            "address_zip" -> card.addressZip,
+            "address_zip_check" -> card.addressZipCheck,
+            "brand" -> card.brand,
+            "country" -> card.country,
+            "currency" -> card.currency,
+            "customer" -> card.customer,
+            "cvc_check" -> card.cvcCheck,
+            "default_for_currency" -> card.defaultForCurrency,
+            "dynamic_last4" -> card.dynamicLast4,
+            "exp_month" -> card.expMonth,
+            "exp_year" -> card.expYear,
+            "fingerprint" -> card.fingerprint,
+            "funding" -> card.funding,
+            "last4" -> card.last4,
+            "metadata" -> card.metadata,
+            "name" -> card.name,
+            "recipient" -> card.recipient,
+            "tokenization_method" -> card.tokenizationMethod
+      ))
 
   sealed abstract class CardData
 
@@ -416,7 +415,6 @@ object Cards extends LazyLogging {
         *                 structured format.
         * @param name     Cardholder's full name.
         */
-
       case class Object(expMonth: Int,
                         expYear: Int,
                         number: String,
@@ -428,30 +426,30 @@ object Cards extends LazyLogging {
                         addressZip: Option[String],
                         cvc: Option[String],
                         metadata: Option[Map[String, String]],
-                        name: Option[String]
-                       ) extends Source
+                        name: Option[String])
+          extends Source
 
       object Object {
         def default(expMonth: Int,
                     expYear: Int,
                     number: String): Object = Object(
-          expMonth,
-          expYear,
-          number,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None
+            expMonth,
+            expYear,
+            number,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None
         )
       }
 
       implicit val sourceObjectReads: Reads[Object] = (
-        (__ \ "exp_month").read[Int] ~
+          (__ \ "exp_month").read[Int] ~
           (__ \ "exp_year").read[Int] ~
           (__ \ "number").read[String] ~
           (__ \ "address_city").readNullable[String] ~
@@ -463,36 +461,32 @@ object Cards extends LazyLogging {
           (__ \ "cvc").readNullable[String] ~
           (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
           (__ \ "name").readNullable[String]
-        ).tupled.map((Object.apply _).tupled)
+      ).tupled.map((Object.apply _).tupled)
 
-      implicit val sourceObjectWrites: Writes[Object] =
-        Writes((`object`: Object) =>
-          Json.obj(
-            "object" -> "card",
-            "exp_month" -> `object`.expMonth,
-            "exp_year" -> `object`.expYear,
-            "number" -> `object`.number,
-            "address_city" -> `object`.addressCity,
-            "address_country" -> `object`.addressCountry,
-            "address_line1" -> `object`.addressLine1,
-            "address_line2" -> `object`.addressLine2,
-            "address_state" -> `object`.addressState,
-            "address_zip" -> `object`.addressState,
-            "cvc" -> `object`.cvc,
-            "metadata" -> `object`.metadata,
-            "name" -> `object`.name
-          )
-        )
+      implicit val sourceObjectWrites: Writes[Object] = Writes(
+          (`object`: Object) =>
+            Json.obj(
+                "object" -> "card",
+                "exp_month" -> `object`.expMonth,
+                "exp_year" -> `object`.expYear,
+                "number" -> `object`.number,
+                "address_city" -> `object`.addressCity,
+                "address_country" -> `object`.addressCountry,
+                "address_line1" -> `object`.addressLine1,
+                "address_line2" -> `object`.addressLine2,
+                "address_state" -> `object`.addressState,
+                "address_zip" -> `object`.addressState,
+                "cvc" -> `object`.cvc,
+                "metadata" -> `object`.metadata,
+                "name" -> `object`.name
+          ))
 
       case class Token(id: String) extends Source
 
       implicit val sourceTokenReads: Reads[Token] = Reads.of[String].map(Token)
 
-      implicit val sourceTokenWrites: Writes[Token] =
-        Writes((token: Token) =>
-          JsString(token.id)
-        )
-
+      implicit val sourceTokenWrites: Writes[Token] = Writes(
+          (token: Token) => JsString(token.id))
     }
 
     sealed abstract class ExternalAccount extends CardData
@@ -532,7 +526,6 @@ object Cards extends LazyLogging {
         *                           card in a structured format.
         * @param name               Cardholder's full name.
         */
-
       case class Object(expMonth: Int,
                         expYear: Int,
                         number: String,
@@ -546,32 +539,32 @@ object Cards extends LazyLogging {
                         cvc: Option[String],
                         defaultForCurrency: Option[Currency],
                         metadata: Option[Map[String, String]],
-                        name: Option[String]
-                       ) extends ExternalAccount
+                        name: Option[String])
+          extends ExternalAccount
 
       object Object {
         def default(expMonth: Int,
                     expYear: Int,
                     number: String): Object = Object(
-          expMonth,
-          expYear,
-          number,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None
+            expMonth,
+            expYear,
+            number,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None
         )
       }
 
       implicit val externalAccountObjectReads: Reads[Object] = (
-        (__ \ "exp_month").read[Int] ~
+          (__ \ "exp_month").read[Int] ~
           (__ \ "exp_year").read[Int] ~
           (__ \ "number").read[String] ~
           (__ \ "address_city").readNullable[String] ~
@@ -585,52 +578,47 @@ object Cards extends LazyLogging {
           (__ \ "default_for_currency").readNullable[Currency] ~
           (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
           (__ \ "name").readNullable[String]
-        ).tupled.map((Object.apply _).tupled)
+      ).tupled.map((Object.apply _).tupled)
 
-      implicit val externalAccountObjectWrites: Writes[Object] =
-        Writes((`object`: Object) =>
-          Json.obj(
-            "object" -> "card",
-            "exp_month" -> `object`.expMonth,
-            "exp_year" -> `object`.expYear,
-            "number" -> `object`.number,
-            "address_city" -> `object`.addressCity,
-            "address_country" -> `object`.addressCountry,
-            "address_line1" -> `object`.addressLine1,
-            "address_line2" -> `object`.addressLine2,
-            "address_state" -> `object`.addressState,
-            "address_zip" -> `object`.addressState,
-            "currency" -> `object`.currency,
-            "cvc" -> `object`.cvc,
-            "default_for_currency" -> `object`.defaultForCurrency,
-            "metadata" -> `object`.metadata,
-            "name" -> `object`.name
-          )
-        )
+      implicit val externalAccountObjectWrites: Writes[Object] = Writes(
+          (`object`: Object) =>
+            Json.obj(
+                "object" -> "card",
+                "exp_month" -> `object`.expMonth,
+                "exp_year" -> `object`.expYear,
+                "number" -> `object`.number,
+                "address_city" -> `object`.addressCity,
+                "address_country" -> `object`.addressCountry,
+                "address_line1" -> `object`.addressLine1,
+                "address_line2" -> `object`.addressLine2,
+                "address_state" -> `object`.addressState,
+                "address_zip" -> `object`.addressState,
+                "currency" -> `object`.currency,
+                "cvc" -> `object`.cvc,
+                "default_for_currency" -> `object`.defaultForCurrency,
+                "metadata" -> `object`.metadata,
+                "name" -> `object`.name
+          ))
 
       case class Token(id: String) extends ExternalAccount
 
-      implicit val externalAccountTokenReads: Reads[Token] = Reads.of[String].map(Token)
+      implicit val externalAccountTokenReads: Reads[Token] =
+        Reads.of[String].map(Token)
 
-      implicit val externalAccountTokenWrites: Writes[Token] =
-        Writes((token: Token) =>
-          JsString(token.id)
-        )
-
+      implicit val externalAccountTokenWrites: Writes[Token] = Writes(
+          (token: Token) => JsString(token.id))
     }
-
   }
 
-
-  implicit val cardDataWrites: Writes[CardData] =
-    Writes { (cardData: CardData) =>
+  implicit val cardDataWrites: Writes[CardData] = Writes {
+    (cardData: CardData) =>
       cardData match {
         case cardData: CardData.Source.Object => Json.toJson(cardData)
         case cardData: CardData.ExternalAccount.Object => Json.toJson(cardData)
         case cardData: CardData.Source.Token => Json.toJson(cardData)
         case cardData: CardData.ExternalAccount.Token => Json.toJson(cardData)
       }
-    }
+  }
 
   /**
     * @see https://stripe.com/docs/api#create_card
@@ -646,22 +634,20 @@ object Cards extends LazyLogging {
     *                           information about the card in a structured format.
     * @param defaultForCurrency Only applicable on accounts (not customers or recipients). If you set this to true (or if this is the first external account being added in this currency) this card will become the default external account for its currency.
     */
-
   case class CardInput(cardData: CardData,
                        metadata: Option[Map[String, String]],
-                       defaultForCurrency: Option[Boolean]
-                      )
+                       defaultForCurrency: Option[Boolean])
 
   object CardInput {
     def default(cardData: CardData): CardInput = CardInput(
-      cardData,
-      None,
-      None
+        cardData,
+        None,
+        None
     )
   }
 
-  implicit val cardInputWrites: Writes[CardInput] =
-    Writes { (cardInput: CardInput) =>
+  implicit val cardInputWrites: Writes[CardInput] = Writes {
+    (cardInput: CardInput) =>
       val cardData = cardInput.cardData match {
         case cardData: CardData.ExternalAccount.Token =>
           Json.obj("external_account" -> cardData)
@@ -674,37 +660,45 @@ object Cards extends LazyLogging {
       }
 
       cardData ++ Json.obj(
-        "metadata" -> cardInput.metadata,
-        "default_for_currency" -> cardInput.defaultForCurrency
+          "metadata" -> cardInput.metadata,
+          "default_for_currency" -> cardInput.defaultForCurrency
       )
-    }
+  }
 
   implicit val cardInputReads: Reads[CardInput] = {
     val cardData = (__ \ "external_account").read[JsValue].flatMap {
-      case JsObject(_) => (__ \ "external_account").read[CardData.ExternalAccount.Object].map(x => x: CardData)
-      case JsString(_) => (__ \ "external_account").read[CardData.ExternalAccount.Token].map(x => x: CardData)
+      case JsObject(_) =>
+        (__ \ "external_account")
+          .read[CardData.ExternalAccount.Object]
+          .map(x => x: CardData)
+      case JsString(_) =>
+        (__ \ "external_account")
+          .read[CardData.ExternalAccount.Token]
+          .map(x => x: CardData)
       case _ =>
         (__ \ "source").read[JsValue].flatMap {
-          case JsObject(_) => (__ \ "source").read[CardData.Source.Object].map(x => x: CardData)
-          case JsString(_) => (__ \ "source").read[CardData.Source.Token].map(x => x: CardData)
-          case _ => Reads[CardData](_ => JsError(ValidationError("UnknownCardData")))
+          case JsObject(_) =>
+            (__ \ "source").read[CardData.Source.Object].map(x => x: CardData)
+          case JsString(_) =>
+            (__ \ "source").read[CardData.Source.Token].map(x => x: CardData)
+          case _ =>
+            Reads[CardData](_ => JsError(ValidationError("UnknownCardData")))
         }
-
     }
 
     (cardData ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "default_for_currency").readNullable[Boolean]
-      ).tupled.map((CardInput.apply _).tupled)
+        (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
+        (__ \ "default_for_currency").readNullable[Boolean]).tupled
+      .map((CardInput.apply _).tupled)
   }
 
-  def create(customerId: String, cardInput: CardInput)
-            (idempotencyKey: Option[IdempotencyKey] = None)
-            (implicit apiKey: ApiKey,
-             endpoint: Endpoint): Future[Try[Card]] = {
+  def create(customerId: String, cardInput: CardInput)(
+      idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Card]] = {
     val postFormParameters: Map[String, String] = {
       Map(
-        "default_for_currency" -> cardInput.defaultForCurrency.map(_.toString)
+          "default_for_currency" -> cardInput.defaultForCurrency.map(
+              _.toString)
       )
     }.collect {
       case (k, Some(v)) => (k, v)
@@ -716,38 +710,39 @@ object Cards extends LazyLogging {
           Map("source" -> id)
         case externalAccount: CardData.ExternalAccount.Object =>
           val map = Map(
-            "object" -> Option("card"),
-            "exp_month" -> Option(externalAccount.expMonth.toString),
-            "exp_year" -> Option(externalAccount.expYear.toString),
-            "number" -> Option(externalAccount.number),
-            "address_city" -> externalAccount.addressCity,
-            "address_country" -> externalAccount.addressCountry,
-            "address_line1" -> externalAccount.addressLine1,
-            "address_line2" -> externalAccount.addressLine2,
-            "address_state" -> externalAccount.addressState,
-            "address_zip" -> externalAccount.addressState,
-            "currency" -> externalAccount.currency.map(_.iso.toLowerCase),
-            "cvc" -> externalAccount.cvc,
-            "default_for_currency" -> externalAccount.defaultForCurrency.map(_.iso.toLowerCase),
-            "name" -> externalAccount.name
+              "object" -> Option("card"),
+              "exp_month" -> Option(externalAccount.expMonth.toString),
+              "exp_year" -> Option(externalAccount.expYear.toString),
+              "number" -> Option(externalAccount.number),
+              "address_city" -> externalAccount.addressCity,
+              "address_country" -> externalAccount.addressCountry,
+              "address_line1" -> externalAccount.addressLine1,
+              "address_line2" -> externalAccount.addressLine2,
+              "address_state" -> externalAccount.addressState,
+              "address_zip" -> externalAccount.addressState,
+              "currency" -> externalAccount.currency.map(_.iso.toLowerCase),
+              "cvc" -> externalAccount.cvc,
+              "default_for_currency" -> externalAccount.defaultForCurrency.map(
+                  _.iso.toLowerCase),
+              "name" -> externalAccount.name
           ).collect {
             case (k, Some(v)) => (k, v)
           }
           mapToPostParams(Option(map), "external_account")
         case source: CardData.Source.Object =>
           val map = Map(
-            "object" -> Option("card"),
-            "exp_month" -> Option(source.expMonth.toString),
-            "exp_year" -> Option(source.expYear.toString),
-            "number" -> Option(source.number),
-            "address_city" -> source.addressCity,
-            "address_country" -> source.addressCountry,
-            "address_line1" -> source.addressLine1,
-            "address_line2" -> source.addressLine2,
-            "address_state" -> source.addressState,
-            "address_zip" -> source.addressState,
-            "cvc" -> source.cvc,
-            "name" -> source.name
+              "object" -> Option("card"),
+              "exp_month" -> Option(source.expMonth.toString),
+              "exp_year" -> Option(source.expYear.toString),
+              "number" -> Option(source.number),
+              "address_city" -> source.addressCity,
+              "address_country" -> source.addressCountry,
+              "address_line1" -> source.addressLine1,
+              "address_line2" -> source.addressLine2,
+              "address_state" -> source.addressState,
+              "address_zip" -> source.addressState,
+              "cvc" -> source.cvc,
+              "name" -> source.name
           ).collect {
             case (k, Some(v)) => (k, v)
           }
@@ -759,29 +754,25 @@ object Cards extends LazyLogging {
 
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources"
 
-    createRequestPOST[Card](finalUrl, postFormParameters, idempotencyKey, logger)
-
+    createRequestPOST[Card](
+        finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(customerId: String, cardId: String)
-         (implicit apiKey: ApiKey,
-          endpoint: Endpoint): Future[Try[Card]] = {
+  def get(customerId: String, cardId: String)(
+      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Card]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$cardId"
 
     createRequestGET[Card](finalUrl, logger)
-
   }
 
-
-  def delete(customerId: String, cardId: String)
-            (idempotencyKey: Option[IdempotencyKey] = None)
-            (implicit apiKey: ApiKey,
-             endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+  def delete(customerId: String, cardId: String)(
+      idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[DeleteResponse]] = {
 
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$cardId"
 
     createRequestDELETE(finalUrl, idempotencyKey, logger)
-
   }
 
   /**
@@ -799,61 +790,55 @@ object Cards extends LazyLogging {
     *                      ending with obj_foo, your subsequent call can include [[startingAfter]]=obj_foo
     *                      in order to fetch the next page of the list.
     */
-
   case class CardListInput(endingBefore: Option[String],
                            limit: Option[Long],
                            startingAfter: Option[String])
 
   object CardListInput {
     def default: CardListInput = CardListInput(
-      None,
-      None,
-      None
+        None,
+        None,
+        None
     )
   }
 
   case class CardList(override val url: String,
                       override val hasMore: Boolean,
                       override val data: List[Card],
-                      override val totalCount: Option[Long]
-                     )
-    extends Collections.List[Card](url, hasMore, data, totalCount)
+                      override val totalCount: Option[Long])
+      extends Collections.List[Card](url, hasMore, data, totalCount)
 
   object CardList extends Collections.ListJsonMappers[Card] {
     implicit val cardListReads: Reads[CardList] =
       listReads.tupled.map((CardList.apply _).tupled)
 
-    implicit val cardListWrites: Writes[CardList] =
-      listWrites
+    implicit val cardListWrites: Writes[CardList] = listWrites
   }
 
   def list(customerId: String,
            cardListInput: CardListInput,
-           includeTotalCount: Boolean)
-          (implicit apiKey: ApiKey,
-           endpoint: Endpoint): Future[Try[CardList]] = {
+           includeTotalCount: Boolean)(
+      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[CardList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
-      val totalCountUrl = if (includeTotalCount)
-        "/include[]=total_count"
-      else
-        ""
+      val totalCountUrl =
+        if (includeTotalCount)
+          "/include[]=total_count"
+        else
+          ""
 
-      val baseUrl = endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
+      val baseUrl =
+        endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
 
       (baseUrl ?
-        ("object" -> "card") ?
-        ("ending_before" -> cardListInput.endingBefore) ?
-        ("limit" -> cardListInput.limit.map(_.toString)) ?
-        ("starting_after" -> cardListInput.startingAfter)
-
-        ).toString()
+          ("object" -> "card") ?
+          ("ending_before" -> cardListInput.endingBefore) ?
+          ("limit" -> cardListInput.limit.map(_.toString)) ?
+          ("starting_after" -> cardListInput.startingAfter)).toString()
     }
 
     createRequestGET[CardList](finalUrl, logger)
-
   }
-
 }
 
 object BitcoinReceivers extends LazyLogging {
@@ -871,51 +856,51 @@ object BitcoinReceivers extends LazyLogging {
     * @param receiver      The receiver to which this
     *                      transaction was sent.
     */
-
   case class Transaction(id: String,
                          amount: BigDecimal,
                          bitcoinAmount: BigDecimal,
                          created: OffsetDateTime,
                          currency: Currency,
-                         receiver: String
-                        )
+                         receiver: String)
 
   implicit val transactionReads: Reads[Transaction] = (
-    (__ \ "id").read[String] ~
+      (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "bitcoin_amount").read[BigDecimal] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "receiver").read[String]
-    ).tupled.map((Transaction.apply _).tupled)
+  ).tupled.map((Transaction.apply _).tupled)
 
-  implicit val transactionWrites: Writes[Transaction] =
-    Writes((transaction: Transaction) =>
-      Json.obj(
-        "id" -> transaction.id,
-        "object" -> "list",
-        "amount" -> transaction.amount,
-        "bitcoin_amount" -> transaction.bitcoinAmount,
-        "created" -> Json.toJson(transaction.created)(stripeDateTimeWrites),
-        "currency" -> transaction.currency,
-        "receiver" -> transaction.receiver
-      )
-    )
+  implicit val transactionWrites: Writes[Transaction] = Writes(
+      (transaction: Transaction) =>
+        Json.obj(
+            "id" -> transaction.id,
+            "object" -> "list",
+            "amount" -> transaction.amount,
+            "bitcoin_amount" -> transaction.bitcoinAmount,
+            "created" -> Json.toJson(transaction.created)(
+                stripeDateTimeWrites),
+            "currency" -> transaction.currency,
+            "receiver" -> transaction.receiver
+      ))
 
   case class TransactionList(override val url: String,
                              override val hasMore: Boolean,
                              override val data: List[Transaction],
-                             override val totalCount: Option[Long]
-                            ) extends Collections.List[Transaction](
-    url, hasMore, data, totalCount
-  )
+                             override val totalCount: Option[Long])
+      extends Collections.List[Transaction](
+          url,
+          hasMore,
+          data,
+          totalCount
+      )
 
   object TransactionList extends Collections.ListJsonMappers[Transaction] {
     implicit val transactionsReads: Reads[TransactionList] =
       listReads.tupled.map((TransactionList.apply _).tupled)
 
-    implicit val transactionsWrites: Writes[TransactionList] =
-      listWrites
+    implicit val transactionsWrites: Writes[TransactionList] = listWrites
   }
 
   /**
@@ -963,7 +948,6 @@ object BitcoinReceivers extends LazyLogging {
     *                              can be used for a payment or refunded.
     * @param usedForPayment
     */
-
   case class BitcoinReceiver(id: String,
                              active: Boolean,
                              amount: BigDecimal,
@@ -984,8 +968,9 @@ object BitcoinReceivers extends LazyLogging {
                              refundAddress: Option[String],
                              transactions: Option[TransactionList],
                              uncapturedFunds: Boolean,
-                             usedForPayment: Boolean
-                            ) extends StripeObject with PaymentSource
+                             usedForPayment: Boolean)
+      extends StripeObject
+      with PaymentSource
 
   object BitcoinReceiver {
     def default(id: String,
@@ -1004,34 +989,33 @@ object BitcoinReceivers extends LazyLogging {
                 inboundAddress: String,
                 livemode: Boolean,
                 uncapturedFunds: Boolean,
-                usedForPayment: Boolean
-               ): BitcoinReceiver = BitcoinReceiver(
-      id,
-      active,
-      amount,
-      amountReceived,
-      bitcoinAmount,
-      bitcoinAmountReceived,
-      bitcoinUri,
-      created,
-      currency,
-      customer,
-      description,
-      email,
-      filled,
-      inboundAddress,
-      livemode,
-      None,
-      None,
-      None,
-      None,
-      uncapturedFunds,
-      usedForPayment
+                usedForPayment: Boolean): BitcoinReceiver = BitcoinReceiver(
+        id,
+        active,
+        amount,
+        amountReceived,
+        bitcoinAmount,
+        bitcoinAmountReceived,
+        bitcoinUri,
+        created,
+        currency,
+        customer,
+        description,
+        email,
+        filled,
+        inboundAddress,
+        livemode,
+        None,
+        None,
+        None,
+        None,
+        uncapturedFunds,
+        usedForPayment
     )
   }
 
   implicit val bitcoinReceiverReads: Reads[BitcoinReceiver] = (
-    (__ \ "id").read[String] ~
+      (__ \ "id").read[String] ~
       (__ \ "active").read[Boolean] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "amount_received").read[BigDecimal] ~
@@ -1052,35 +1036,35 @@ object BitcoinReceivers extends LazyLogging {
       (__ \ "transactions").readNullable[TransactionList] ~
       (__ \ "uncaptured_funds").read[Boolean] ~
       (__ \ "used_for_payment").read[Boolean]
-    ).tupled.map((BitcoinReceiver.apply _).tupled)
+  ).tupled.map((BitcoinReceiver.apply _).tupled)
 
-  implicit val bitcoinReceiverWrites: Writes[BitcoinReceiver] =
-    Writes((bitcoinReceiver: BitcoinReceiver) =>
-      Json.obj(
-        "id" -> bitcoinReceiver.id,
-        "object" -> "bitcoin_receiver",
-        "active" -> bitcoinReceiver.active,
-        "amount" -> bitcoinReceiver.amount,
-        "amount_received" -> bitcoinReceiver.amountReceived,
-        "bitcoin_amount" -> bitcoinReceiver.bitcoinAmount,
-        "bitcoin_amount_received" -> bitcoinReceiver.bitcoinAmountReceived,
-        "bitcoin_uri" -> bitcoinReceiver.bitcoinUri,
-        "created" -> Json.toJson(bitcoinReceiver.created)(stripeDateTimeWrites),
-        "currency" -> bitcoinReceiver.currency,
-        "customer" -> bitcoinReceiver.customer,
-        "description" -> bitcoinReceiver.description,
-        "email" -> bitcoinReceiver.email,
-        "filled" -> bitcoinReceiver.filled,
-        "inbound_address" -> bitcoinReceiver.inboundAddress,
-        "livemode" -> bitcoinReceiver.livemode,
-        "metadata" -> bitcoinReceiver.metadata,
-        "payment" -> bitcoinReceiver.payment,
-        "refund_address" -> bitcoinReceiver.refundAddress,
-        "transactions" -> bitcoinReceiver.transactions,
-        "uncaptured_funds" -> bitcoinReceiver.uncapturedFunds,
-        "used_for_payment" -> bitcoinReceiver.usedForPayment
-      )
-    )
+  implicit val bitcoinReceiverWrites: Writes[BitcoinReceiver] = Writes(
+      (bitcoinReceiver: BitcoinReceiver) =>
+        Json.obj(
+            "id" -> bitcoinReceiver.id,
+            "object" -> "bitcoin_receiver",
+            "active" -> bitcoinReceiver.active,
+            "amount" -> bitcoinReceiver.amount,
+            "amount_received" -> bitcoinReceiver.amountReceived,
+            "bitcoin_amount" -> bitcoinReceiver.bitcoinAmount,
+            "bitcoin_amount_received" -> bitcoinReceiver.bitcoinAmountReceived,
+            "bitcoin_uri" -> bitcoinReceiver.bitcoinUri,
+            "created" -> Json.toJson(bitcoinReceiver.created)(
+                stripeDateTimeWrites),
+            "currency" -> bitcoinReceiver.currency,
+            "customer" -> bitcoinReceiver.customer,
+            "description" -> bitcoinReceiver.description,
+            "email" -> bitcoinReceiver.email,
+            "filled" -> bitcoinReceiver.filled,
+            "inbound_address" -> bitcoinReceiver.inboundAddress,
+            "livemode" -> bitcoinReceiver.livemode,
+            "metadata" -> bitcoinReceiver.metadata,
+            "payment" -> bitcoinReceiver.payment,
+            "refund_address" -> bitcoinReceiver.refundAddress,
+            "transactions" -> bitcoinReceiver.transactions,
+            "uncaptured_funds" -> bitcoinReceiver.uncapturedFunds,
+            "used_for_payment" -> bitcoinReceiver.usedForPayment
+      ))
 
   /**
     * @see https://stripe.com/docs/api#create_bitcoin_receiver
@@ -1106,55 +1090,56 @@ object BitcoinReceivers extends LazyLogging {
                                   email: String,
                                   description: Option[String],
                                   metadata: Option[Map[String, String]],
-                                  refundMispayments: Option[Boolean]
-                                 )
+                                  refundMispayments: Option[Boolean])
 
   object BitcoinReceiverInput {
     def default(amount: BigDecimal,
                 currency: Currency,
                 email: String): BitcoinReceiverInput = BitcoinReceiverInput(
-      amount,
-      currency,
-      email,
-      None,
-      None,
-      None
+        amount,
+        currency,
+        email,
+        None,
+        None,
+        None
     )
   }
 
   implicit val bitcoinReceiverInputReads: Reads[BitcoinReceiverInput] = (
-    (__ \ "amount").read[BigDecimal] ~
+      (__ \ "amount").read[BigDecimal] ~
       (__ \ "currency").read[Currency] ~
       (__ \ "email").read[String] ~
       (__ \ "description").readNullable[String] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "refund_mispayments").readNullable[Boolean]
-    ).tupled.map((BitcoinReceiverInput.apply _).tupled)
+  ).tupled.map((BitcoinReceiverInput.apply _).tupled)
 
   implicit val bitcoinReceiverInputWrites: Writes[BitcoinReceiverInput] =
-    Writes((bitcoinReceiverInput: BitcoinReceiverInput) =>
-      Json.obj(
-        "amount" -> bitcoinReceiverInput.amount,
-        "currency" -> bitcoinReceiverInput.currency,
-        "email" -> bitcoinReceiverInput.email,
-        "description" -> bitcoinReceiverInput.description,
-        "metadata" -> bitcoinReceiverInput.metadata,
-        "refund_mispayments" -> bitcoinReceiverInput.refundMispayments
-      )
-    )
+    Writes(
+        (bitcoinReceiverInput: BitcoinReceiverInput) =>
+          Json.obj(
+              "amount" -> bitcoinReceiverInput.amount,
+              "currency" -> bitcoinReceiverInput.currency,
+              "email" -> bitcoinReceiverInput.email,
+              "description" -> bitcoinReceiverInput.description,
+              "metadata" -> bitcoinReceiverInput.metadata,
+              "refund_mispayments" -> bitcoinReceiverInput.refundMispayments
+        ))
 
-  def create(bitcoinReceiverInput: BitcoinReceiverInput)
-            (idempotencyKey: Option[IdempotencyKey] = None)
-            (implicit apiKey: ApiKey,
-             endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
+  def create(bitcoinReceiverInput: BitcoinReceiverInput)(
+      idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
 
     val postFormParameters: Map[String, String] = {
       Map(
-        "amount" -> Option(bitcoinReceiverInput.amount.toString()),
-        "currency" -> Option(bitcoinReceiverInput.currency.iso.toLowerCase()),
-        "email" -> Option(bitcoinReceiverInput.email),
-        "description" -> bitcoinReceiverInput.description,
-        "refund_mispayments" -> Option(bitcoinReceiverInput.refundMispayments.toString)
+          "amount" -> Option(bitcoinReceiverInput.amount.toString()),
+          "currency" -> Option(
+              bitcoinReceiverInput.currency.iso.toLowerCase()),
+          "email" -> Option(bitcoinReceiverInput.email),
+          "description" -> bitcoinReceiverInput.description,
+          "refund_mispayments" -> Option(
+              bitcoinReceiverInput.refundMispayments.toString)
       ).collect {
         case (k, Some(v)) => (k, v)
       }
@@ -1164,18 +1149,15 @@ object BitcoinReceivers extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/bitcoin/receivers"
 
-    createRequestPOST[BitcoinReceiver](finalUrl, postFormParameters, idempotencyKey, logger)
-
+    createRequestPOST[BitcoinReceiver](
+        finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-
-  def get(id: String)
-         (implicit apiKey: ApiKey,
-          endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
     val finalUrl = endpoint.url + s"/v1/bitcoin/receivers/$id"
 
     createRequestGET[BitcoinReceiver](finalUrl, logger)
-
   }
 
   /**
@@ -1198,7 +1180,6 @@ object BitcoinReceivers extends LazyLogging {
     *                        next page of the list.
     * @param uncapturedFunds Filter for receivers with uncaptured funds.
     */
-
   case class BitcoinReceiverListInput(active: Option[Boolean],
                                       endingBefore: Option[String],
                                       filled: Option[Boolean],
@@ -1208,56 +1189,53 @@ object BitcoinReceivers extends LazyLogging {
 
   object BitcoinReceiverListInput {
     def default: BitcoinReceiverListInput = BitcoinReceiverListInput(
-      None,
-      None,
-      None,
-      None,
-      None,
-      None
+        None,
+        None,
+        None,
+        None,
+        None,
+        None
     )
   }
 
   case class BitcoinReceiverList(override val url: String,
                                  override val hasMore: Boolean,
                                  override val data: List[BitcoinReceiver],
-                                 override val totalCount: Option[Long]
-                                )
-    extends Collections.List[BitcoinReceiver](url, hasMore, data, totalCount)
+                                 override val totalCount: Option[Long])
+      extends Collections.List[BitcoinReceiver](url, hasMore, data, totalCount)
 
-
-  object BitcoinReceiverList extends Collections.ListJsonMappers[BitcoinReceiver] {
+  object BitcoinReceiverList
+      extends Collections.ListJsonMappers[BitcoinReceiver] {
     implicit val cardListReads: Reads[BitcoinReceiverList] =
       listReads.tupled.map((BitcoinReceiverList.apply _).tupled)
 
-    implicit val cardListWrites: Writes[BitcoinReceiverList] =
-      listWrites
+    implicit val cardListWrites: Writes[BitcoinReceiverList] = listWrites
   }
 
   def list(bitcoinReceiverListInput: BitcoinReceiverListInput,
-           includeTotalCount: Boolean)
-          (implicit apiKey: ApiKey,
-           endpoint: Endpoint): Future[Try[BitcoinReceiverList]] = {
+           includeTotalCount: Boolean)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[BitcoinReceiverList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
-      val totalCountUrl = if (includeTotalCount)
-        "/include[]=total_count"
-      else
-        ""
+      val totalCountUrl =
+        if (includeTotalCount)
+          "/include[]=total_count"
+        else
+          ""
 
       val baseUrl = endpoint.url + s"/v1/bitcoin/receivers$totalCountUrl"
 
       (baseUrl ?
-        ("active" -> bitcoinReceiverListInput.active) ?
-        ("ending_before" -> bitcoinReceiverListInput.endingBefore) ?
-        ("filled" -> bitcoinReceiverListInput.filled) ?
-        ("limit" -> bitcoinReceiverListInput.limit.map(_.toString)) ?
-        ("starting_after" -> bitcoinReceiverListInput.startingAfter) ?
-        ("uncaptured_funds" -> bitcoinReceiverListInput.uncapturedFunds)
-        ).toString()
+          ("active" -> bitcoinReceiverListInput.active) ?
+          ("ending_before" -> bitcoinReceiverListInput.endingBefore) ?
+          ("filled" -> bitcoinReceiverListInput.filled) ?
+          ("limit" -> bitcoinReceiverListInput.limit.map(_.toString)) ?
+          ("starting_after" -> bitcoinReceiverListInput.startingAfter) ?
+          ("uncaptured_funds" -> bitcoinReceiverListInput.uncapturedFunds))
+        .toString()
     }
 
     createRequestGET[BitcoinReceiverList](finalUrl, logger)
-
   }
-
 }

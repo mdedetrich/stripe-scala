@@ -18,12 +18,16 @@ object Transfers extends LazyLogging {
   case class TransferReversalList(override val url: String,
                                   override val hasMore: Boolean,
                                   override val data: List[TransferReversal],
-                                  override val totalCount: Option[Long]
-                                 ) extends Collections.List[TransferReversal](
-    url, hasMore, data, totalCount
-  )
+                                  override val totalCount: Option[Long])
+      extends Collections.List[TransferReversal](
+          url,
+          hasMore,
+          data,
+          totalCount
+      )
 
-  object TransferReversalList extends Collections.ListJsonMappers[TransferReversal] {
+  object TransferReversalList
+      extends Collections.ListJsonMappers[TransferReversal] {
     implicit val transferReversalListReads: Reads[TransferReversalList] =
       listReads.tupled.map((TransferReversalList.apply _).tupled)
 
@@ -44,7 +48,6 @@ object Transfers extends LazyLogging {
     case object BankAccount extends Type("bank_account")
 
     case object StripeAccount extends Type("stripe_account")
-
   }
 
   implicit val typeFormats = EnumFormats.formats(Type, insensitive = true)
@@ -66,7 +69,6 @@ object Transfers extends LazyLogging {
     case object Canceled extends Status("canceled")
 
     case object Failed extends Status("failed")
-
   }
 
   implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
@@ -75,7 +77,6 @@ object Transfers extends LazyLogging {
     * @see https://stripe.com/docs/api#transfer_failures
     * @param id
     */
-
   sealed abstract class FailureCode(val id: String) extends EnumEntry {
     override val entryName = id
   }
@@ -90,23 +91,26 @@ object Transfers extends LazyLogging {
 
     case object NoAccount extends FailureCode("no_account")
 
-    case object InvalidAccountNumber extends FailureCode("invalid_account_number")
+    case object InvalidAccountNumber
+        extends FailureCode("invalid_account_number")
 
     case object DebitNotAuthorized extends FailureCode("debit_not_authorized")
 
-    case object BankOwnershipChanged extends FailureCode("bank_ownership_changed")
+    case object BankOwnershipChanged
+        extends FailureCode("bank_ownership_changed")
 
     case object AccountFrozen extends FailureCode("account_frozen")
 
     case object CouldNotProcess extends FailureCode("could_not_process")
 
-    case object BankAccountRestricted extends FailureCode("bank_account_restricted")
+    case object BankAccountRestricted
+        extends FailureCode("bank_account_restricted")
 
     case object InvalidCurrency extends FailureCode("invalid_currency")
-
   }
 
-  implicit val failureCodeFormats = EnumFormats.formats(FailureCode, insensitive = true)
+  implicit val failureCodeFormats =
+    EnumFormats.formats(FailureCode, insensitive = true)
 
   sealed abstract class SourceType(val id: String) extends EnumEntry {
     override val entryName = id
@@ -123,10 +127,10 @@ object Transfers extends LazyLogging {
     case object BitcoinReceiver extends SourceType("bitcoin_receiver")
 
     case object BankAccount extends SourceType("bank_account")
-
   }
 
-  implicit val sourceTypeFormats = EnumFormats.formats(SourceType, insensitive = true)
+  implicit val sourceTypeFormats =
+    EnumFormats.formats(SourceType, insensitive = true)
 
   case class Transfer(id: String,
                       amount: BigDecimal,
@@ -156,7 +160,7 @@ object Transfers extends LazyLogging {
   // This is due to http://stackoverflow.com/questions/28167971/scala-case-having-22-fields-but-having-issue-with-play-json-in-scala-2-11-5
 
   private val transferReadsOne = (
-    (__ \ "id").read[String] ~
+      (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "amount_reversed").read[BigDecimal] ~
       (__ \ "application_fee").read[BigDecimal] ~
@@ -177,51 +181,92 @@ object Transfers extends LazyLogging {
       (__ \ "reversed").read[Boolean] ~
       (__ \ "source_transaction").read[String] ~
       (__ \ "source_type").read[SourceType]
-    ).tupled
+  ).tupled
 
   private val transferReadsTwo = (
-    (__ \ "statement_descriptor").read[String] ~
+      (__ \ "statement_descriptor").read[String] ~
       (__ \ "status").read[Status] ~
       (__ \ "type").read[Type]
-    ).tupled
-
+  ).tupled
 
   implicit val transferReads: Reads[Transfer] = (
-    transferReadsOne ~ transferReadsTwo
-    ) { (one, two) =>
-    val (id, amount, amountReversed, applicationFee, balanceTransaction, bankAccount, created, currency, date, description, destination, destinationPayment, failureCode, failureMessage, livemode, metadata, recipient, reversals, reversed, sourceTransaction, sourceType) = one
+      transferReadsOne ~ transferReadsTwo
+  ) { (one, two) =>
+    val (id,
+         amount,
+         amountReversed,
+         applicationFee,
+         balanceTransaction,
+         bankAccount,
+         created,
+         currency,
+         date,
+         description,
+         destination,
+         destinationPayment,
+         failureCode,
+         failureMessage,
+         livemode,
+         metadata,
+         recipient,
+         reversals,
+         reversed,
+         sourceTransaction,
+         sourceType) = one
     val (statementDescriptor, status, type_) = two
 
-    Transfer(id, amount, amountReversed, applicationFee, balanceTransaction, bankAccount, created, currency, date, description, destination, destinationPayment, failureCode, failureMessage, livemode, metadata, recipient, reversals, reversed, sourceTransaction, sourceType, statementDescriptor, status, type_)
+    Transfer(id,
+             amount,
+             amountReversed,
+             applicationFee,
+             balanceTransaction,
+             bankAccount,
+             created,
+             currency,
+             date,
+             description,
+             destination,
+             destinationPayment,
+             failureCode,
+             failureMessage,
+             livemode,
+             metadata,
+             recipient,
+             reversals,
+             reversed,
+             sourceTransaction,
+             sourceType,
+             statementDescriptor,
+             status,
+             type_)
   }
 
-  implicit val transferWrites: Writes[Transfer] =
-    Writes((transfer: Transfer) =>
-      Json.obj(
-        "id" -> transfer.id,
-        "object" -> "transfer",
-        "amount" -> transfer.amount,
-        "amount_reversed" -> transfer.amountReversed,
-        "application_fee" -> transfer.applicationFee,
-        "balance_transaction" -> transfer.balanceTransaction,
-        "bank_account" -> transfer.bankAccount,
-        "created" -> Json.toJson(transfer.created)(stripeDateTimeWrites),
-        "currency" -> transfer.currency,
-        "date" -> Json.toJson(transfer.date)(stripeDateTimeWrites),
-        "description" -> transfer.description,
-        "destination" -> transfer.destination,
-        "destination_payment" -> transfer.destinationPayment,
-        "failure_code" -> transfer.failureCode,
-        "failure_message" -> transfer.failureMessage,
-        "livemode" -> transfer.livemode,
-        "metadata" -> transfer.metadata,
-        "recipient" -> transfer.recipient,
-        "reversals" -> transfer.reversals,
-        "reversed" -> transfer.reversed,
-        "source_transaction" -> transfer.sourceTransaction,
-        "source_type" -> transfer.sourceType
-      )
-    )
+  implicit val transferWrites: Writes[Transfer] = Writes(
+      (transfer: Transfer) =>
+        Json.obj(
+            "id" -> transfer.id,
+            "object" -> "transfer",
+            "amount" -> transfer.amount,
+            "amount_reversed" -> transfer.amountReversed,
+            "application_fee" -> transfer.applicationFee,
+            "balance_transaction" -> transfer.balanceTransaction,
+            "bank_account" -> transfer.bankAccount,
+            "created" -> Json.toJson(transfer.created)(stripeDateTimeWrites),
+            "currency" -> transfer.currency,
+            "date" -> Json.toJson(transfer.date)(stripeDateTimeWrites),
+            "description" -> transfer.description,
+            "destination" -> transfer.destination,
+            "destination_payment" -> transfer.destinationPayment,
+            "failure_code" -> transfer.failureCode,
+            "failure_message" -> transfer.failureMessage,
+            "livemode" -> transfer.livemode,
+            "metadata" -> transfer.metadata,
+            "recipient" -> transfer.recipient,
+            "reversals" -> transfer.reversals,
+            "reversed" -> transfer.reversed,
+            "source_transaction" -> transfer.sourceTransaction,
+            "source_type" -> transfer.sourceType
+      ))
 
   /**
     * @see https://stripe.com/docs/api#create_transfer
@@ -263,8 +308,7 @@ object Transfers extends LazyLogging {
                            metadata: Option[Map[String, String]],
                            sourceTransaction: Option[String],
                            statementDescriptor: Option[String],
-                           sourceType: Option[SourceType]
-                          ) {
+                           sourceType: Option[SourceType]) {
     statementDescriptor match {
       case Some(sD) if sD.length > 22 =>
         throw StatementDescriptorTooLong(sD.length)
@@ -280,19 +324,18 @@ object Transfers extends LazyLogging {
     }
   }
 
-  def create(transferInput: TransferInput)
-            (idempotencyKey: Option[IdempotencyKey] = None)
-            (implicit apiKey: ApiKey,
-             endpoint: Endpoint): Future[Try[Transfer]] = {
+  def create(transferInput: TransferInput)(
+      idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Transfer]] = {
     val postFormParameters: Map[String, String] = {
       Map(
-        "amount" -> Option(transferInput.amount.toString()),
-        "currency" -> Option(transferInput.currency.iso.toLowerCase()),
-        "destination" -> Option(transferInput.destination),
-        "description" -> transferInput.description,
-        "source_transaction" -> transferInput.sourceTransaction,
-        "statement_descriptor" -> transferInput.statementDescriptor,
-        "source_type" -> transferInput.sourceType.map(_.id)
+          "amount" -> Option(transferInput.amount.toString()),
+          "currency" -> Option(transferInput.currency.iso.toLowerCase()),
+          "destination" -> Option(transferInput.destination),
+          "description" -> transferInput.description,
+          "source_transaction" -> transferInput.sourceTransaction,
+          "statement_descriptor" -> transferInput.statementDescriptor,
+          "source_type" -> transferInput.sourceType.map(_.id)
       ).collect {
         case (k, Some(v)) => (k, v)
       }
@@ -302,17 +345,15 @@ object Transfers extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/transfers"
 
-    createRequestPOST[Transfer](finalUrl, postFormParameters, idempotencyKey, logger)
-
+    createRequestPOST[Transfer](
+        finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)
-         (implicit apiKey: ApiKey,
-          endpoint: Endpoint): Future[Try[Transfer]] = {
+  def get(id: String)(
+      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Transfer]] = {
     val finalUrl = endpoint.url + s"/v1/transfers/$id"
 
     createRequestGET[Transfer](finalUrl, logger)
-
   }
 
   case class TransferListInput(created: Option[ListFilterInput],
@@ -322,75 +363,76 @@ object Transfers extends LazyLogging {
                                limit: Option[String],
                                recipient: Option[String],
                                startingAfter: Option[String],
-                               status: Option[Status]
-                              )
+                               status: Option[Status])
 
   object TransferListInput {
     def default: TransferListInput = TransferListInput(
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None
     )
   }
 
   case class TransferList(override val url: String,
                           override val hasMore: Boolean,
                           override val data: List[Transfers.Transfer],
-                          override val totalCount: Option[Long]
-                         ) extends Collections.List[Transfer](
-    url, hasMore, data, totalCount
-  )
+                          override val totalCount: Option[Long])
+      extends Collections.List[Transfer](
+          url,
+          hasMore,
+          data,
+          totalCount
+      )
 
   object TransferList extends Collections.ListJsonMappers[Transfer] {
     implicit val transferListReads: Reads[TransferList] =
       listReads.tupled.map((TransferList.apply _).tupled)
 
-    implicit val transferListWrites: Writes[TransferList] =
-      listWrites
+    implicit val transferListWrites: Writes[TransferList] = listWrites
   }
 
-  def list(transferListInput: TransferListInput,
-           includeTotalCount: Boolean)
-          (implicit apiKey: ApiKey,
-           endpoint: Endpoint): Future[Try[TransferList]] = {
+  def list(transferListInput: TransferListInput, includeTotalCount: Boolean)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[TransferList]] = {
 
     val finalUrl = {
       import com.netaporter.uri.dsl._
-      val totalCountUrl = if (includeTotalCount)
-        "/include[]=total_count"
-      else
-        ""
+      val totalCountUrl =
+        if (includeTotalCount)
+          "/include[]=total_count"
+        else
+          ""
 
       val baseUrl = endpoint.url + s"/v1/transfers$totalCountUrl"
 
-      val created: com.netaporter.uri.Uri = (transferListInput.created, transferListInput.date) match {
-        case (Some(createdInput), Some(dateInput)) =>
-          listFilterInputToUri(dateInput, listFilterInputToUri(createdInput, baseUrl, "created"), "date")
-        case (Some(createdInput), None) =>
-          listFilterInputToUri(createdInput, baseUrl, "created")
-        case (None, Some(dateInput)) =>
-          listFilterInputToUri(dateInput, baseUrl, "date")
-        case (None, None) => baseUrl
-      }
+      val created: com.netaporter.uri.Uri =
+        (transferListInput.created, transferListInput.date) match {
+          case (Some(createdInput), Some(dateInput)) =>
+            listFilterInputToUri(
+                dateInput,
+                listFilterInputToUri(createdInput, baseUrl, "created"),
+                "date")
+          case (Some(createdInput), None) =>
+            listFilterInputToUri(createdInput, baseUrl, "created")
+          case (None, Some(dateInput)) =>
+            listFilterInputToUri(dateInput, baseUrl, "date")
+          case (None, None) => baseUrl
+        }
 
       (created ?
-        ("destination" -> transferListInput.destination) ?
-        ("ending_before" -> transferListInput.endingBefore) ?
-        ("limit" -> transferListInput.limit.map(_.toString)) ?
-        ("recipient" -> transferListInput.recipient) ?
-        ("starting_after" -> transferListInput.startingAfter) ?
-        ("status" -> transferListInput.status.map(_.id))
-        ).toString()
-
+          ("destination" -> transferListInput.destination) ?
+          ("ending_before" -> transferListInput.endingBefore) ?
+          ("limit" -> transferListInput.limit.map(_.toString)) ?
+          ("recipient" -> transferListInput.recipient) ?
+          ("starting_after" -> transferListInput.startingAfter) ?
+          ("status" -> transferListInput.status.map(_.id))).toString()
     }
 
     createRequestGET[TransferList](finalUrl, logger)
-
   }
-
 }

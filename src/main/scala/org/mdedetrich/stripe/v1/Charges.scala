@@ -25,7 +25,9 @@ object Charges extends LazyLogging {
 
   object FraudDetails {
 
-    sealed abstract class UserReport(val id: String) extends EnumEntry with FraudDetails {
+    sealed abstract class UserReport(val id: String)
+        extends EnumEntry
+        with FraudDetails {
       override val entryName = id
     }
 
@@ -36,10 +38,11 @@ object Charges extends LazyLogging {
       case object Safe extends UserReport("safe")
 
       case object Fraudulent extends UserReport("fraudulent")
-
     }
 
-    sealed abstract class StripeReport(val id: String) extends EnumEntry with FraudDetails {
+    sealed abstract class StripeReport(val id: String)
+        extends EnumEntry
+        with FraudDetails {
       override val entryName = id
     }
 
@@ -48,36 +51,39 @@ object Charges extends LazyLogging {
       val values = findValues
 
       case object Fraudulent extends StripeReport("fraudulent")
-
     }
-
   }
 
   implicit val fraudDetailsReads: Reads[FraudDetails] =
     (__ \ "user_report").readNullable[String].flatMap {
-      case Some("safe") => Reads[FraudDetails](_ => JsSuccess(FraudDetails.UserReport.Safe))
-      case Some("fraudulent") => Reads[FraudDetails](_ => JsSuccess(FraudDetails.UserReport.Safe))
+      case Some("safe") =>
+        Reads[FraudDetails](_ => JsSuccess(FraudDetails.UserReport.Safe))
+      case Some("fraudulent") =>
+        Reads[FraudDetails](_ => JsSuccess(FraudDetails.UserReport.Safe))
       case _ =>
         (__ \ "stripe_report").readNullable[String].flatMap {
-          case Some("fraudulent") => Reads[FraudDetails](_ => JsSuccess(FraudDetails.StripeReport.Fraudulent))
-          case _ => Reads[FraudDetails](_ => JsError(ValidationError("UnknownFraudDetails")))
+          case Some("fraudulent") =>
+            Reads[FraudDetails](_ =>
+                  JsSuccess(FraudDetails.StripeReport.Fraudulent))
+          case _ =>
+            Reads[FraudDetails](_ =>
+                  JsError(ValidationError("UnknownFraudDetails")))
         }
     }
 
-  implicit val fraudDetailsWrites: Writes[FraudDetails] =
-    Writes { (fraudDetails: FraudDetails) =>
+  implicit val fraudDetailsWrites: Writes[FraudDetails] = Writes {
+    (fraudDetails: FraudDetails) =>
       fraudDetails match {
         case userReport: UserReport =>
           Json.obj(
-            "user_report" -> userReport.id
+              "user_report" -> userReport.id
           )
         case stripeReport: StripeReport =>
           Json.obj(
-            "stripe_report" -> stripeReport.id
+              "stripe_report" -> stripeReport.id
           )
       }
-    }
-
+  }
 
   sealed abstract class Status(val id: String) extends EnumEntry {
     override val entryName = id
@@ -92,7 +98,6 @@ object Charges extends LazyLogging {
     case object Failed extends Status("failed")
 
     case object Pending extends Status("pending")
-
   }
 
   implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
@@ -157,7 +162,6 @@ object Charges extends LazyLogging {
     * @param status              The status of the payment is either [[Status.Succeeded]], 
     *                            [[Status.Pending]], or [[Status.Failed]].
     */
-
   case class Charge(id: String,
                     amount: BigDecimal,
                     amountRefunded: BigDecimal,
@@ -201,42 +205,41 @@ object Charges extends LazyLogging {
                 paid: Boolean,
                 refunded: Boolean,
                 source: Card,
-                status: Status
-               ): Charge = Charge(
-      id,
-      amount,
-      amountRefunded,
-      None,
-      balanceTransaction,
-      captured,
-      created,
-      currency,
-      None,
-      description,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      livemode,
-      None,
-      None,
-      paid,
-      None,
-      None,
-      refunded,
-      None,
-      None,
-      source,
-      None,
-      None,
-      status
+                status: Status): Charge = Charge(
+        id,
+        amount,
+        amountRefunded,
+        None,
+        balanceTransaction,
+        captured,
+        created,
+        currency,
+        None,
+        description,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        livemode,
+        None,
+        None,
+        paid,
+        None,
+        None,
+        refunded,
+        None,
+        None,
+        source,
+        None,
+        None,
+        status
     )
   }
 
   private val chargeReadsOne = (
-    (__ \ "id").read[String] ~
+      (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "amount_refunded").read[BigDecimal] ~
       (__ \ "application_fee").readNullable[String] ~
@@ -257,10 +260,10 @@ object Charges extends LazyLogging {
       (__ \ "order").readNullable[String] ~
       (__ \ "paid").read[Boolean] ~
       (__ \ "receipt_email").readNullable[String]
-    ).tupled
+  ).tupled
 
   private val chargeReadsTwo = (
-    (__ \ "receipt_number").readNullable[String] ~
+      (__ \ "receipt_number").readNullable[String] ~
       (__ \ "refunded").read[Boolean] ~
       (__ \ "refunds").readNullable[RefundList] ~
       (__ \ "shipping").readNullable[Shipping] ~
@@ -268,102 +271,98 @@ object Charges extends LazyLogging {
       (__ \ "source_transfer").readNullable[String] ~
       (__ \ "statement_descriptor").readNullable[String] ~
       (__ \ "status").read[Status]
-    ).tupled
+  ).tupled
 
   implicit val chargeReads: Reads[Charge] = (
-    chargeReadsOne ~ chargeReadsTwo
-    ) { (one, two) =>
-    val (
-      id,
-      amount,
-      amountRefunded,
-      applicationFee,
-      balanceTransaction,
-      captured,
-      created,
-      currency,
-      customer,
-      description,
-      destination,
-      dispute,
-      failureCode,
-      failureMessage,
-      fraudDetails,
-      invoice,
-      livemode,
-      metadata,
-      order,
-      paid,
-      receiptEmail) = one
+      chargeReadsOne ~ chargeReadsTwo
+  ) { (one, two) =>
+    val (id,
+         amount,
+         amountRefunded,
+         applicationFee,
+         balanceTransaction,
+         captured,
+         created,
+         currency,
+         customer,
+         description,
+         destination,
+         dispute,
+         failureCode,
+         failureMessage,
+         fraudDetails,
+         invoice,
+         livemode,
+         metadata,
+         order,
+         paid,
+         receiptEmail) = one
 
     val (receiptNumber,
-    refunded,
-    refunds,
-    shipping,
-    source,
-    sourceTransfer,
-    statementDescriptor,
-    status
-      ) = two
+         refunded,
+         refunds,
+         shipping,
+         source,
+         sourceTransfer,
+         statementDescriptor,
+         status) = two
 
     Charge(id,
-      amount,
-      amountRefunded,
-      applicationFee,
-      balanceTransaction,
-      captured,
-      created,
-      currency,
-      customer,
-      description,
-      destination,
-      dispute,
-      failureCode,
-      failureMessage,
-      fraudDetails,
-      invoice,
-      livemode,
-      metadata,
-      order,
-      paid,
-      receiptEmail,
-      receiptNumber,
-      refunded,
-      refunds,
-      shipping,
-      source,
-      sourceTransfer,
-      statementDescriptor,
-      status
-    )
+           amount,
+           amountRefunded,
+           applicationFee,
+           balanceTransaction,
+           captured,
+           created,
+           currency,
+           customer,
+           description,
+           destination,
+           dispute,
+           failureCode,
+           failureMessage,
+           fraudDetails,
+           invoice,
+           livemode,
+           metadata,
+           order,
+           paid,
+           receiptEmail,
+           receiptNumber,
+           refunded,
+           refunds,
+           shipping,
+           source,
+           sourceTransfer,
+           statementDescriptor,
+           status)
   }
 
-  implicit val chargeWrites: Writes[Charge] =
-    Writes((charge: Charge) =>
-      Json.obj(
-        "id" -> charge.id,
-        "object" -> "charge",
-        "amount" -> charge.amount,
-        "amount_refunded" -> charge.amountRefunded,
-        "application_fee" -> charge.applicationFee,
-        "balance_transaction" -> charge.balanceTransaction,
-        "captured" -> charge.captured,
-        "created" -> Json.toJson(charge.created)(stripeDateTimeWrites),
-        "currency" -> charge.currency,
-        "customer" -> charge.customer,
-        "description" -> charge.description,
-        "dispute" -> charge.dispute,
-        "failure_code" -> charge.failureCode,
-        "failure_message" -> charge.failureMessage,
-        "fraud_details" -> charge.fraudDetails,
-        "invoice" -> charge.invoice,
-        "livemode" -> charge.livemode,
-        "metadata" -> charge.metadata,
-        "order" -> charge.order,
-        "paid" -> charge.paid,
-        "receipt_email" -> charge.receiptEmail
-      )
-    )
+  implicit val chargeWrites: Writes[Charge] = Writes(
+      (charge: Charge) =>
+        Json.obj(
+            "id" -> charge.id,
+            "object" -> "charge",
+            "amount" -> charge.amount,
+            "amount_refunded" -> charge.amountRefunded,
+            "application_fee" -> charge.applicationFee,
+            "balance_transaction" -> charge.balanceTransaction,
+            "captured" -> charge.captured,
+            "created" -> Json.toJson(charge.created)(stripeDateTimeWrites),
+            "currency" -> charge.currency,
+            "customer" -> charge.customer,
+            "description" -> charge.description,
+            "dispute" -> charge.dispute,
+            "failure_code" -> charge.failureCode,
+            "failure_message" -> charge.failureMessage,
+            "fraud_details" -> charge.fraudDetails,
+            "invoice" -> charge.invoice,
+            "livemode" -> charge.livemode,
+            "metadata" -> charge.metadata,
+            "order" -> charge.order,
+            "paid" -> charge.paid,
+            "receipt_email" -> charge.receiptEmail
+      ))
 
   sealed abstract class Source
 
@@ -381,16 +380,16 @@ object Charges extends LazyLogging {
                     addressLine2: Option[String],
                     name: Option[String],
                     addressState: Option[String],
-                    addressZip: Option[String]
-                   ) extends Source with BaseCardSource
-
+                    addressZip: Option[String])
+        extends Source
+        with BaseCardSource
   }
 
   implicit val sourceReads: Reads[Source] = {
     __.read[JsValue].flatMap {
       case jsObject: JsObject =>
         (
-          (__ \ "exp_month").read[Int] ~
+            (__ \ "exp_month").read[Int] ~
             (__ \ "exp_year").read[Int] ~
             (__ \ "number").read[String] ~
             (__ \ "cvc").readNullable[String] ~
@@ -401,7 +400,7 @@ object Charges extends LazyLogging {
             (__ \ "name").readNullable[String] ~
             (__ \ "address_state").readNullable[String] ~
             (__ \ "address_zip").readNullable[String]
-          ).tupled.map((Source.Card.apply _).tupled)
+        ).tupled.map((Source.Card.apply _).tupled)
       case jsString: JsString =>
         Reads[Source](_ => JsSuccess(Source.Customer(jsString.value)))
       case _ =>
@@ -409,26 +408,22 @@ object Charges extends LazyLogging {
     }
   }
 
-  implicit val sourceWrites: Writes[Source] =
-    Writes((source: Source) => {
-      source match {
-        case Source.Customer(id) =>
-          JsString(id)
-        case Source.Card
-          (expMonth,
-          expYear,
-          number,
-          cvc,
-          addressCity,
-          addressCountry,
-          addressLine1,
-          addressLine2,
-          name,
-          addressState,
-          addressZip
-          ) =>
-
-          Json.obj(
+  implicit val sourceWrites: Writes[Source] = Writes((source: Source) => {
+    source match {
+      case Source.Customer(id) =>
+        JsString(id)
+      case Source.Card(expMonth,
+                       expYear,
+                       number,
+                       cvc,
+                       addressCity,
+                       addressCountry,
+                       addressLine1,
+                       addressLine2,
+                       name,
+                       addressState,
+                       addressZip) =>
+        Json.obj(
             "exp_month" -> expMonth,
             "exp_year" -> expYear,
             "number" -> number,
@@ -441,10 +436,9 @@ object Charges extends LazyLogging {
             "name" -> name,
             "address_state" -> addressState,
             "address_zip" -> addressZip
-          )
-      }
+        )
     }
-    )
+  })
 
   /**
     * @see https://stripe.com/docs/api#create_charge
@@ -496,7 +490,6 @@ object Charges extends LazyLogging {
     * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
     * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
     */
-
   case class ChargeInput(amount: BigDecimal,
                          currency: Currency,
                          applicationFee: Option[BigDecimal],
@@ -508,7 +501,8 @@ object Charges extends LazyLogging {
                          shipping: Option[Shipping],
                          customer: Option[String],
                          source: Source,
-                         statementDescriptor: Option[String]) extends StripeObject {
+                         statementDescriptor: Option[String])
+      extends StripeObject {
     statementDescriptor match {
       case Some(sD) if sD.length > 22 =>
         throw StatementDescriptorTooLong(sD.length)
@@ -530,23 +524,23 @@ object Charges extends LazyLogging {
                 capture: Boolean,
                 destination: String,
                 source: Source): ChargeInput = ChargeInput(
-      amount,
-      currency,
-      None,
-      capture,
-      None,
-      destination,
-      None,
-      None,
-      None,
-      None,
-      source,
-      None
+        amount,
+        currency,
+        None,
+        capture,
+        None,
+        destination,
+        None,
+        None,
+        None,
+        None,
+        source,
+        None
     )
   }
 
   implicit val chargeInputReads: Reads[ChargeInput] = (
-    (__ \ "amount").read[BigDecimal] ~
+      (__ \ "amount").read[BigDecimal] ~
       (__ \ "currency").read[Currency] ~
       (__ \ "application_fee").readNullable[BigDecimal] ~
       (__ \ "capture").read[Boolean] ~
@@ -558,42 +552,40 @@ object Charges extends LazyLogging {
       (__ \ "customer").readNullable[String] ~
       (__ \ "source").read[Source] ~
       (__ \ "statement_descriptor").readNullable[String]
-    ).tupled.map((ChargeInput.apply _).tupled)
+  ).tupled.map((ChargeInput.apply _).tupled)
 
-  implicit val chargeInputWrites: Writes[ChargeInput] =
-    Writes((chargeInput: ChargeInput) =>
-      Json.obj(
-        "amount" -> chargeInput.amount,
-        "currency" -> chargeInput.currency,
-        "application_fee" -> chargeInput.applicationFee,
-        "capture" -> chargeInput.capture,
-        "description" -> chargeInput.description,
-        "destination" -> chargeInput.destination,
-        "metadata" -> chargeInput.metadata,
-        "receipt_email" -> chargeInput.receiptEmail,
-        "shipping" -> chargeInput.shipping,
-        "customer" -> chargeInput.customer,
-        "source" -> chargeInput.source,
-        "statement_descriptor" -> chargeInput.statementDescriptor
-      )
-    )
+  implicit val chargeInputWrites: Writes[ChargeInput] = Writes(
+      (chargeInput: ChargeInput) =>
+        Json.obj(
+            "amount" -> chargeInput.amount,
+            "currency" -> chargeInput.currency,
+            "application_fee" -> chargeInput.applicationFee,
+            "capture" -> chargeInput.capture,
+            "description" -> chargeInput.description,
+            "destination" -> chargeInput.destination,
+            "metadata" -> chargeInput.metadata,
+            "receipt_email" -> chargeInput.receiptEmail,
+            "shipping" -> chargeInput.shipping,
+            "customer" -> chargeInput.customer,
+            "source" -> chargeInput.source,
+            "statement_descriptor" -> chargeInput.statementDescriptor
+      ))
 
-  def create(chargeInput: ChargeInput)
-            (idempotencyKey: Option[IdempotencyKey] = None)
-            (implicit apiKey: ApiKey,
-             endpoint: Endpoint): Future[Try[Charge]] = {
+  def create(chargeInput: ChargeInput)(
+      idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Charge]] = {
 
     val postFormParameters: Map[String, String] = {
       Map(
-        "amount" -> Option(chargeInput.amount.toString),
-        "currency" -> Option(chargeInput.currency.iso.toLowerCase),
-        "application_fee" -> chargeInput.applicationFee.map(_.toString),
-        "capture" -> Option(chargeInput.capture.toString),
-        "description" -> chargeInput.description,
-        "destination" -> Option(chargeInput.destination),
-        "receipt_email" -> chargeInput.receiptEmail,
-        "customer" -> chargeInput.customer,
-        "statement_descriptor" -> chargeInput.statementDescriptor
+          "amount" -> Option(chargeInput.amount.toString),
+          "currency" -> Option(chargeInput.currency.iso.toLowerCase),
+          "application_fee" -> chargeInput.applicationFee.map(_.toString),
+          "capture" -> Option(chargeInput.capture.toString),
+          "description" -> chargeInput.description,
+          "destination" -> Option(chargeInput.destination),
+          "receipt_email" -> chargeInput.receiptEmail,
+          "customer" -> chargeInput.customer,
+          "statement_descriptor" -> chargeInput.statementDescriptor
       ).collect {
         case (k, Some(v)) => (k, v)
       }
@@ -601,46 +593,42 @@ object Charges extends LazyLogging {
       chargeInput.source match {
         case Source.Customer(id) =>
           Map("source" -> id)
-        case Source.Card
-          (expMonth,
-          expYear,
-          number,
-          cvc,
-          addressCity,
-          addressCountry,
-          addressLine1,
-          addressLine2,
-          name,
-          addressState,
-          addressZip
-          ) =>
+        case Source.Card(expMonth,
+                         expYear,
+                         number,
+                         cvc,
+                         addressCity,
+                         addressCountry,
+                         addressLine1,
+                         addressLine2,
+                         name,
+                         addressState,
+                         addressZip) =>
           val map: Map[String, String] = Map(
-            "exp_month" -> Option(expMonth.toString),
-            "exp_year" -> Option(expYear.toString),
-            "number" -> Option(number),
-            "cvc" -> cvc,
-            "address_city" -> addressCity,
-            "address_country" -> addressCountry,
-            "address_line1" -> addressLine1,
-            "address_line2" -> addressLine2,
-            "name" -> name,
-            "address_state" -> addressState,
-            "address_zip" -> addressZip
+              "exp_month" -> Option(expMonth.toString),
+              "exp_year" -> Option(expYear.toString),
+              "number" -> Option(number),
+              "cvc" -> cvc,
+              "address_city" -> addressCity,
+              "address_country" -> addressCountry,
+              "address_line1" -> addressLine1,
+              "address_line2" -> addressLine2,
+              "name" -> name,
+              "address_state" -> addressState,
+              "address_zip" -> addressZip
           ).collect {
             case (k, Some(v)) => (k, v)
           }
 
           mapToPostParams(Option(map), "card")
       }
-
     }
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
     val finalUrl = endpoint.url + "/v1/charges"
 
-    createRequestPOST[Charge](finalUrl, postFormParameters, idempotencyKey, logger)
-
+    createRequestPOST[Charge](
+        finalUrl, postFormParameters, idempotencyKey, logger)
   }
-
 }

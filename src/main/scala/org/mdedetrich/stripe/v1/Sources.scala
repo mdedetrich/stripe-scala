@@ -3,7 +3,6 @@ package org.mdedetrich.stripe.v1
 /**
   * Contains base classes for input sources
   */
-
 object Sources {
 
   trait BaseCardSource {
@@ -27,5 +26,4 @@ object Sources {
 
     def addressZip: Option[String]
   }
-
 }

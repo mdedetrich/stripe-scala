@@ -8,7 +8,6 @@ import play.api.libs.functional.syntax._
 /**
   * Common data model for list requests that accept a created input
   */
-
 sealed abstract class ListFilterInput
 
 object ListFilterInput {
@@ -18,40 +17,39 @@ object ListFilterInput {
   case class Object(gt: Option[OffsetDateTime],
                     gte: Option[OffsetDateTime],
                     lt: Option[OffsetDateTime],
-                    lte: Option[OffsetDateTime]
-                   ) extends ListFilterInput
+                    lte: Option[OffsetDateTime])
+      extends ListFilterInput
 
   object Object {
     def default: Object = Object(
-      None,
-      None,
-      None,
-      None
+        None,
+        None,
+        None,
+        None
     )
   }
 
-  implicit val timestampReads: Reads[Timestamp] = stripeDateTimeReads.map(Timestamp)
-  implicit val timestampWrites: Writes[Timestamp] =
-    Writes((timestamp: Timestamp) =>
-      stripeDateTimeWrites.writes(timestamp.timestamp)
-    )
+  implicit val timestampReads: Reads[Timestamp] =
+    stripeDateTimeReads.map(Timestamp)
+  implicit val timestampWrites: Writes[Timestamp] = Writes(
+      (timestamp: Timestamp) =>
+        stripeDateTimeWrites.writes(timestamp.timestamp))
 
   implicit val objectReads: Reads[Object] = (
-    (__ \ "gt").readNullable(stripeDateTimeReads) ~
+      (__ \ "gt").readNullable(stripeDateTimeReads) ~
       (__ \ "gte").readNullable(stripeDateTimeReads) ~
       (__ \ "lt").readNullable(stripeDateTimeReads) ~
       (__ \ "lte").readNullable(stripeDateTimeReads)
-    ).tupled.map((Object.apply _).tupled)
+  ).tupled.map((Object.apply _).tupled)
 
-  implicit val objectWrites: Writes[Object] =
-    Writes((o: Object) =>
-      Json.obj(
-        "gt" -> o.gt.map(Json.toJson(_)(stripeDateTimeWrites)),
-        "gte" -> o.gte.map(Json.toJson(_)(stripeDateTimeWrites)),
-        "lt" -> o.lt.map(Json.toJson(_)(stripeDateTimeWrites)),
-        "gte" -> o.lte.map(Json.toJson(_)(stripeDateTimeWrites))
-      )
-    )
+  implicit val objectWrites: Writes[Object] = Writes(
+      (o: Object) =>
+        Json.obj(
+            "gt" -> o.gt.map(Json.toJson(_)(stripeDateTimeWrites)),
+            "gte" -> o.gte.map(Json.toJson(_)(stripeDateTimeWrites)),
+            "lt" -> o.lt.map(Json.toJson(_)(stripeDateTimeWrites)),
+            "gte" -> o.lte.map(Json.toJson(_)(stripeDateTimeWrites))
+      ))
 
   implicit val listFilterInputReads: Reads[ListFilterInput] =
     __.read[JsValue].flatMap {
@@ -59,16 +57,18 @@ object ListFilterInput {
         __.read[ListFilterInput.Object].map(x => x: ListFilterInput)
       case jsString: JsString =>
         __.read[ListFilterInput.Timestamp].map(x => x: ListFilterInput)
-      case _ => Reads[ListFilterInput](_ => JsError(ValidationError("UnknownListFilterInput")))
+      case _ =>
+        Reads[ListFilterInput](_ =>
+              JsError(ValidationError("UnknownListFilterInput")))
     }
 
-  implicit val listFilterInputWrites: Writes[ListFilterInput] =
-    Writes((filterInput: ListFilterInput) => {
-      filterInput match {
-        case o: ListFilterInput.Object =>
-          Json.toJson(o)
-        case timestamp: ListFilterInput.Timestamp =>
-          Json.toJson(timestamp)
-      }
-    })
+  implicit val listFilterInputWrites: Writes[ListFilterInput] = Writes(
+      (filterInput: ListFilterInput) => {
+    filterInput match {
+      case o: ListFilterInput.Object =>
+        Json.toJson(o)
+      case timestamp: ListFilterInput.Timestamp =>
+        Json.toJson(timestamp)
+    }
+  })
 }

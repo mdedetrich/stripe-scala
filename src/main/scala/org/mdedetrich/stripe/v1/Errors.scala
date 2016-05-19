@@ -30,7 +30,6 @@ object Errors {
     case object InvalidRequestError extends Type("invalid_request_error")
 
     case object RateLimitError extends Type("rate_limit_error")
-
   }
 
   implicit val typeFormats = EnumFormats.formats(Type, insensitive = true)
@@ -68,7 +67,6 @@ object Errors {
     case object Missing extends Code("missing")
 
     case object ProcessingError extends Code("processing_error")
-
   }
 
   implicit val codeFormats = EnumFormats.formats(Code, insensitive = true)
@@ -83,104 +81,103 @@ object Errors {
     * @param message
     * @param param Note that if we get an empty String param from stripe, this will get mapped to [[None]]
     */
-
   sealed abstract class Error(val httpCode: Long,
                               val `type`: Type,
                               val code: Option[Code],
                               val message: Option[String],
-                              val param: Option[String]) extends Exception
+                              val param: Option[String])
+      extends Exception
 
   object Error {
 
     case class BadRequest(override val `type`: Type,
                           override val code: Option[Code],
                           override val message: Option[String],
-                          override val param: Option[String]) extends Error(400, `type`, code, message, param)
+                          override val param: Option[String])
+        extends Error(400, `type`, code, message, param)
 
     case class Unauthorized(override val `type`: Type,
                             override val code: Option[Code],
                             override val message: Option[String],
-                            override val param: Option[String]) extends Error(401, `type`, code, message, param)
+                            override val param: Option[String])
+        extends Error(401, `type`, code, message, param)
 
     case class RequestFailed(override val `type`: Type,
                              override val code: Option[Code],
                              override val message: Option[String],
-                             override val param: Option[String]) extends Error(402, `type`, code, message, param)
+                             override val param: Option[String])
+        extends Error(402, `type`, code, message, param)
 
     case class NotFound(override val `type`: Type,
                         override val code: Option[Code],
                         override val message: Option[String],
-                        override val param: Option[String]) extends Error(404, `type`, code, message, param)
+                        override val param: Option[String])
+        extends Error(404, `type`, code, message, param)
 
     case class TooManyRequests(override val `type`: Type,
                                override val code: Option[Code],
                                override val message: Option[String],
-                               override val param: Option[String]) extends Error(429, `type`, code, message, param)
-
+                               override val param: Option[String])
+        extends Error(429, `type`, code, message, param)
   }
 
-  private def tupledErrorReads = (
-    (__ \ "type").read[Type] ~
-      (__ \ "code").readNullable[Code] ~
-      (__ \ "message").readNullable[String] ~
-      (__ \ "param").readNullable[String].map {
-        case Some(s) if s.isEmpty => None
-        case s => s
-      }
+  private def tupledErrorReads =
+    (
+        (__ \ "type").read[Type] ~
+        (__ \ "code").readNullable[Code] ~
+        (__ \ "message").readNullable[String] ~
+        (__ \ "param").readNullable[String].map {
+          case Some(s) if s.isEmpty => None
+          case s => s
+        }
     ).tupled
 
-
-  implicit val badRequestReads: Reads[Error.BadRequest] = tupledErrorReads.map((Error.BadRequest.apply _).tupled)
-  implicit val unauthorizedReads: Reads[Error.Unauthorized] = tupledErrorReads.map((Error.Unauthorized.apply _).tupled)
-  implicit val requestFailedReads: Reads[Error.RequestFailed] = tupledErrorReads.map((Error.RequestFailed.apply _).tupled)
-  implicit val notFoundReads: Reads[Error.NotFound] = tupledErrorReads.map((Error.NotFound.apply _).tupled)
-  implicit val tooManyRequestsReads: Reads[Error.TooManyRequests] = tupledErrorReads.map((Error.TooManyRequests.apply _).tupled)
+  implicit val badRequestReads: Reads[Error.BadRequest] =
+    tupledErrorReads.map((Error.BadRequest.apply _).tupled)
+  implicit val unauthorizedReads: Reads[Error.Unauthorized] =
+    tupledErrorReads.map((Error.Unauthorized.apply _).tupled)
+  implicit val requestFailedReads: Reads[Error.RequestFailed] =
+    tupledErrorReads.map((Error.RequestFailed.apply _).tupled)
+  implicit val notFoundReads: Reads[Error.NotFound] =
+    tupledErrorReads.map((Error.NotFound.apply _).tupled)
+  implicit val tooManyRequestsReads: Reads[Error.TooManyRequests] =
+    tupledErrorReads.map((Error.TooManyRequests.apply _).tupled)
 
   private def errorWrites(error: Error) =
     Json.obj(
-      "type" -> error.`type`,
-      "code" -> error.code,
-      "message" -> error.message,
-      "param" -> error.param
+        "type" -> error.`type`,
+        "code" -> error.code,
+        "message" -> error.message,
+        "param" -> error.param
     )
 
-  implicit val badRequestWrites: Writes[Error.BadRequest] =
-    Writes((badRequest: Error.BadRequest) =>
-      errorWrites(badRequest)
-    )
+  implicit val badRequestWrites: Writes[Error.BadRequest] = Writes(
+      (badRequest: Error.BadRequest) => errorWrites(badRequest))
 
-  implicit val unauthorizedWrites: Writes[Error.Unauthorized] =
-    Writes((unauthorized: Error.Unauthorized) =>
-      errorWrites(unauthorized)
-    )
+  implicit val unauthorizedWrites: Writes[Error.Unauthorized] = Writes(
+      (unauthorized: Error.Unauthorized) => errorWrites(unauthorized))
 
-  implicit val requestFailedWrites: Writes[Error.RequestFailed] =
-    Writes((requestFailed: Error.RequestFailed) =>
-      errorWrites(requestFailed)
-    )
+  implicit val requestFailedWrites: Writes[Error.RequestFailed] = Writes(
+      (requestFailed: Error.RequestFailed) => errorWrites(requestFailed))
 
-  implicit val notFoundWrites: Writes[Error.NotFound] =
-    Writes((notFound: Error.NotFound) =>
-      errorWrites(notFound)
-    )
+  implicit val notFoundWrites: Writes[Error.NotFound] = Writes(
+      (notFound: Error.NotFound) => errorWrites(notFound))
 
-  implicit val tooManyRequestsWrites: Writes[Error.TooManyRequests] =
-    Writes((tooManyRequests: Error.TooManyRequests) =>
-      errorWrites(tooManyRequests)
-    )
+  implicit val tooManyRequestsWrites: Writes[Error.TooManyRequests] = Writes(
+      (tooManyRequests: Error.TooManyRequests) => errorWrites(tooManyRequests))
 
   /**
     * This is thrown when you receive either a 500, 502, 503 or 504
     *
     * @param response
     */
-
   case class StripeServerError(response: Response) extends Exception {
-    override def getMessage = s"Stripe server error, status code is ${response.getStatusCode}"
+    override def getMessage =
+      s"Stripe server error, status code is ${response.getStatusCode}"
   }
 
   case class UnhandledServerError(response: Response) extends Exception {
-    override def getMessage = s"Unhandled server error, status code is ${response.getStatusCode}"
+    override def getMessage =
+      s"Unhandled server error, status code is ${response.getStatusCode}"
   }
-
 }

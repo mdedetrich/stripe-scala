@@ -24,10 +24,10 @@ object BankAccounts extends LazyLogging {
     case object Individual extends AccountHolderType("individual")
 
     case object Company extends AccountHolderType("company")
-
   }
 
-  implicit val accountHolderTypeFormats = EnumFormats.formats(AccountHolderType, insensitive = true)
+  implicit val accountHolderTypeFormats =
+    EnumFormats.formats(AccountHolderType, insensitive = true)
 
   sealed abstract class Status(val id: String) extends EnumEntry {
     override val entryName = id
@@ -46,7 +46,6 @@ object BankAccounts extends LazyLogging {
     case object VerificationFailed extends Status("verification_failed")
 
     case object Errored extends Status("errored")
-
   }
 
   implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
@@ -75,7 +74,6 @@ object BankAccounts extends LazyLogging {
     *                           If a transfer sent to this bank account fails, we’ll set the status to errored and will 
     *                           not continue to send transfers until the bank details are updated.
     */
-
   case class BankAccount(id: String,
                          account: Option[String],
                          accountHolderName: String,
@@ -89,10 +87,11 @@ object BankAccounts extends LazyLogging {
                          metadata: Option[Map[String, String]],
                          name: String,
                          routingNumber: String,
-                         status: Status) extends StripeObject
+                         status: Status)
+      extends StripeObject
 
   implicit val bankAccountReads: Reads[BankAccount] = (
-    (__ \ "id").read[String] ~
+      (__ \ "id").read[String] ~
       (__ \ "account").readNullable[String] ~
       (__ \ "account_holder_name").read[String] ~
       (__ \ "account_holder_type").read[AccountHolderType] ~
@@ -106,34 +105,31 @@ object BankAccounts extends LazyLogging {
       (__ \ "name").read[String] ~
       (__ \ "routing_number").read[String] ~
       (__ \ "status").read[Status]
-    ).tupled.map((BankAccount.apply _).tupled)
+  ).tupled.map((BankAccount.apply _).tupled)
 
-
-  implicit val bankAccountWrites: Writes[BankAccount] =
-    Writes((bankAccount: BankAccount) =>
-      Json.obj(
-        "id" -> bankAccount.id,
-        "object" -> "bank_account",
-        "account" -> bankAccount.account,
-        "account_holder_name" -> bankAccount.accountHolderName,
-        "account_holder_type" -> bankAccount.accountHolderType,
-        "bank_name" -> bankAccount.bankName,
-        "country" -> bankAccount.country,
-        "currency" -> bankAccount.currency,
-        "default_for_currency" -> bankAccount.defaultForCurrency,
-        "fingerprint" -> bankAccount.fingerprint,
-        "last4" -> bankAccount.last4,
-        "metadata" -> bankAccount.metadata,
-        "name" -> bankAccount.name,
-        "routing_number" -> bankAccount.routingNumber,
-        "status" -> bankAccount.status
-      )
-    )
+  implicit val bankAccountWrites: Writes[BankAccount] = Writes(
+      (bankAccount: BankAccount) =>
+        Json.obj(
+            "id" -> bankAccount.id,
+            "object" -> "bank_account",
+            "account" -> bankAccount.account,
+            "account_holder_name" -> bankAccount.accountHolderName,
+            "account_holder_type" -> bankAccount.accountHolderType,
+            "bank_name" -> bankAccount.bankName,
+            "country" -> bankAccount.country,
+            "currency" -> bankAccount.currency,
+            "default_for_currency" -> bankAccount.defaultForCurrency,
+            "fingerprint" -> bankAccount.fingerprint,
+            "last4" -> bankAccount.last4,
+            "metadata" -> bankAccount.metadata,
+            "name" -> bankAccount.name,
+            "routing_number" -> bankAccount.routingNumber,
+            "status" -> bankAccount.status
+      ))
 
   /**
     * @see https://stripe.com/docs/api#create_bank_account-source | external_account
     */
-
   sealed abstract class BankAccountData
 
   object BankAccountData {
@@ -153,59 +149,54 @@ object BankAccounts extends LazyLogging {
         *                          For US bank accounts, this is required and should be the ACH routing number, not the wire
         *                          routing number. If you are providing an IBAN for [[accountNumber]], this field is not required.
         */
-
       case class Object(accountNumber: String,
                         country: String,
                         currency: Currency,
                         accountHolderName: Option[String],
                         accountHolderType: Option[AccountHolderType],
-                        routingNumber: Option[String]) extends Source
+                        routingNumber: Option[String])
+          extends Source
 
       object Object {
 
         def default(accountNumber: String,
                     country: String,
                     currency: Currency): Object = Object(
-          accountNumber,
-          country,
-          currency,
-          None,
-          None,
-          None
+            accountNumber,
+            country,
+            currency,
+            None,
+            None,
+            None
         )
       }
 
       implicit val sourceObjectReads: Reads[Object] = (
-        (__ \ "account_number").read[String] ~
+          (__ \ "account_number").read[String] ~
           (__ \ "country").read[String] ~
           (__ \ "currency").read[Currency] ~
           (__ \ "account_holder_name").readNullable[String] ~
           (__ \ "account_holder_type").readNullable[AccountHolderType] ~
           (__ \ "routing_number").readNullable[String]
-        ).tupled.map((Object.apply _).tupled)
+      ).tupled.map((Object.apply _).tupled)
 
-      implicit val sourceObjectWrites: Writes[Object] =
-        Writes((`object`: Object) =>
-          Json.obj(
-            "account_number" -> `object`.accountNumber,
-            "country" -> `object`.country,
-            "currency" -> `object`.currency,
-            "account_holder_name" -> `object`.accountHolderName,
-            "account_holder_type" -> `object`.accountHolderType,
-            "routing_number" -> `object`.routingNumber
-          )
-        )
+      implicit val sourceObjectWrites: Writes[Object] = Writes(
+          (`object`: Object) =>
+            Json.obj(
+                "account_number" -> `object`.accountNumber,
+                "country" -> `object`.country,
+                "currency" -> `object`.currency,
+                "account_holder_name" -> `object`.accountHolderName,
+                "account_holder_type" -> `object`.accountHolderType,
+                "routing_number" -> `object`.routingNumber
+          ))
 
       case class Token(id: String) extends Source
 
-      implicit val sourceTokenReads: Reads[Token] =
-        Reads.of[String].map(Token)
+      implicit val sourceTokenReads: Reads[Token] = Reads.of[String].map(Token)
 
-      implicit val sourceTokenWrites: Writes[Token] =
-        Writes((token: Token) =>
-          JsString(token.id)
-        )
-
+      implicit val sourceTokenWrites: Writes[Token] = Writes(
+          (token: Token) => JsString(token.id))
     }
 
     sealed abstract class ExternalAccount extends BankAccountData
@@ -223,71 +214,70 @@ object BankAccounts extends LazyLogging {
         *                          For US bank accounts, this is required and should be the ACH routing number, not the wire
         *                          routing number. If you are providing an IBAN for [[accountNumber]], this field is not required.
         */
-
       case class Object(accountNumber: String,
                         country: String,
                         currency: Currency,
                         accountHolderName: Option[String],
                         accountHolderType: Option[AccountHolderType],
-                        routingNumber: Option[String]) extends ExternalAccount
+                        routingNumber: Option[String])
+          extends ExternalAccount
 
       object Object {
         def default(accountNumber: String,
                     country: String,
                     currency: Currency): Object = Object(
-          accountNumber,
-          country,
-          currency,
-          None,
-          None,
-          None
+            accountNumber,
+            country,
+            currency,
+            None,
+            None,
+            None
         )
       }
 
       implicit val externalAccountObjectReads: Reads[Object] = (
-        (__ \ "account_number").read[String] ~
+          (__ \ "account_number").read[String] ~
           (__ \ "country").read[String] ~
           (__ \ "currency").read[Currency] ~
           (__ \ "account_holder_name").readNullable[String] ~
           (__ \ "account_holder_type").readNullable[AccountHolderType] ~
           (__ \ "routing_number").readNullable[String]
-        ).tupled.map((Object.apply _).tupled)
+      ).tupled.map((Object.apply _).tupled)
 
-      implicit val externalAccountObject: Writes[Object] =
-        Writes((`object`: Object) =>
-          Json.obj(
-            "account_number" -> `object`.accountNumber,
-            "country" -> `object`.country,
-            "currency" -> `object`.currency,
-            "account_holder_name" -> `object`.accountHolderName,
-            "account_holder_type" -> `object`.accountHolderType,
-            "routing_number" -> `object`.routingNumber
-          )
-        )
+      implicit val externalAccountObject: Writes[Object] = Writes(
+          (`object`: Object) =>
+            Json.obj(
+                "account_number" -> `object`.accountNumber,
+                "country" -> `object`.country,
+                "currency" -> `object`.currency,
+                "account_holder_name" -> `object`.accountHolderName,
+                "account_holder_type" -> `object`.accountHolderType,
+                "routing_number" -> `object`.routingNumber
+          ))
 
       case class Token(id: String) extends ExternalAccount
 
       implicit val externalAccountTokenReads: Reads[Token] =
         Reads.of[String].map(Token)
 
-      implicit val externalAccountTokenWrites: Writes[Token] =
-        Writes((token: Token) =>
-          JsString(token.id)
-        )
-
+      implicit val externalAccountTokenWrites: Writes[Token] = Writes(
+          (token: Token) => JsString(token.id))
     }
-
   }
 
-  implicit val bankAccountDataWrites: Writes[BankAccountData] =
-    Writes { (bankAccountData: BankAccountData) =>
+  implicit val bankAccountDataWrites: Writes[BankAccountData] = Writes {
+    (bankAccountData: BankAccountData) =>
       bankAccountData match {
-        case bankAccountData: BankAccountData.Source.Object => Json.toJson(bankAccountData)
-        case bankAccountData: BankAccountData.ExternalAccount.Object => Json.toJson(bankAccountData)
-        case bankAccountData: BankAccountData.Source.Token => Json.toJson(bankAccountData)
-        case bankAccountData: BankAccountData.ExternalAccount.Token => Json.toJson(bankAccountData)
+        case bankAccountData: BankAccountData.Source.Object =>
+          Json.toJson(bankAccountData)
+        case bankAccountData: BankAccountData.ExternalAccount.Object =>
+          Json.toJson(bankAccountData)
+        case bankAccountData: BankAccountData.Source.Token =>
+          Json.toJson(bankAccountData)
+        case bankAccountData: BankAccountData.ExternalAccount.Token =>
+          Json.toJson(bankAccountData)
       }
-    }
+  }
 
   /**
     * @see https://stripe.com/docs/api#create_bank_account
@@ -302,18 +292,18 @@ object BankAccounts extends LazyLogging {
     *                           object. It can be useful for storing additional information about the
     *                           external account in a structured format.
     */
-
   case class BankAccountInput(bankAccountData: BankAccountData,
                               defaultForCurrency: Option[Currency],
                               metadata: Option[Map[String, String]])
 
-  def create(customerId: String, bankAccountInput: BankAccountInput)
-            (idempotencyKey: Option[IdempotencyKey] = None)
-            (implicit apiKey: ApiKey,
-             endpoint: Endpoint): Future[Try[BankAccount]] = {
+  def create(customerId: String, bankAccountInput: BankAccountInput)(
+      idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[BankAccount]] = {
     val postFormParameters: Map[String, String] = {
       Map(
-        "default_for_currency" -> bankAccountInput.defaultForCurrency.map(_.toString)
+          "default_for_currency" -> bankAccountInput.defaultForCurrency.map(
+              _.toString)
       )
     }.collect {
       case (k, Some(v)) => (k, v)
@@ -325,24 +315,25 @@ object BankAccounts extends LazyLogging {
           Map("source" -> id)
         case externalAccount: BankAccountData.ExternalAccount.Object =>
           val map = Map(
-            "account_number" -> Option(externalAccount.accountNumber),
-            "country" -> Option(externalAccount.country),
-            "currency" -> Option(externalAccount.currency.iso.toLowerCase),
-            "account_holder_name" -> externalAccount.accountHolderName,
-            "account_holder_type" -> externalAccount.accountHolderType.map(_.id),
-            "routing_number" -> externalAccount.routingNumber
+              "account_number" -> Option(externalAccount.accountNumber),
+              "country" -> Option(externalAccount.country),
+              "currency" -> Option(externalAccount.currency.iso.toLowerCase),
+              "account_holder_name" -> externalAccount.accountHolderName,
+              "account_holder_type" -> externalAccount.accountHolderType.map(
+                  _.id),
+              "routing_number" -> externalAccount.routingNumber
           ).collect {
             case (k, Some(v)) => (k, v)
           }
           mapToPostParams(Option(map), "external_account")
         case source: BankAccountData.Source.Object =>
           val map = Map(
-            "account_number" -> Option(source.accountNumber),
-            "country" -> Option(source.country),
-            "currency" -> Option(source.currency.iso.toLowerCase),
-            "account_holder_name" -> source.accountHolderName,
-            "account_holder_type" -> source.accountHolderType.map(_.id),
-            "routing_number" -> source.routingNumber
+              "account_number" -> Option(source.accountNumber),
+              "country" -> Option(source.country),
+              "currency" -> Option(source.currency.iso.toLowerCase),
+              "account_holder_name" -> source.accountHolderName,
+              "account_holder_type" -> source.accountHolderType.map(_.id),
+              "routing_number" -> source.routingNumber
           ).collect {
             case (k, Some(v)) => (k, v)
           }
@@ -354,29 +345,27 @@ object BankAccounts extends LazyLogging {
 
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources"
 
-    createRequestPOST[BankAccount](finalUrl, postFormParameters, idempotencyKey, logger)
-
+    createRequestPOST[BankAccount](
+        finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(customerId: String,
-          bankAccountId: String)
-         (implicit apiKey: ApiKey,
-          endpoint: Endpoint): Future[Try[BankAccount]] = {
-    val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$bankAccountId"
+  def get(customerId: String, bankAccountId: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[BankAccount]] = {
+    val finalUrl =
+      endpoint.url + s"/v1/customers/$customerId/sources/$bankAccountId"
 
     createRequestGET[BankAccount](finalUrl, logger)
-
   }
 
-  def delete(customerId: String,
-             bankAccountId: String)
-            (idempotencyKey: Option[IdempotencyKey] = None)
-            (implicit apiKey: ApiKey,
-             endpoint: Endpoint): Future[Try[DeleteResponse]] = {
-    val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$bankAccountId"
+  def delete(customerId: String, bankAccountId: String)(
+      idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+    val finalUrl =
+      endpoint.url + s"/v1/customers/$customerId/sources/$bankAccountId"
 
     createRequestDELETE(finalUrl, idempotencyKey, logger)
-
   }
 
   /**
@@ -393,58 +382,54 @@ object BankAccounts extends LazyLogging {
     *                      subsequent call can include [[startingAfter]]=obj_foo in order 
     *                      to fetch the next page of the list.
     */
-
   case class BankAccountListInput(endingBefore: Option[String],
                                   limit: Option[Long],
                                   startingAfter: Option[String])
 
   object BankAccountListInput {
     def default: BankAccountListInput = BankAccountListInput(
-      None,
-      None,
-      None
+        None,
+        None,
+        None
     )
   }
 
   case class BankAccountList(override val url: String,
                              override val hasMore: Boolean,
                              override val data: List[BankAccount],
-                             override val totalCount: Option[Long]
-                            )
-    extends Collections.List[BankAccount](url, hasMore, data, totalCount)
+                             override val totalCount: Option[Long])
+      extends Collections.List[BankAccount](url, hasMore, data, totalCount)
 
   object BankAccountList extends Collections.ListJsonMappers[BankAccount] {
     implicit val bankAccountListReads: Reads[BankAccountList] =
       listReads.tupled.map((BankAccountList.apply _).tupled)
 
-    implicit val bankAccountListWrites: Writes[BankAccountList] =
-      listWrites
+    implicit val bankAccountListWrites: Writes[BankAccountList] = listWrites
   }
 
   def list(customerId: String,
            bankAccountListInput: BankAccountListInput,
-           includeTotalCount: Boolean)
-          (implicit apiKey: ApiKey,
-           endpoint: Endpoint): Future[Try[BankAccountList]] = {
+           includeTotalCount: Boolean)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[BankAccountList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
-      val totalCountUrl = if (includeTotalCount)
-        "/include[]=total_count"
-      else
-        ""
+      val totalCountUrl =
+        if (includeTotalCount)
+          "/include[]=total_count"
+        else
+          ""
 
-      val baseUrl = endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
+      val baseUrl =
+        endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
 
       (baseUrl ?
-        ("object" -> "bank_account") ?
-        ("ending_before" -> bankAccountListInput.endingBefore) ?
-        ("limit" -> bankAccountListInput.limit.map(_.toString)) ?
-        ("starting_after" -> bankAccountListInput.startingAfter)
-        ).toString()
+          ("object" -> "bank_account") ?
+          ("ending_before" -> bankAccountListInput.endingBefore) ?
+          ("limit" -> bankAccountListInput.limit.map(_.toString)) ?
+          ("starting_after" -> bankAccountListInput.startingAfter)).toString()
     }
 
     createRequestGET[BankAccountList](finalUrl, logger)
-
   }
-
 }

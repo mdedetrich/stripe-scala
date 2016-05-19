@@ -27,11 +27,10 @@ package object v1 {
     * @param apiKey
     * @return
     */
-
   private[v1] def createRequestDELETE(finalUrl: String,
                                       idempotencyKey: Option[IdempotencyKey],
-                                      logger: Logger)
-                                     (implicit apiKey: ApiKey): Future[Try[DeleteResponse]] = {
+                                      logger: Logger)(
+      implicit apiKey: ApiKey): Future[Try[DeleteResponse]] = {
     import dispatch.Defaults._
     import dispatch._
 
@@ -47,15 +46,20 @@ package object v1 {
     }
 
     Http(req).map { response =>
-
       parseStripeServerError(response, finalUrl, None, None)(logger) match {
         case Right(triedJsValue) =>
           triedJsValue.map { jsValue =>
             val jsResult = Json.fromJson[DeleteResponse](jsValue)
             jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, deleteResponse => deleteResponse
+                errors => {
+                  throw InvalidJsonModelException(response.getStatusCode,
+                                                  finalUrl,
+                                                  None,
+                                                  None,
+                                                  jsValue,
+                                                  errors)
+                },
+                deleteResponse => deleteResponse
             )
           }
         case Left(error) =>
@@ -75,26 +79,28 @@ package object v1 {
     * @tparam M The model which this request should return
     * @return
     */
-
-  private[v1] def createRequestGET[M](finalUrl: String,
-                                      logger: Logger)
-                                     (implicit reads: Reads[M],
-                                      apiKey: ApiKey): Future[Try[M]] = {
+  private[v1] def createRequestGET[M](finalUrl: String, logger: Logger)(
+      implicit reads: Reads[M], apiKey: ApiKey): Future[Try[M]] = {
     import dispatch.Defaults._
     import dispatch._
 
     val req = url(finalUrl).GET.as(apiKey.apiKey, "")
 
     Http(req).map { response =>
-
       parseStripeServerError(response, finalUrl, None, None)(logger) match {
         case Right(triedJsValue) =>
           triedJsValue.map { jsValue =>
             val jsResult = Json.fromJson[M](jsValue)
             jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              }, model => model
+                errors => {
+                  throw InvalidJsonModelException(response.getStatusCode,
+                                                  finalUrl,
+                                                  None,
+                                                  None,
+                                                  jsValue,
+                                                  errors)
+                },
+                model => model
             )
           }
         case Left(error) =>
@@ -116,22 +122,20 @@ package object v1 {
     * @tparam M The model which this request should return
     * @return
     */
-
   private[v1] def createRequestPOST[M](finalUrl: String,
                                        postFormParameters: Map[String, String],
                                        idempotencyKey: Option[IdempotencyKey],
-                                       logger: Logger)
-                                      (implicit reads: Reads[M],
-                                       apiKey: ApiKey): Future[Try[M]] = {
+                                       logger: Logger)(
+      implicit reads: Reads[M], apiKey: ApiKey): Future[Try[M]] = {
     import dispatch.Defaults._
     import dispatch._
 
     val req = {
       val r = (
-        url(finalUrl)
-          .addHeader("Content-Type", "application/x-www-form-urlencoded")
-          << postFormParameters
-        ).POST.as(apiKey.apiKey, "")
+          url(finalUrl).addHeader(
+              "Content-Type",
+              "application/x-www-form-urlencoded") << postFormParameters
+      ).POST.as(apiKey.apiKey, "")
 
       idempotencyKey match {
         case Some(key) =>
@@ -142,15 +146,21 @@ package object v1 {
     }
 
     Http(req).map { response =>
-
-      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
+      parseStripeServerError(
+          response, finalUrl, Option(postFormParameters), None)(logger) match {
         case Right(triedJsValue) =>
           triedJsValue.map { jsValue =>
             val jsResult = Json.fromJson[M](jsValue)
             jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, Option(postFormParameters), None, jsValue, errors)
-              }, model => model
+                errors => {
+                  throw InvalidJsonModelException(response.getStatusCode,
+                                                  finalUrl,
+                                                  Option(postFormParameters),
+                                                  None,
+                                                  jsValue,
+                                                  errors)
+                },
+                model => model
             )
           }
         case Left(error) =>
@@ -159,15 +169,17 @@ package object v1 {
     }
   }
 
-  private[v1] def listFilterInputToUri(createdInput: ListFilterInput, baseUrl: String, key: String): com.netaporter.uri.Uri = {
+  private[v1] def listFilterInputToUri(createdInput: ListFilterInput,
+                                       baseUrl: String,
+                                       key: String): com.netaporter.uri.Uri = {
     import com.netaporter.uri.dsl._
     createdInput match {
       case c: ListFilterInput.Object =>
         baseUrl ?
-          (s"$key[gt]" -> c.gt.map(stripeDateTimeParamWrites)) ?
-          (s"$key[gte]" -> c.gte.map(stripeDateTimeParamWrites)) ?
-          (s"$key[lt]" -> c.lt.map(stripeDateTimeParamWrites)) ?
-          (s"$key[lte]" -> c.lte.map(stripeDateTimeParamWrites))
+        (s"$key[gt]" -> c.gt.map(stripeDateTimeParamWrites)) ?
+        (s"$key[gte]" -> c.gte.map(stripeDateTimeParamWrites)) ?
+        (s"$key[lt]" -> c.lt.map(stripeDateTimeParamWrites)) ?
+        (s"$key[lte]" -> c.lte.map(stripeDateTimeParamWrites))
       case c: ListFilterInput.Timestamp =>
         baseUrl ? (s"$key" -> Option(stripeDateTimeParamWrites(c.timestamp)))
     }
@@ -181,7 +193,6 @@ package object v1 {
     * @param param
     * @return
     */
-
   def transformParam(param: String): String = {
     "_([a-z\\d])".r.replaceAllIn(param, { m =>
       m.group(1).toUpperCase()
@@ -190,19 +201,22 @@ package object v1 {
 
   // Stripe stores timestamps in Unix time https://support.stripe.com/questions/what-timezone-does-the-dashboard-and-api-use
 
-  def stripeDateTimeParamWrites(dateTime: OffsetDateTime): String = dateTime.get(ChronoField.OFFSET_SECONDS).toString
+  def stripeDateTimeParamWrites(dateTime: OffsetDateTime): String =
+    dateTime.get(ChronoField.OFFSET_SECONDS).toString
 
-  val stripeDateTimeReads: Reads[OffsetDateTime] =
-    Reads.of[Long].map { timestamp =>
-      OffsetDateTime.ofInstant(Instant.ofEpochSecond(timestamp),ZoneOffset.UTC)
-    }
+  val stripeDateTimeReads: Reads[OffsetDateTime] = Reads.of[Long].map {
+    timestamp =>
+      OffsetDateTime.ofInstant(
+          Instant.ofEpochSecond(timestamp), ZoneOffset.UTC)
+  }
 
-  val stripeDateTimeWrites: Writes[OffsetDateTime] =
-    Writes { (dateTime: OffsetDateTime) =>
+  val stripeDateTimeWrites: Writes[OffsetDateTime] = Writes {
+    (dateTime: OffsetDateTime) =>
       JsNumber(dateTime.get(ChronoField.OFFSET_SECONDS))
-    }
+  }
 
-  val stripeDateTimeFormats: Format[OffsetDateTime] = Format(stripeDateTimeReads, stripeDateTimeWrites)
+  val stripeDateTimeFormats: Format[OffsetDateTime] = Format(
+      stripeDateTimeReads, stripeDateTimeWrites)
 
   /**
     * A function which does the simplest ideal handling for making a stripe request.
@@ -215,17 +229,15 @@ package object v1 {
     * @tparam T The returning Stripe object for the request
     * @return
     */
-
   def handleIdempotent[T](request: => Option[IdempotencyKey] => Future[Try[T]],
-                          numberOfRetries: Int = Config.numberOfRetries
-                         )
-                         (implicit executionContext: ExecutionContext): Future[T] = {
+                          numberOfRetries: Int = Config.numberOfRetries)(
+      implicit executionContext: ExecutionContext): Future[T] = {
 
-    val idempotencyKey = Option(IdempotencyKey(java.util.UUID.randomUUID.toString))
+    val idempotencyKey = Option(
+        IdempotencyKey(java.util.UUID.randomUUID.toString))
 
     handle(request(idempotencyKey), numberOfRetries)
   }
-
 
   /**
     * A function which does the simplest ideal handling for making a stripe request.
@@ -237,11 +249,9 @@ package object v1 {
     * @tparam T The returning Stripe object for the request
     * @return
     */
-
-
   def handle[T](request: Future[Try[T]],
-                numberOfRetries: Int = Config.numberOfRetries
-               )(implicit executionContext: ExecutionContext): Future[T] = {
+                numberOfRetries: Int = Config.numberOfRetries)(
+      implicit executionContext: ExecutionContext): Future[T] = {
     def responseBlock = request
 
     def responseBlockWithRetries(currentRetryCount: Int): Future[Try[T]] = {
@@ -251,36 +261,42 @@ package object v1 {
         }
       } else {
         responseBlock.flatMap {
-          case scala.util.Success(customer) => Future {
-            Success {
-              customer
+          case scala.util.Success(customer) =>
+            Future {
+              Success {
+                customer
+              }
             }
-          }
           case scala.util.Failure(failure) =>
             failure match {
               case Errors.Error.RequestFailed(error, _, _, _) =>
                 // According to documentation, these errors imply some sought of network error so we should retry
                 error match {
-                  case Errors.Type.ApiError => responseBlockWithRetries(currentRetryCount + 1)
-                  case Errors.Type.ApiConnectionError => responseBlockWithRetries(currentRetryCount + 1)
-                  case _ => Future.failed {
-                    failure
-                  }
+                  case Errors.Type.ApiError =>
+                    responseBlockWithRetries(currentRetryCount + 1)
+                  case Errors.Type.ApiConnectionError =>
+                    responseBlockWithRetries(currentRetryCount + 1)
+                  case _ =>
+                    Future.failed {
+                      failure
+                    }
                 }
               case Errors.Error.TooManyRequests(_, _, _, _) =>
                 responseBlockWithRetries(currentRetryCount + 1)
-              case _ => Future.failed {
-                failure
-              }
+              case _ =>
+                Future.failed {
+                  failure
+                }
             }
         }
       }
     }
 
     responseBlockWithRetries(0).flatMap {
-      case Success(success) => Future {
-        success
-      }
+      case Success(success) =>
+        Future {
+          success
+        }
       case Failure(throwable) =>
         Future.failed(throwable)
     }
@@ -289,9 +305,7 @@ package object v1 {
   /**
     * This is a header constat to specify a Idempotency-Key
     */
-
   private[v1] val idempotencyKeyHeader = "Idempotency-Key"
-
 
   /**
     * Parses a response from dispatch and attempts to do error process handling for specific stripe errors
@@ -304,48 +318,55 @@ package object v1 {
     *         https://stripe.com/docs/api/curl#errors. Will return a [[Right]] if no server errors
     *         are made. Will throw an [[UnhandledServerError]] or [[StripeServerError]] for uncaught errors.
     */
-
-  private[v1] def parseStripeServerError(response: Response,
-                                         finalUrl: String,
-                                         postFormParameters: Option[Map[String, String]],
-                                         postJsonParameters: Option[JsValue])
-                                        (implicit logger: Logger): Either[Errors.Error, Try[JsValue]] = {
+  private[v1] def parseStripeServerError(
+      response: Response,
+      finalUrl: String,
+      postFormParameters: Option[Map[String, String]],
+      postJsonParameters: Option[JsValue])(
+      implicit logger: Logger): Either[Errors.Error, Try[JsValue]] = {
     val httpCode = response.getStatusCode
 
     logger.debug(s"Response status code is $httpCode")
 
-    logger.debug(s"Response retrieved from $finalUrl is \n${
-      response.getResponseBody
-    }")
+    logger.debug(
+        s"Response retrieved from $finalUrl is \n${response.getResponseBody}")
 
     httpCode match {
       case code if code / 100 == 2 =>
         Right(Parser.parseFromByteBuffer(response.getResponseBodyAsByteBuffer))
       case 400 | 401 | 402 | 404 | 429 =>
-        val jsonResponse = Parser.parseFromByteBuffer(response.getResponseBodyAsByteBuffer).map { jsValue =>
-          val path = __ \ "error"
-          val jsResult: JsResult[Error] = httpCode match {
-            case 400 =>
-              path.read[Error.BadRequest].reads(jsValue)
-            case 401 =>
-              path.read[Error.Unauthorized].reads(jsValue)
-            case 402 =>
-              path.read[Error.RequestFailed].reads(jsValue)
-            case 404 =>
-              path.read[Error.NotFound].reads(jsValue)
-            case 429 =>
-              path.read[Error.TooManyRequests].reads(jsValue)
+        val jsonResponse = Parser
+          .parseFromByteBuffer(response.getResponseBodyAsByteBuffer)
+          .map { jsValue =>
+            val path = __ \ "error"
+            val jsResult: JsResult[Error] = httpCode match {
+              case 400 =>
+                path.read[Error.BadRequest].reads(jsValue)
+              case 401 =>
+                path.read[Error.Unauthorized].reads(jsValue)
+              case 402 =>
+                path.read[Error.RequestFailed].reads(jsValue)
+              case 404 =>
+                path.read[Error.NotFound].reads(jsValue)
+              case 429 =>
+                path.read[Error.TooManyRequests].reads(jsValue)
+            }
+
+            val error = jsResult.fold(
+                errors => {
+                  val error = InvalidJsonModelException(httpCode,
+                                                        finalUrl,
+                                                        postFormParameters,
+                                                        postJsonParameters,
+                                                        jsValue,
+                                                        errors)
+                  throw error
+                },
+                error => error
+            )
+
+            error
           }
-
-          val error = jsResult.fold(
-            errors => {
-              val error = InvalidJsonModelException(httpCode, finalUrl, postFormParameters, postJsonParameters, jsValue, errors)
-              throw error
-            }, error => error
-          )
-
-          error
-        }
 
         Left {
           jsonResponse match {
@@ -359,18 +380,18 @@ package object v1 {
       case _ =>
         throw UnhandledServerError(response)
     }
-
   }
 
-  private[v1] def mapToPostParams(optionalMap: Option[Map[String, String]], parentKey: String) = {
+  private[v1] def mapToPostParams(
+      optionalMap: Option[Map[String, String]], parentKey: String) = {
     optionalMap match {
       case Some(map) =>
-        map.map { case (key, value) =>
-          s"$parentKey[$key]" -> value
+        map.map {
+          case (key, value) =>
+            s"$parentKey[$key]" -> value
         }
       case None =>
         Map.empty
     }
   }
-
 }

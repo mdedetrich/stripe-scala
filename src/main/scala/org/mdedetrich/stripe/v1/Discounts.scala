@@ -11,27 +11,25 @@ object Discounts {
                       customer: String,
                       end: OffsetDateTime,
                       start: OffsetDateTime,
-                      subscription: Option[String]
-                     ) extends StripeObject
+                      subscription: Option[String])
+      extends StripeObject
 
   implicit val discountReads: Reads[Discount] = (
-    (__ \ "coupon").read[Coupon] ~
+      (__ \ "coupon").read[Coupon] ~
       (__ \ "customer").read[String] ~
       (__ \ "end").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "start").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "subscription").readNullable[String]
-    ).tupled.map((Discount.apply _).tupled)
+  ).tupled.map((Discount.apply _).tupled)
 
-  implicit val discountWrites: Writes[Discount] =
-    Writes((discount: Discount) =>
-      Json.obj(
-        "object" -> "discount",
-        "coupon" -> discount.coupon,
-        "customer" -> discount.customer,
-        "end" -> Json.toJson(discount.end)(stripeDateTimeWrites),
-        "start" -> Json.toJson(discount.start)(stripeDateTimeWrites),
-        "subscription" -> discount.subscription
-      )
-    )
-
+  implicit val discountWrites: Writes[Discount] = Writes(
+      (discount: Discount) =>
+        Json.obj(
+            "object" -> "discount",
+            "coupon" -> discount.coupon,
+            "customer" -> discount.customer,
+            "end" -> Json.toJson(discount.end)(stripeDateTimeWrites),
+            "start" -> Json.toJson(discount.start)(stripeDateTimeWrites),
+            "subscription" -> discount.subscription
+      ))
 }
