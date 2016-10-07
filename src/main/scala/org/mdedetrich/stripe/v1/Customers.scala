@@ -22,7 +22,7 @@ object Customers extends LazyLogging {
   case class Customer(id: String,
                       accountBalance: BigDecimal,
                       created: OffsetDateTime,
-                      currency: Currency,
+                      currency: Option[Currency],
                       defaultSource: Option[String],
                       delinquent: Boolean,
                       description: Option[String],
@@ -48,7 +48,7 @@ object Customers extends LazyLogging {
         id,
         accountBalance,
         created,
-        currency,
+        None,
         None,
         delinquent,
         None,
@@ -66,7 +66,7 @@ object Customers extends LazyLogging {
       (__ \ "id").read[String] ~
       (__ \ "account_balance").read[BigDecimal] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").read[Currency] ~
+      (__ \ "currency").readNullable[Currency] ~
       (__ \ "default_source").readNullable[String] ~
       (__ \ "delinquent").read[Boolean] ~
       (__ \ "description").readNullable[String] ~

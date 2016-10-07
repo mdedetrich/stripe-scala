@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+
+  <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <charset>UTF-8</charset>
+      <Pattern>%d [%thread] %-5level %logger - %msg%n</Pattern>
+    </encoder>
+  </appender>
+
+
+  <!--logger name="com.ning.http.client" level="error"/-->
+  <!--logger name="org.mdedetrich.stripe" level="error"/-->
+
+  <root level="DEBUG">
+    <appender-ref ref="consoleAppender" />
+  </root>
+</configuration>

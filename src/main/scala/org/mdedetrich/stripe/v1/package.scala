@@ -4,7 +4,6 @@ import java.time.{Instant, OffsetDateTime, ZoneOffset}
 
 import com.ning.http.client.Response
 import com.typesafe.scalalogging.Logger
-import jawn.support.play.Parser
 import java.time.temporal.ChronoField
 
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
@@ -221,7 +220,7 @@ package object v1 {
   /**
     * A function which does the simplest ideal handling for making a stripe request.
     * It handles specific stripe errors, and will retry the request for errors that
-    * indicate some sought of network error. It uses the Stripe idempotency key to make
+    * indicate some sort of network error. It uses the Stripe idempotency key to make
     * sure that duplicate side effects (such as creating multiple charges) do not happen
     *
     * @param request         The request that you are making with Stripe
@@ -242,7 +241,7 @@ package object v1 {
   /**
     * A function which does the simplest ideal handling for making a stripe request.
     * It handles specific stripe errors, and will retry the request for errors that
-    * indicate some sought of network error.
+    * indicate some sort of network error.
     *
     * @param request         The request that you are making with Stripe
     * @param numberOfRetries Number of retries, provided by default in [[org.mdedetrich.stripe.Config]]
@@ -333,10 +332,10 @@ package object v1 {
 
     httpCode match {
       case code if code / 100 == 2 =>
-        Right(Parser.parseFromByteBuffer(response.getResponseBodyAsByteBuffer))
+        Right(Try(Json.parse(response.getResponseBodyAsStream)))
       case 400 | 401 | 402 | 404 | 429 =>
-        val jsonResponse = Parser
-          .parseFromByteBuffer(response.getResponseBodyAsByteBuffer)
+        val jsonResponse = Try(Json
+          .parse(response.getResponseBodyAsStream))
           .map { jsValue =>
             val path = __ \ "error"
             val jsResult: JsResult[Error] = httpCode match {

@@ -21,6 +21,10 @@ object Shippings {
                      postalCode: Option[String],
                      state: Option[String])
 
+  object Address {
+    def default: Address = Address(None, None, None, None, None, None)
+  }
+
   implicit val addressReads: Reads[Address] = (
       (__ \ "city").readNullable[String] ~
       (__ \ "country").readNullable[String] ~
@@ -44,11 +48,11 @@ object Shippings {
   /**
     * @see https://stripe.com/docs/api#charge_object-shipping
     * @param address        Shipping address.
-    * @param carrier        The delivery service that shipped a physical product, 
+    * @param carrier        The delivery service that shipped a physical product,
     *                       such as Fedex, UPS, USPS, etc.
     * @param name           Recipient name.
     * @param phone          Recipient phone (including extension).
-    * @param trackingNumber The tracking number for a physical product, 
+    * @param trackingNumber The tracking number for a physical product,
     *                       obtained from the delivery service.
     *                       If multiple tracking numbers
     *                       were generated for this purchase, please
