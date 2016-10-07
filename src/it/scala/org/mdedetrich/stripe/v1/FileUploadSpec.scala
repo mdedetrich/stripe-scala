@@ -1,5 +1,7 @@
 package org.mdedetrich.stripe.v1
 
+import java.time.OffsetDateTime
+
 import org.mdedetrich.stripe.v1.FileUploads.Purpose
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.time.{Millis, Seconds, Span}
@@ -17,8 +19,7 @@ class FileUploadSpec extends WordSpec with Matchers with ScalaFutures {
       import scala.concurrent.ExecutionContext.Implicits.global
 
       val is = this.getClass.getResourceAsStream("/id-card.jpg")
-      val upload = FileUploads.FileUpload(Purpose.IdentityDocument, is)
-      val uploadF = handle(FileUploads.upload(upload))
+      val uploadF = handle(FileUploads.upload(Purpose.IdentityDocument, s"file-upload-${OffsetDateTime.now}.jpg", is))
 
       whenReady(uploadF) { u =>
         u shouldBe a[JsValue]
