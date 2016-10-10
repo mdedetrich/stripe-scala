@@ -4,6 +4,7 @@ import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.mdedetrich.playjson.Utils._
+import org.mdedetrich.stripe.v1.BankAccountsPaymentSource.BankAccount
 import org.mdedetrich.stripe.v1.BitcoinReceivers.BitcoinReceiver
 import org.mdedetrich.stripe.v1.Cards.Card
 import org.mdedetrich.stripe.v1.Collections.ListJsonMappers
@@ -28,7 +29,7 @@ object PaymentSource extends LazyLogging {
     __.read[JsObject].flatMap { o =>
       (__ \ "object").read[String].flatMap {
         case "card" => __.read[Card].map(x => x: PaymentSource)
-        case "bank_account" => __.read[BankAccountsPaymentSource.BankAccount](BankAccountsPaymentSource.bankAccountFormat).map(_.asInstanceOf[PaymentSource])
+        case "bank_account" => __.read[BankAccount].map(_.asInstanceOf[PaymentSource])
         case "bitcoin_receiver" =>
           __.read[BitcoinReceiver].map(x => x: PaymentSource)
         case unknown =>
@@ -42,7 +43,7 @@ object PaymentSource extends LazyLogging {
         paymentSource match {
       case c: Card => Json.toJson(c)
       case b: BitcoinReceiver => Json.toJson(b)
-      case ba: BankAccountsPaymentSource.BankAccount => Json.toJson(ba)
+      case ba: BankAccount => Json.toJson(ba)(BankAccountsPaymentSource.bankAccountWrites)
   })
 }
 
@@ -845,7 +846,8 @@ object Cards extends LazyLogging {
 
 object BankAccountsPaymentSource extends LazyLogging {
   case class BankAccount(id: String) extends StripeObject with PaymentSource
-  implicit val bankAccountFormat = Json.format[BankAccount]
+  implicit val bankAccountWrites: Writes[BankAccount] = Json.writes[BankAccount]
+  implicit val bankAccountReads: Reads[BankAccount] = Json.reads[BankAccount]
 }
 
 object BitcoinReceivers extends LazyLogging {
