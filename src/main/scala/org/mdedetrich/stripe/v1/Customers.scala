@@ -1,15 +1,17 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
 import com.typesafe.scalalogging.LazyLogging
 import org.mdedetrich.playjson.Utils._
+import org.mdedetrich.stripe.v1.Customers.Source.Token
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.PaymentSourceList._
 import org.mdedetrich.stripe.v1.Shippings.Shipping
 import org.mdedetrich.stripe.v1.Sources.BaseCardSource
 import org.mdedetrich.stripe.v1.Subscriptions.Subscription
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -273,6 +275,17 @@ object Customers extends LazyLogging {
                   Json.toJson(x)(stripeDateTimeWrites))
       ))
 
+  case class CustomerUpdate(
+    paymentSource: Option[Token]
+  )
+
+  implicit val customerUpdatePostParams = new PostParams[CustomerUpdate] {
+    override def toMap(t: CustomerUpdate): Map[String, String] =
+      Map("source" -> t.paymentSource.map(_.id)).collect({ case (key, Some(value)) => (key, value) })
+  }
+
+  // CRUD methods
+
   def create(customerInput: CustomerInput)(
       idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Customer]] = {
@@ -354,6 +367,16 @@ object Customers extends LazyLogging {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
     createRequestGET[Customer](finalUrl, logger)
+  }
+
+
+  def update(id: String, customerUpdate: CustomerUpdate)
+            (idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Customer]] = {
+
+    val finalUrl = endpoint.url + s"/v1/customers/$id"
+    val postParams = PostParams.toPostParams(customerUpdate)
+    createRequestPOST[Customer](finalUrl, postParams, idempotencyKey, logger)
   }
 
   def delete(id: String)(idempotencyKey: Option[IdempotencyKey] = None)(

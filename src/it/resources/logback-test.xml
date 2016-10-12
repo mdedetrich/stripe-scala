@@ -12,7 +12,7 @@
   <logger name="com.ning.http.client.providers.netty.channel.pool.DefaultChannelPool" level="error"/>
   <logger name="com.ning.http.client.providers.netty.handler.Processor" level="error"/>
   <logger name="com.ning.http.client.providers.netty.request.NettyRequestSender" level="error"/>
-  <!--logger name="org.mdedetrich.stripe" level="error"/-->
+  <logger name="org.mdedetrich.stripe" level="info"/>
 
   <root level="info">
     <appender-ref ref="consoleAppender" />
