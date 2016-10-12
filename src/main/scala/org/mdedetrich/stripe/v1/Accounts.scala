@@ -5,7 +5,6 @@ import java.time.{LocalDate, OffsetDateTime}
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum.{Enum, EnumEntry, EnumFormats}
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
-import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData.ExternalAccount
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.v1.Shippings.Address
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
@@ -108,6 +107,7 @@ object Accounts extends LazyLogging {
   // Account
   //
   case class Account( id: String,
+                      metadata: Map[String, String],
                       chargesEnabled: Boolean,
                       country: String,
                       debitNegativeBalances: Boolean,
@@ -121,6 +121,7 @@ object Accounts extends LazyLogging {
 
   implicit val accountReads: Reads[Account] = (
       (__ \ "id").read[String] ~
+      (__ \ "metadata").read[Map[String, String]] ~
       (__ \ "charges_enabled").read[Boolean] ~
       (__ \ "country").read[String] ~
       (__ \ "debit_negative_balances").read[Boolean] ~
@@ -138,13 +139,22 @@ object Accounts extends LazyLogging {
   // Account input
   //
   case class AccountInput(
-    managed: Boolean
+    managed: Boolean,
+    metadata: Map[String, String]
   )
 
   object AccountInput {
     def default: AccountInput = AccountInput(
-        false
+      false,
+      Map.empty
     )
+  }
+
+  implicit val accountInputPostParams = new PostParams[AccountInput] {
+    override def toMap(update: AccountInput): Map[String, String] =
+      Map(
+        "managed" -> update.managed.toString
+      ) ++ PostParams.toPostParams("metadata", update.metadata)
   }
 
   //
@@ -195,16 +205,14 @@ object Accounts extends LazyLogging {
       idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Account]] = {
 
-    val postFormParameters: Map[String, String] = Map(
-      "managed" -> accountInput.managed.toString
-    )
+    val postParams: Map[String, String] = PostParams.toPostParams(accountInput)
 
-    logger.debug(s"Generated POST form parameters is $postFormParameters")
+    logger.debug(s"Generated POST form parameters is $postParams")
 
     val finalUrl = endpoint.url + "/v1/accounts"
 
     createRequestPOST[Account](
-        finalUrl, postFormParameters, idempotencyKey, logger)
+        finalUrl, postParams, idempotencyKey, logger)
   }
 
   def update(id: String, update: AccountUpdate)

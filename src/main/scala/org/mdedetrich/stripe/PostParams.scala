@@ -6,4 +6,8 @@ trait PostParams[T] {
 
 object PostParams {
   def toPostParams[T](t: T)(implicit postParams: PostParams[T]): Map[String, String] = postParams.toMap(t)
+
+  def toPostParams(prefix: String, input: Map[String, String]): Map[String, String] = input.map({
+    case (key, value) => (s"$prefix[$key]", value)
+  })
 }
