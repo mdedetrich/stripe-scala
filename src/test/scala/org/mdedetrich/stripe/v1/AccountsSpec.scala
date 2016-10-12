@@ -3,7 +3,7 @@ package org.mdedetrich.stripe.v1
 import java.time.{LocalDate, OffsetDateTime}
 
 import org.mdedetrich.stripe.PostParams
-import org.mdedetrich.stripe.v1.Accounts.{Account, AccountUpdate, LegalEntity, TosAcceptance}
+import org.mdedetrich.stripe.v1.Accounts.{Account, AccountInput, AccountUpdate, LegalEntity, TosAcceptance}
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
 import org.mdedetrich.stripe.v1.Shippings.Address
 import org.scalatest.{Matchers, WordSpec}
@@ -18,6 +18,19 @@ class AccountsSpec extends WordSpec with Matchers {
       val JsSuccess(account, _) = json.validate[Account]
       account.id should be("acct_191dzJG5YhaiJXJY")
       account.legalEntity.address.country should be(Some("DE"))
+    }
+  }
+
+  "Account create POST params" should {
+
+    "convert tos acceptance" in {
+      val now = OffsetDateTime.now()
+      val ip = "120.0.0.1"
+      val update = AccountInput.default.copy(tosAcceptance = Some(TosAcceptance(Some(now), Some(ip))))
+      val map = PostParams.toPostParams(update)
+
+      map("tos_acceptance[date]") should be(now.toEpochSecond.toString)
+      map("tos_acceptance[ip]") should be(ip)
     }
   }
 

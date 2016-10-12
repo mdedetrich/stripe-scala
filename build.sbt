@@ -18,7 +18,8 @@ resolvers ++= Seq(
 
 scalacOptions ++= Seq(
   "-target:jvm-1.8",
-  "-encoding", "UTF-8",
+  "-encoding",
+  "UTF-8",
   "-deprecation", // warning and location for usages of deprecated APIs
   "-feature", // warning and location for usages of features that should be imported explicitly
   "-unchecked", // additional warnings where generated code depends on assumptions
@@ -31,7 +32,6 @@ scalacOptions ++= Seq(
   "-language:postfixOps"
 )
 
-
 Defaults.itSettings
 
 configs(IntegrationTest)
@@ -39,15 +39,14 @@ configs(IntegrationTest)
 val enumeratumVersion = "1.3.7"
 
 libraryDependencies ++= Seq(
-  "net.databinder.dispatch" %% "dispatch-core" % "0.11.3",
-  "com.beachape" %% "enumeratum" % enumeratumVersion,
-  "com.beachape" %% "enumeratum-play-json" % enumeratumVersion,
-  "com.iheart" %% "ficus" % "1.2.2",
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-  "com.netaporter" %% "scala-uri" % "0.4.13",
-  "com.typesafe.play" %% "play-json" % "2.5.6",
-
+  "net.databinder.dispatch"    %% "dispatch-core"        % "0.11.3",
+  "com.beachape"               %% "enumeratum"           % enumeratumVersion,
+  "com.beachape"               %% "enumeratum-play-json" % enumeratumVersion,
+  "com.iheart"                 %% "ficus"                % "1.2.2",
+  "com.typesafe.scala-logging" %% "scala-logging"        % "3.1.0",
+  "com.netaporter"             %% "scala-uri"            % "0.4.13",
+  "com.typesafe.play"          %% "play-json"            % "2.5.6",
   // test
-  "org.scalatest" %% "scalatest" % "3.0.0" % "test, it",
+  "org.scalatest"  %% "scalatest"      % "3.0.0" % "test, it",
   "ch.qos.logback" % "logback-classic" % "1.1.7" % "test, it"
 )

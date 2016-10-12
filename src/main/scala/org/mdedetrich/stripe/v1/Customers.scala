@@ -220,7 +220,7 @@ object Customers extends LazyLogging {
                            coupon: Option[String],
                            description: Option[String],
                            email: Option[String],
-                           metadata: Option[Map[String, String]],
+                           metadata: Map[String, String],
                            plan: Option[String],
                            quantity: Option[Long],
                            shipping: Option[Shipping],
@@ -234,7 +234,7 @@ object Customers extends LazyLogging {
         None,
         None,
         None,
-        None,
+        Map.empty,
         None,
         None,
         None,
@@ -249,7 +249,7 @@ object Customers extends LazyLogging {
       (__ \ "coupon").readNullable[String] ~
       (__ \ "description").readNullable[String] ~
       (__ \ "email").readNullable[String] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
+      (__ \ "metadata").read[Map[String, String]] ~
       (__ \ "plan").readNullable[String] ~
       (__ \ "quantity").readNullable[Long] ~
       (__ \ "shipping").readNullable[Shipping] ~
@@ -302,7 +302,7 @@ object Customers extends LazyLogging {
       ).collect {
         case (k, Some(v)) => (k, v)
       }
-    } ++ mapToPostParams(customerInput.metadata, "metadata") ++ {
+    } ++ PostParams.toPostParams("metadata", customerInput.metadata) ++ {
       customerInput.source match {
         case Some(
             Source.Card(

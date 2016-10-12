@@ -22,6 +22,13 @@ object Accounts extends LazyLogging {
     ip: Option[String]
   )
 
+  implicit val tosAcceptancePostParams: PostParams[TosAcceptance] = new PostParams[TosAcceptance] {
+    override def toMap(t: TosAcceptance): Map[String, String] = Map(
+      "date" -> t.date.map(d => d.toEpochSecond.toString),
+      "ip" -> t.ip
+    ).collect({ case (key, Some(value)) => (key, value) })
+  }
+
   implicit val tosAcceptanceReads: Reads[TosAcceptance] = (
       (__ \ "date").readNullable[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "ip").readNullable[String]
@@ -140,13 +147,15 @@ object Accounts extends LazyLogging {
   //
   case class AccountInput(
     managed: Boolean,
-    metadata: Map[String, String]
+    metadata: Map[String, String],
+    tosAcceptance: Option[TosAcceptance]
   )
 
   object AccountInput {
     def default: AccountInput = AccountInput(
       false,
-      Map.empty
+      Map.empty,
+      None
     )
   }
 
@@ -154,7 +163,10 @@ object Accounts extends LazyLogging {
     override def toMap(update: AccountInput): Map[String, String] =
       Map(
         "managed" -> update.managed.toString
-      ) ++ PostParams.toPostParams("metadata", update.metadata)
+
+      ) ++
+        PostParams.toPostParams("metadata", update.metadata) ++
+        PostParams.toPostParams("tos_acceptance", update.tosAcceptance)
   }
 
   //
@@ -186,14 +198,13 @@ object Accounts extends LazyLogging {
         "legal_entity[dob][year]" -> update.legalEntity.flatMap(_.dob.map(_.getYear.toString)),
         "legal_entity[dob][month]" -> update.legalEntity.flatMap(_.dob.map(_.getMonthValue.toString)),
         "legal_entity[dob][day]" -> update.legalEntity.flatMap(_.dob.map(_.getDayOfMonth.toString)),
-        "tos_acceptance[date]" -> update.tosAcceptance.flatMap(_.date.map(d => d.toEpochSecond.toString)),
-        "tos_acceptance[ip]" -> update.tosAcceptance.flatMap(_.ip),
         "external_account[object]" -> update.externalAccount.map(_ => "bank_account"),
         "external_account[account_number]" -> update.externalAccount.map(_.accountNumber),
         "external_account[country]" -> update.externalAccount.map(_.country),
         "external_account[currency]" -> update.externalAccount.map(_.currency.iso)
       )
-      postParams.collect({ case (key, Some(value)) => (key, value) })
+      postParams.collect({ case (key, Some(value)) => (key, value) }) ++
+        PostParams.toPostParams("tos_acceptance", update.tosAcceptance)
     }
   }
 
