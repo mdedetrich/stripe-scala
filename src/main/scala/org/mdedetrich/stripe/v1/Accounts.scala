@@ -23,10 +23,10 @@ object Accounts extends LazyLogging {
   )
 
   implicit val tosAcceptancePostParams: PostParams[TosAcceptance] = new PostParams[TosAcceptance] {
-    override def toMap(t: TosAcceptance): Map[String, String] = Map(
+    override def toMap(t: TosAcceptance): Map[String, String] = flatten(Map(
       "date" -> t.date.map(d => d.toEpochSecond.toString),
       "ip" -> t.ip
-    ).collect({ case (key, Some(value)) => (key, value) })
+    ))
   }
 
   implicit val tosAcceptanceReads: Reads[TosAcceptance] = (
@@ -142,12 +142,32 @@ object Accounts extends LazyLogging {
 
   implicit val accountWrites: Writes[Account] = Json.writes[Account]
 
+  implicit val legalEntityPostParams = new PostParams[LegalEntity] {
+    override def toMap(legalEntity: LegalEntity): Map[String, String] = {
+      val postParams = Map(
+        "first_name" -> legalEntity.firstName,
+        "last_name" -> legalEntity.lastName,
+        "type" -> legalEntity.`type`.map(_.entryName),
+        "address[line1]" -> legalEntity.address.line1,
+        "address[line2]" -> legalEntity.address.line2,
+        "address[postal_code]" -> legalEntity.address.postalCode,
+        "address[city]" -> legalEntity.address.city,
+        "address[country]" -> legalEntity.address.country,
+        "dob[year]" -> legalEntity.dob.map(_.getYear.toString),
+        "dob[month]" -> legalEntity.dob.map(_.getMonthValue.toString),
+        "dob[day]" -> legalEntity.dob.map(_.getDayOfMonth.toString)
+      )
+      flatten(postParams)
+    }
+  }
+
   //
   // Account input
   //
   case class AccountInput(
     managed: Boolean,
     metadata: Map[String, String],
+    legalEntity: Option[LegalEntity],
     tosAcceptance: Option[TosAcceptance]
   )
 
@@ -155,6 +175,7 @@ object Accounts extends LazyLogging {
     def default: AccountInput = AccountInput(
       false,
       Map.empty,
+      None,
       None
     )
   }
@@ -163,10 +184,10 @@ object Accounts extends LazyLogging {
     override def toMap(update: AccountInput): Map[String, String] =
       Map(
         "managed" -> update.managed.toString
-
       ) ++
         PostParams.toPostParams("metadata", update.metadata) ++
-        PostParams.toPostParams("tos_acceptance", update.tosAcceptance)
+        PostParams.toPostParams("tos_acceptance", update.tosAcceptance) ++
+        PostParams.toPostParams("legal_entity", update.legalEntity)
   }
 
   //
@@ -185,26 +206,16 @@ object Accounts extends LazyLogging {
 
   implicit val accountUpdatePostParams = new PostParams[AccountUpdate] {
     override def toMap(update: AccountUpdate): Map[String, String] = {
-      val postParams: Map[String, Option[String]] = Map(
+      val postParams = Map(
         "default_currency" -> update.defaultCurrency.map(_.iso),
-        "legal_entity[first_name]" -> update.legalEntity.flatMap(_.firstName),
-        "legal_entity[last_name]" -> update.legalEntity.flatMap(_.lastName),
-        "legal_entity[type]" -> update.legalEntity.flatMap(_.`type`.map(_.entryName)),
-        "legal_entity[address][line1]" -> update.legalEntity.flatMap(_.address.line1),
-        "legal_entity[address][line2]" -> update.legalEntity.flatMap(_.address.line2),
-        "legal_entity[address][postal_code]" -> update.legalEntity.flatMap(_.address.postalCode),
-        "legal_entity[address][city]" -> update.legalEntity.flatMap(_.address.city),
-        "legal_entity[address][country]" -> update.legalEntity.flatMap(_.address.country),
-        "legal_entity[dob][year]" -> update.legalEntity.flatMap(_.dob.map(_.getYear.toString)),
-        "legal_entity[dob][month]" -> update.legalEntity.flatMap(_.dob.map(_.getMonthValue.toString)),
-        "legal_entity[dob][day]" -> update.legalEntity.flatMap(_.dob.map(_.getDayOfMonth.toString)),
         "external_account[object]" -> update.externalAccount.map(_ => "bank_account"),
         "external_account[account_number]" -> update.externalAccount.map(_.accountNumber),
         "external_account[country]" -> update.externalAccount.map(_.country),
         "external_account[currency]" -> update.externalAccount.map(_.currency.iso)
       )
-      postParams.collect({ case (key, Some(value)) => (key, value) }) ++
-        PostParams.toPostParams("tos_acceptance", update.tosAcceptance)
+      flatten(postParams) ++
+        PostParams.toPostParams("tos_acceptance", update.tosAcceptance) ++
+        PostParams.toPostParams("legal_entity", update.legalEntity)
     }
   }
 

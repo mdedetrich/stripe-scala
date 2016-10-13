@@ -10,6 +10,14 @@ import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsSuccess, Json}
 
 class AccountsSpec extends WordSpec with Matchers {
+  val address = Address.default.copy(
+        line1 = Some("Široka ulica"),
+        line2 = Some("Apartman B1"),
+        postalCode = Some("1234"),
+        city = Some("Zadar"),
+        country = Some("HR")
+      )
+
   "Accounts" should {
     "parse JSON correctly" in {
       val in = this.getClass.getResourceAsStream("/account.json")
@@ -32,6 +40,17 @@ class AccountsSpec extends WordSpec with Matchers {
       map("tos_acceptance[date]") should be(now.toEpochSecond.toString)
       map("tos_acceptance[ip]") should be(ip)
     }
+
+    "convert address" in {
+      val input = AccountInput.default.copy(legalEntity = Some(LegalEntity.default.copy(address = address)))
+      val map = PostParams.toPostParams(input)
+
+      map("legal_entity[address][line1]") should be(address.line1.get)
+      map("legal_entity[address][line2]") should be(address.line2.get)
+      map("legal_entity[address][city]") should be(address.city.get)
+      map("legal_entity[address][postal_code]") should be(address.postalCode.get)
+      map("legal_entity[address][country]") should be(address.country.get)
+    }
   }
 
   "Account update POST params" should {
@@ -44,13 +63,6 @@ class AccountsSpec extends WordSpec with Matchers {
     }
 
     "convert address" in {
-      val address = Address.default.copy(
-        line1 = Some("Široka ulica"),
-        line2 = Some("Apartman B1"),
-        postalCode = Some("1234"),
-        city = Some("Zadar"),
-        country = Some("HR")
-      )
       val update = AccountUpdate.default.copy(legalEntity = Some(LegalEntity.default.copy(address = address)))
       val map = PostParams.toPostParams(update)
 
