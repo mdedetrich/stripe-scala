@@ -7,29 +7,25 @@ import org.mdedetrich.stripe.v1.Accounts.LegalEntityType.Individual
 import org.mdedetrich.stripe.v1.Accounts.{Account, LegalEntity, TosAcceptance}
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class AccountIT extends IntegrationTest {
 
-  val testCard = "4242424242424242"
-
   "Account" should {
     "create a managed account into which money can be paid" in {
 
-      val accountF = AccountIT.createManagedAccountWithBankAccount
+      val managedAccount = AccountIT.createManagedAccountWithBankAccount
 
-      whenReady(accountF) { account =>
+      whenReady(managedAccount) { account =>
         account shouldBe a[Accounts.Account]
         account.metadata should be(AccountIT.meta)
         account.transfersEnabled should be(true)
       }
     }
   }
-
 }
 
-object AccountIT {
+object AccountIT extends DefaultExecutionContext{
 
   val meta = Map("foo" -> "bar")
 

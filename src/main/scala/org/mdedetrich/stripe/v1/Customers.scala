@@ -9,7 +9,7 @@ import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.PaymentSourceList._
 import org.mdedetrich.stripe.v1.Shippings.Shipping
-import org.mdedetrich.stripe.v1.Sources.BaseCardSource
+import org.mdedetrich.stripe.v1.Sources.NumberCardSource
 import org.mdedetrich.stripe.v1.Subscriptions.Subscription
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 import play.api.data.validation.ValidationError
@@ -122,7 +122,7 @@ object Customers extends LazyLogging {
                     metadata: Option[Map[String, String]],
                     name: Option[String])
         extends Source
-        with BaseCardSource
+        with NumberCardSource
 
     object Card {
       def default(expMonth: Int,

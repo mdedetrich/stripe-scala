@@ -4,15 +4,13 @@
   <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <charset>UTF-8</charset>
-      <Pattern>%d [%thread] %-5level %logger - %msg%n</Pattern>
+      <Pattern>%date{HH:mm:ss} %-5level %logger{10} - %msg%n</Pattern>
     </encoder>
   </appender>
 
 
-  <logger name="com.ning.http.client.providers.netty.channel.pool.DefaultChannelPool" level="error"/>
-  <logger name="com.ning.http.client.providers.netty.handler.Processor" level="error"/>
-  <logger name="com.ning.http.client.providers.netty.request.NettyRequestSender" level="error"/>
-  <logger name="org.mdedetrich.stripe" level="info"/>
+  <logger name="com.ning.http.client" level="error"/>
+  <logger name="org.mdedetrich.stripe" level="error"/>
 
   <root level="info">
     <appender-ref ref="consoleAppender" />

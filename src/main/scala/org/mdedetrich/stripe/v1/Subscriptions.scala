@@ -6,7 +6,7 @@ import enumeratum._
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.Plans.Plan
-import org.mdedetrich.stripe.v1.Sources.BaseCardSource
+import org.mdedetrich.stripe.v1.Sources.NumberCardSource
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
@@ -242,7 +242,7 @@ object Subscriptions extends LazyLogging {
                     cvc: Option[String],
                     name: Option[String])
         extends Source
-        with BaseCardSource
+        with NumberCardSource
   }
 
   implicit val sourceReads: Reads[Source] = {
