@@ -233,8 +233,7 @@ object Accounts extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/accounts"
 
-    createRequestPOST[Account](
-        finalUrl, postParams, idempotencyKey, logger)
+    createRequestPOST[Account](finalUrl, postParams, idempotencyKey, logger)
   }
 
   def update(id: String, update: AccountUpdate)
