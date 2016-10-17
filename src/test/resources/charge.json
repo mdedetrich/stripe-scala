@@ -3,7 +3,7 @@
   "object": "charge",
   "amount": 100,
   "amount_refunded": 0,
-  "application_fee": null,
+  "application_fee": "fee_9OKMRHcB2CcVPD",
   "balance_transaction": "txn_194UQbJ6y4jvjvHhpSrlsiWe",
   "captured": true,
   "created": 1476446684,

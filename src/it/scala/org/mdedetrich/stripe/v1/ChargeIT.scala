@@ -9,10 +9,10 @@ import org.mdedetrich.stripe.v1.Charges.Source.Customer
 class ChargeIT extends IntegrationTest {
 
   "Charge" should {
-    "transfer money from a customer credit card into the bank account of a managed account" in {
+    "transfer money from a customer credit card into the bank account of a managed account and add a fee for the platform" in {
 
       def chargeInput(destination: String, customer: Customer): ChargeInput =
-        Charges.ChargeInput.default(1500, Currency.`Euro`, capture = true, destination, customer)
+        Charges.ChargeInput.default(1500, Currency.`Euro`, capture = true, destination, customer).copy(applicationFee = Some(100))
 
       val customerF = CustomerIT.createCustomerWithCC
       val accountF = AccountIT.createManagedAccountWithBankAccount
