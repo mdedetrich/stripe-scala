@@ -195,7 +195,7 @@ object Accounts extends LazyLogging {
   //
   case class AccountUpdate(
     legalEntity: Option[LegalEntity],
-    externalAccount: Option[BankAccountData.Source.Object],
+    externalAccount: Option[BankAccountData.Source],
     defaultCurrency: Option[Currency],
     tosAcceptance: Option[TosAcceptance]
   )
@@ -206,14 +206,14 @@ object Accounts extends LazyLogging {
 
   implicit val accountUpdatePostParams = new PostParams[AccountUpdate] {
     override def toMap(update: AccountUpdate): Map[String, String] = {
-      val postParams = Map(
-        "default_currency" -> update.defaultCurrency.map(_.iso),
-        "external_account[object]" -> update.externalAccount.map(_ => "bank_account"),
-        "external_account[account_number]" -> update.externalAccount.map(_.accountNumber),
-        "external_account[country]" -> update.externalAccount.map(_.country),
-        "external_account[currency]" -> update.externalAccount.map(_.currency.iso)
-      )
-      flatten(postParams) ++
+      val defaultCurrency = Map("default_currency" -> update.defaultCurrency.map(_.iso))
+
+      val externalAccount = update.externalAccount.map({
+        case o: BankAccountData.Source.Object => PostParams.toPostParams("external_account", o)
+        case token: BankAccountData.Source.Token => Map("external_account" -> token.id)
+      }).getOrElse(Map.empty)
+
+      flatten(defaultCurrency) ++ externalAccount ++
         PostParams.toPostParams("tos_acceptance", update.tosAcceptance) ++
         PostParams.toPostParams("legal_entity", update.legalEntity)
     }

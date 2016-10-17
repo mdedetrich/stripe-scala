@@ -12,7 +12,7 @@ class ChargeIT extends IntegrationTest {
     "transfer money from a customer credit card into the bank account of a managed account" in {
 
       def chargeInput(destination: String, customer: Customer): ChargeInput =
-        Charges.ChargeInput.default(100, Currency.`Euro`, capture = true, destination, customer)
+        Charges.ChargeInput.default(1500, Currency.`Euro`, capture = true, destination, customer)
 
       val customerF = CustomerIT.createCustomerWithCC
       val accountF = AccountIT.createManagedAccountWithBankAccount

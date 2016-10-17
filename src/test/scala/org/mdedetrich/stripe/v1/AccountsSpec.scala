@@ -103,12 +103,21 @@ class AccountsSpec extends WordSpec with Matchers {
       map("tos_acceptance[ip]") should be(ipAddress)
     }
 
-    "convert external account token" in {
+    "convert external account data" in {
       val bankAccount = BankAccountData.Source.Object.default("DE89370400440532013000", "DE", Currency.`Euro`)
       val update = AccountUpdate.default.copy(externalAccount = Some(bankAccount))
       val map = PostParams.toPostParams(update)
 
       map("external_account[object]") should be("bank_account")
+    }
+
+    "convert external account token" in {
+      val token = "bach:the-complete-organ-works"
+      val bankAccount = BankAccountData.Source.Token(token)
+      val update = AccountUpdate.default.copy(externalAccount = Some(bankAccount))
+      val map = PostParams.toPostParams(update)
+
+      map("external_account") should be(token)
     }
   }
 }
