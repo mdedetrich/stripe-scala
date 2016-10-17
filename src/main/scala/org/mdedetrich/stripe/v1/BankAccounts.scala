@@ -76,16 +76,16 @@ object BankAccounts extends LazyLogging {
     */
   case class BankAccount(id: String,
                          account: Option[String],
-                         accountHolderName: String,
-                         accountHolderType: AccountHolderType,
+                         accountHolderName: Option[String],
+                         accountHolderType: Option[AccountHolderType],
                          bankName: String,
                          country: String,
                          currency: Currency,
-                         defaultForCurrency: Boolean,
+                         defaultForCurrency: Option[Boolean],
                          fingerprint: String,
                          last4: String,
                          metadata: Option[Map[String, String]],
-                         name: String,
+                         name: Option[String],
                          routingNumber: String,
                          status: Status)
       extends StripeObject
@@ -93,16 +93,16 @@ object BankAccounts extends LazyLogging {
   implicit val bankAccountReads: Reads[BankAccount] = (
       (__ \ "id").read[String] ~
       (__ \ "account").readNullable[String] ~
-      (__ \ "account_holder_name").read[String] ~
-      (__ \ "account_holder_type").read[AccountHolderType] ~
+      (__ \ "account_holder_name").readNullable[String] ~
+      (__ \ "account_holder_type").readNullable[AccountHolderType] ~
       (__ \ "bank_name").read[String] ~
       (__ \ "country").read[String] ~
       (__ \ "currency").read[Currency] ~
-      (__ \ "default_for_currency").read[Boolean] ~
+      (__ \ "default_for_currency").readNullable[Boolean] ~
       (__ \ "fingerprint").read[String] ~
       (__ \ "last4").read[String] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "name").read[String] ~
+      (__ \ "name").readNullable[String] ~
       (__ \ "routing_number").read[String] ~
       (__ \ "status").read[Status]
   ).tupled.map((BankAccount.apply _).tupled)
