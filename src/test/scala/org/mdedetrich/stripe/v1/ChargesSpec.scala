@@ -22,13 +22,12 @@ class ChargesSpec extends WordSpec with Matchers {
 
     "put customer charge params" in {
       val customerId = "cus_9MwGfABXdXQKLD"
-      val accountId = "acct_191dzJG5YhaiJXJY"
 
       val customerSource = Charges.Source.Customer(customerId)
 
       // must be here for the next line to not throw an NPE
       Currency.lowerCaseNamesToValuesMap
-      val input = Charges.ChargeInput.default(100, Currency.`Euro`, capture = true, accountId, customerSource)
+      val input = Charges.ChargeInput.default(100, Currency.`Euro`, capture = true, customerSource)
       val params = PostParams.toPostParams(input)
 
       params("customer") should be(customerId)

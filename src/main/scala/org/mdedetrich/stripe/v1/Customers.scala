@@ -369,6 +369,21 @@ object Customers extends LazyLogging {
     createRequestGET[Customer](finalUrl, logger)
   }
 
+  /**
+    * API call which does no parsing but returns the Stripe customer API response as is.
+    *
+    * This is useful for when you want to use the Stripe Mobile SDK and parse the API response on the device in order
+    * to use the UI for selecting a payment method.
+    *
+    * @see https://stripe.github.io/stripe-ios/docs/Protocols/STPBackendAPIAdapter.html
+    */
+  def getCustomerJson(id: String)(
+      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[JsValue]] = {
+    val finalUrl = endpoint.url + s"/v1/customers/$id"
+
+    createRequestGET[JsValue](finalUrl, logger)
+  }
+
 
   def update(id: String, customerUpdate: CustomerUpdate)
             (idempotencyKey: Option[IdempotencyKey] = None)(

@@ -445,7 +445,7 @@ object Charges extends LazyLogging {
                          applicationFee: Option[BigDecimal],
                          capture: Boolean,
                          description: Option[String],
-                         destination: String,
+                         destination: Option[String],
                          metadata: Map[String, String],
                          receiptEmail: Option[String],
                          shipping: Option[Shipping],
@@ -474,7 +474,6 @@ object Charges extends LazyLogging {
     def default(amount: BigDecimal,
                 currency: Currency,
                 capture: Boolean,
-                destination: String,
                 source: Source.Card): ChargeInput =
       ChargeInput(
         amount,
@@ -482,7 +481,7 @@ object Charges extends LazyLogging {
         None,
         capture,
         None,
-        destination,
+        None,
         Map.empty,
         None,
         None,
@@ -494,7 +493,6 @@ object Charges extends LazyLogging {
     def default(amount: BigDecimal,
                 currency: Currency,
                 capture: Boolean,
-                destination: String,
                 customer: Source.Customer): ChargeInput =
       ChargeInput(
         amount,
@@ -502,7 +500,7 @@ object Charges extends LazyLogging {
         None,
         capture,
         None,
-        destination,
+        None,
         Map.empty,
         None,
         None,
@@ -537,7 +535,7 @@ object Charges extends LazyLogging {
         "application_fee" -> chargeInput.applicationFee.map(_.toString),
         "capture" -> Option(chargeInput.capture.toString),
         "description" -> chargeInput.description,
-        "destination" -> Option(chargeInput.destination),
+        "destination" -> chargeInput.destination,
         "receipt_email" -> chargeInput.receiptEmail,
         "customer" -> chargeInput.customer.map(_.id),
         "statement_descriptor" -> chargeInput.statementDescriptor

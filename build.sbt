@@ -36,7 +36,7 @@ Defaults.itSettings
 
 configs(IntegrationTest)
 
-val enumeratumVersion = "1.3.7"
+val enumeratumVersion = "1.4.16"
 
 libraryDependencies ++= Seq(
   "net.databinder.dispatch"    %% "dispatch-core"        % "0.11.3",

@@ -41,7 +41,7 @@ object PaymentSource extends LazyLogging {
   implicit val paymentSourceWrites: Writes[PaymentSource] = Writes(
       (paymentSource: PaymentSource) =>
         paymentSource match {
-      case c: Card => Json.toJson(c)
+      case c: Card => Json.toJson(c)(Cards.cardWrites)
       case b: BitcoinReceiver => Json.toJson(b)
       case ba: BankAccount => Json.toJson(ba)(BankAccountsPaymentSource.bankAccountWrites)
   })
