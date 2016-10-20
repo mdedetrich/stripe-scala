@@ -7,12 +7,11 @@ stripe-scala is a wrapper over the [Stripe](https://stripe.com/) [REST api](http
 case classes) and lets you create requests from typed case classes (rather than just using Java `Map<String,Object>`)
 
 ## Libraries Used
-- [play-json](https://www.playframework.com/documentation/2.4.x/ScalaJson) for JSON (play-json provides compile time macros for 
+- [play-json](https://www.playframework.com/documentation/2.4.x/ScalaJson) for JSON (play-json provides compile time macros for
 reading/writing JSON from/to scala case classes). It also provides a very powerful API for validating/querying JSON
 - [dispatch](https://github.com/dispatch/reboot) for making HTTP requests
-- [jawn](https://github.com/non/jawn) for parsing the response from dispatch to a play-json
 - [ficus](https://github.com/iheartradio/ficus) for providing config (via [typesafe-config](https://github.com/typesafehub/config))
-- [enumeratum](https://github.com/lloydmeta/enumeratum) for providing typesafe enumerations on stripe enum models as well 
+- [enumeratum](https://github.com/lloydmeta/enumeratum) for providing typesafe enumerations on stripe enum models as well
 - [scala-uri](https://github.com/NET-A-PORTER/scala-uri) for providing a URI DSL to generate query parameters for list operations
 play-json formats for such models
 
@@ -35,7 +34,7 @@ libraryDependencies ++= Seq(
 
 ## TODO for release
 - [ ] Add all operations for all endpoints
-- [ ] Add tests
+- [x] Add tests
 - [ ] Shade jawn/scala-uri/enumeratum if possible. These dependencies don't need to be exposed to users
 - [ ] Document Stripe API with ScalaDoc
 - [x] Figure out how to deal with list collections
@@ -52,16 +51,16 @@ libraryDependencies ++= Seq(
 - [ ] Webhooks/Events
 
 ## Usage
-Stripe Api key and url endpoint are provided implicitly by using the `org.mdedetrich.stripe.ApiKey` and `org.mdedetrich.stripe.Endpoint` 
+Stripe Api key and url endpoint are provided implicitly by using the `org.mdedetrich.stripe.ApiKey` and `org.mdedetrich.stripe.Endpoint`
 types. The `org.mdedetrich.stripe.Config` object provides these keys through environment variables/system settings (see `application.conf`
 for more details), although you can manually provide your own implicit `ApiKey` and `Endpoint` instances.
- 
+
 All base responses made are in the format of `Future[Try[T]]` where `T` is the model for the object being returned (i.e. creating a charge
 will return a `Future[Try[Charges.Charge]]`). If there is an error in making the response that involves either invalid JSON or an error
-in mapping the JSON to the models  `case class`, this will throw an exception which you need to catch 
+in mapping the JSON to the models  `case class`, this will throw an exception which you need to catch
 as a failed `Future` (it is by design that the models defined in stripe-scala are correct and that stripe does actually return valid JSON).
 
-If there however is a checked error (such as an invalid API key) this will not throw an exception, 
+If there however is a checked error (such as an invalid API key) this will not throw an exception,
 instead it will be contained within the `Try` monad (i.e. you will get a `scala.util.Failure`)
 
 The second parameter for stripe POST requests (often named as create in stripe-scala) has an optional `idempotencyKey` which defaults
@@ -79,9 +78,9 @@ val customerInput: Customers.CustomerInput = ??? // Some customer input
 val response: Future[Customers.Customer] = handleIdempotent(Customers.create(customerInput))
 ```
 
-For the most part you will want to use `handleIdempotent`/`handle` however if you want 
+For the most part you will want to use `handleIdempotent`/`handle` however if you want
 more fine grained control over potential errors then you can use the various `.create`/`.get` methods
- 
+
 ### Default methods
 The stripe object models in stripe-scala provide a `.default` method on the companion object which simplifies creating
 the stripe models
@@ -136,7 +135,7 @@ These functions are exposed publicly via the [package object](https://github.com
 
 ### Dealing with Card Errors
 Since error messages from stripe are properly checked, dealing with errors like invalid CVC when adding a card are very easy to do.
-Here is an example (we assume that you are using Play, but this can work with any web framework. Only `OK`,`BadRequest` and `Json.obj` 
+Here is an example (we assume that you are using Play, but this can work with any web framework. Only `OK`,`BadRequest` and `Json.obj`
 are Play related methods)
 
 ```scala
@@ -172,7 +171,7 @@ val futureResponse = handleIdempotent(Cards.create(stripeCustomerId, cardInput))
 }
 ```
 
-We attempt to create a card, and if it fails due to a `CardError` we use the `.recover` 
+We attempt to create a card, and if it fails due to a `CardError` we use the `.recover`
 method on a `Future` with pattern matching to map it to a `BadRequest`. If the request passes, we simply wrap the
 card data around an `Ok`. If we don't catch something of type `CardError` we let it propagate as a failed `Future`.
 
@@ -180,7 +179,7 @@ One thing to note is the `transformParam` function. Since scala-stripe uses came
 returned params for error messages from stripe will use snake case (i.e. "exp_month"). `transformParam` will convert
 that to a "expMonth".
 
-If you try and run the above code (remembering to implement `stripeCustomerId`) with that credit card number 
+If you try and run the above code (remembering to implement `stripeCustomerId`) with that credit card number
 in a test environment it should return an incorrect CVC, see [stripe testing](https://stripe.com/docs/testing)
 for more info.
 
@@ -202,3 +201,12 @@ stripe can return items in the form a of a list which has the following format
 In stripe-scala, there is a base List collection at `org.mdedetrich.stripe.v1.Collections.List` with represents
 the model for the list. Other stripe objects extend `org.mdedetrich.stripe.v1.Collections.List` to provide an implementation
 of the object as a list collection, i.e. `BankAccountList` for `BankAccount`
+
+### Testing
+
+The project has unit and integration tests. These can be run with:
+
+```
+sbt test
+sbt it:test
+```
