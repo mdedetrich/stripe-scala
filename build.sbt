@@ -45,7 +45,8 @@ libraryDependencies ++= Seq(
   "com.iheart"                 %% "ficus"                % "1.2.2",
   "com.typesafe.scala-logging" %% "scala-logging"        % "3.1.0",
   "com.netaporter"             %% "scala-uri"            % "0.4.13",
-  "com.typesafe.play"          %% "play-json"            % "2.5.6",
+  "com.typesafe.play"          %% "play-json"            % "2.5.8",
+  "org.spire-math"             %% "jawn-play"            % "0.10.1",
   // test
   "org.scalatest"  %% "scalatest"      % "3.0.0" % "test, it",
   "ch.qos.logback" % "logback-classic" % "1.1.7" % "test, it"
