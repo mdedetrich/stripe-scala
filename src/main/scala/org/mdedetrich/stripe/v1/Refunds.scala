@@ -61,7 +61,7 @@ object Refunds extends LazyLogging {
                     receiptNumber: String)
 
   implicit val refundReads: Reads[Refund] = (
-      (__ \ "id").read[String] ~
+    (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "balance_transaction").read[String] ~
       (__ \ "charge").read[String] ~
@@ -73,18 +73,18 @@ object Refunds extends LazyLogging {
   ).tupled.map((Refund.apply _).tupled)
 
   implicit val refundWrites: Writes[Refund] = Writes(
-      (refundData: Refund) =>
-        Json.obj(
-            "id" -> refundData.id,
-            "amount" -> refundData.amount,
-            "balanceTransaction" -> refundData.balanceTransaction,
-            "charge" -> refundData.charge,
-            "created" -> Json.toJson(refundData.created)(stripeDateTimeWrites),
-            "currency" -> refundData.currency,
-            "metadata" -> refundData.metadata,
-            "reason" -> refundData.reason,
-            "receipt_number" -> refundData.receiptNumber
-      ))
+    (refundData: Refund) =>
+      Json.obj(
+        "id"                 -> refundData.id,
+        "amount"             -> refundData.amount,
+        "balanceTransaction" -> refundData.balanceTransaction,
+        "charge"             -> refundData.charge,
+        "created"            -> Json.toJson(refundData.created)(stripeDateTimeWrites),
+        "currency"           -> refundData.currency,
+        "metadata"           -> refundData.metadata,
+        "reason"             -> refundData.reason,
+        "receipt_number"     -> refundData.receiptNumber
+    ))
 
   /**
     * @see https://stripe.com/docs/api#create_refund
@@ -130,7 +130,7 @@ object Refunds extends LazyLogging {
                          reverseTransfer: Option[Boolean])
 
   implicit val refundInputReads: Reads[RefundInput] = (
-      (__ \ "charge").read[String] ~
+    (__ \ "charge").read[String] ~
       (__ \ "amount").readNullable[BigDecimal] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "reason").read[Reason] ~
@@ -139,27 +139,26 @@ object Refunds extends LazyLogging {
   ).tupled.map((RefundInput.apply _).tupled)
 
   implicit val refundInputWrites: Writes[RefundInput] = Writes(
-      (refundInput: RefundInput) =>
-        Json.obj(
-            "charge" -> refundInput.charge,
-            "amount" -> refundInput.amount,
-            "metadata" -> refundInput.metadata,
-            "reason" -> refundInput.reason,
-            "refund_application_fee" -> refundInput.refundApplicationFee,
-            "reverse_transfer" -> refundInput.reverseTransfer
-      ))
+    (refundInput: RefundInput) =>
+      Json.obj(
+        "charge"                 -> refundInput.charge,
+        "amount"                 -> refundInput.amount,
+        "metadata"               -> refundInput.metadata,
+        "reason"                 -> refundInput.reason,
+        "refund_application_fee" -> refundInput.refundApplicationFee,
+        "reverse_transfer"       -> refundInput.reverseTransfer
+    ))
 
-  def create(refundInput: RefundInput)(
-      idempotencyKey: Option[IdempotencyKey] = None)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Refund]] = {
+  def create(refundInput: RefundInput)(idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[Refund]] = {
     val postFormParameters: Map[String, String] = {
       Map(
-          "charge" -> Option(refundInput.charge),
-          "amount" -> refundInput.amount.map(_.toString()),
-          "reason" -> Option(refundInput.reason.id),
-          "refund_application_fee" -> refundInput.refundApplicationFee.map(
-              _.toString),
-          "reverse_transfer" -> refundInput.reverseTransfer.map(_.toString)
+        "charge"                 -> Option(refundInput.charge),
+        "amount"                 -> refundInput.amount.map(_.toString()),
+        "reason"                 -> Option(refundInput.reason.id),
+        "refund_application_fee" -> refundInput.refundApplicationFee.map(_.toString),
+        "reverse_transfer"       -> refundInput.reverseTransfer.map(_.toString)
       ).collect {
         case (k, Some(v)) => (k, v)
       }
@@ -169,12 +168,10 @@ object Refunds extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/customers"
 
-    createRequestPOST[Refund](
-        finalUrl, postFormParameters, idempotencyKey, logger)
+    createRequestPOST[Refund](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Refund]] = {
+  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Refund]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
     createRequestGET[Refund](finalUrl, logger)
@@ -207,10 +204,10 @@ object Refunds extends LazyLogging {
 
   object RefundListInput {
     def default: RefundListInput = RefundListInput(
-        None,
-        None,
-        None,
-        None
+      None,
+      None,
+      None,
+      None
     )
   }
 
@@ -219,10 +216,10 @@ object Refunds extends LazyLogging {
                         override val data: List[Refund],
                         override val totalCount: Option[Long])
       extends Collections.List[Refund](
-          url,
-          hasMore,
-          data,
-          totalCount
+        url,
+        hasMore,
+        data,
+        totalCount
       )
 
   object RefundList extends Collections.ListJsonMappers[Refund] {
@@ -232,8 +229,8 @@ object Refunds extends LazyLogging {
     implicit val refundListWrites: Writes[RefundList] = listWrites
   }
 
-  def list(refundListInput: RefundListInput, includeTotalCount: Boolean)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[RefundList]] = {
+  def list(refundListInput: RefundListInput,
+           includeTotalCount: Boolean)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[RefundList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =
@@ -245,10 +242,10 @@ object Refunds extends LazyLogging {
       val baseUrl = endpoint.url + s"/v1/refunds$totalCountUrl"
 
       (baseUrl ?
-          ("charge" -> refundListInput.charge) ?
-          ("ending_before" -> refundListInput.endingBefore) ?
-          ("limit" -> refundListInput.limit.map(_.toString)) ?
-          ("starting_after" -> refundListInput.startingAfter)).toString()
+        ("charge" -> refundListInput.charge) ?
+        ("ending_before" -> refundListInput.endingBefore) ?
+        ("limit" -> refundListInput.limit.map(_.toString)) ?
+        ("starting_after" -> refundListInput.startingAfter)).toString()
     }
 
     createRequestGET[RefundList](finalUrl, logger)

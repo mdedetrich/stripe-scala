@@ -15,24 +15,19 @@ object Events {
 
     case object AccountUpdated extends Type("account.updated")
 
-    case object AccountApplicationDeauthorized
-        extends Type("account.application.deauthorized")
+    case object AccountApplicationDeauthorized extends Type("account.application.deauthorized")
 
-    case object AccountExternalAccountCreated
-        extends Type("account.external_account.created")
+    case object AccountExternalAccountCreated extends Type("account.external_account.created")
 
-    case object AccountExternalAccountDeleted
-        extends Type("account.external_account.deleted")
+    case object AccountExternalAccountDeleted extends Type("account.external_account.deleted")
 
-    case object AccountExternalAccountUpdated
-        extends Type("account.external_account.updated")
+    case object AccountExternalAccountUpdated extends Type("account.external_account.updated")
 
     case object ApplicationFeeCreated extends Type("application_fee.created")
 
     case object ApplicationFeeRefunded extends Type("application_fee.refunded")
 
-    case object ApplicationFeeRefundUpdated
-        extends Type("application_fee.refund.updated")
+    case object ApplicationFeeRefundUpdated extends Type("application_fee.refund.updated")
 
     case object BalanceAvailable extends Type("balance.available")
 
@@ -42,8 +37,7 @@ object Events {
 
     case object BitcoinReceiverUpdated extends Type("bitcoin.receiver.updated")
 
-    case object BitcoinReceiverTransactionCreated
-        extends Type("bitcoin.receiver.transaction.created")
+    case object BitcoinReceiverTransactionCreated extends Type("bitcoin.receiver.transaction.created")
 
     case object ChargeCaptured extends Type("charge.captured")
 
@@ -59,11 +53,9 @@ object Events {
 
     case object ChargeDisputeCreated extends Type("harge.dispute.created")
 
-    case object ChargeDisputeFundsReinstated
-        extends Type("charge.dispute.funds_reinstated")
+    case object ChargeDisputeFundsReinstated extends Type("charge.dispute.funds_reinstated")
 
-    case object ChargeDisputeFundsWithdrawn
-        extends Type("charge.dispute.funds_withdrawn")
+    case object ChargeDisputeFundsWithdrawn extends Type("charge.dispute.funds_withdrawn")
 
     case object ChargeDisputeUpdated extends Type("charge.dispute.updated")
 
@@ -79,14 +71,11 @@ object Events {
 
     case object CustomerUpdated extends Type("customer.updated")
 
-    case object CustomerDiscountCreated
-        extends Type("customer.discount.created")
+    case object CustomerDiscountCreated extends Type("customer.discount.created")
 
-    case object CustomerDiscountDeleted
-        extends Type("customer.discount.deleted")
+    case object CustomerDiscountDeleted extends Type("customer.discount.deleted")
 
-    case object CustomerDiscountUpdated
-        extends Type("ustomer.discount.updated")
+    case object CustomerDiscountUpdated extends Type("ustomer.discount.updated")
 
     case object CustomerSourceCreated extends Type(" customer.source.created")
 
@@ -94,24 +83,19 @@ object Events {
 
     case object CustomerSourceUpdated extends Type("customer.source.updated")
 
-    case object CustomerSubscriptionCreated
-        extends Type("customer.subscription.created")
+    case object CustomerSubscriptionCreated extends Type("customer.subscription.created")
 
-    case object CustomerSubscriptionDeleted
-        extends Type("customer.subscription.deleted")
+    case object CustomerSubscriptionDeleted extends Type("customer.subscription.deleted")
 
-    case object CustomerSubscriptionTrialWillEnd
-        extends Type("customer.subscription.trial_will_end")
+    case object CustomerSubscriptionTrialWillEnd extends Type("customer.subscription.trial_will_end")
 
-    case object CustomerSubscriptionUpdated
-        extends Type("customer.subscription.updated")
+    case object CustomerSubscriptionUpdated extends Type("customer.subscription.updated")
 
     case object InvoiceCreated extends Type("invoice.created")
 
     case object InvoicePaymentFailed extends Type("invoice.payment_failed")
 
-    case object InvoicePaymentSucceeded
-        extends Type("invoice.payment_succeeded")
+    case object InvoicePaymentSucceeded extends Type("invoice.payment_succeeded")
 
     case object InvoiceUpdated extends Type("invoice.updated")
 

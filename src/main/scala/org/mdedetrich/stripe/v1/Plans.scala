@@ -100,22 +100,22 @@ object Plans extends LazyLogging {
                 intervalCount: Long,
                 livemode: Boolean,
                 name: String): Plan = Plan(
-        id,
-        amount,
-        created,
-        currency,
-        interval,
-        intervalCount,
-        livemode,
-        None,
-        name,
-        None,
-        None
+      id,
+      amount,
+      created,
+      currency,
+      interval,
+      intervalCount,
+      livemode,
+      None,
+      name,
+      None,
+      None
     )
   }
 
   implicit val planReads: Reads[Plan] = (
-      (__ \ "id").read[String] ~
+    (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
@@ -129,21 +129,21 @@ object Plans extends LazyLogging {
   ).tupled.map((Plan.apply _).tupled)
 
   implicit val planWrites: Writes[Plan] = Writes(
-      (plan: Plan) =>
-        Json.obj(
-            "id" -> plan.id,
-            "object" -> "plan",
-            "amount" -> plan.amount,
-            "created" -> Json.toJson(plan.created)(stripeDateTimeWrites),
-            "currency" -> plan.currency,
-            "interval" -> plan.interval,
-            "interval_count" -> plan.intervalCount,
-            "livemode" -> plan.livemode,
-            "metadata" -> plan.metadata,
-            "name" -> plan.name,
-            "statement_descriptor" -> plan.statementDescriptor,
-            "trial_period_days" -> plan.trialPeriodDays
-      ))
+    (plan: Plan) =>
+      Json.obj(
+        "id"                   -> plan.id,
+        "object"               -> "plan",
+        "amount"               -> plan.amount,
+        "created"              -> Json.toJson(plan.created)(stripeDateTimeWrites),
+        "currency"             -> plan.currency,
+        "interval"             -> plan.interval,
+        "interval_count"       -> plan.intervalCount,
+        "livemode"             -> plan.livemode,
+        "metadata"             -> plan.metadata,
+        "name"                 -> plan.name,
+        "statement_descriptor" -> plan.statementDescriptor,
+        "trial_period_days"    -> plan.trialPeriodDays
+    ))
 
   /**
     * @see https://stripe.com/docs/api#create_plan
@@ -209,11 +209,8 @@ object Plans extends LazyLogging {
   }
 
   object PlanInput {
-    def default(id: String,
-                amount: BigDecimal,
-                currency: Currency,
-                interval: Interval,
-                name: String): PlanInput = PlanInput(
+    def default(id: String, amount: BigDecimal, currency: Currency, interval: Interval, name: String): PlanInput =
+      PlanInput(
         id,
         amount,
         currency,
@@ -223,11 +220,11 @@ object Plans extends LazyLogging {
         None,
         None,
         None
-    )
+      )
   }
 
   implicit val planInputReads: Reads[PlanInput] = (
-      (__ \ "id").read[String] ~
+    (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "currency").read[Currency] ~
       (__ \ "interval").read[Interval] ~
@@ -239,32 +236,32 @@ object Plans extends LazyLogging {
   ).tupled.map((PlanInput.apply _).tupled)
 
   implicit val planInputWrites: Writes[PlanInput] = Writes(
-      (planInput: PlanInput) =>
-        Json.obj(
-            "id" -> planInput.id,
-            "amount" -> planInput.amount,
-            "currency" -> planInput.currency,
-            "interval" -> planInput.interval,
-            "name" -> planInput.name,
-            "interval_count" -> planInput.intervalCount,
-            "metadata" -> planInput.metadata,
-            "statement_descriptor" -> planInput.statementDescriptor,
-            "trial_period_days" -> planInput.trialPeriodDays
-      ))
+    (planInput: PlanInput) =>
+      Json.obj(
+        "id"                   -> planInput.id,
+        "amount"               -> planInput.amount,
+        "currency"             -> planInput.currency,
+        "interval"             -> planInput.interval,
+        "name"                 -> planInput.name,
+        "interval_count"       -> planInput.intervalCount,
+        "metadata"             -> planInput.metadata,
+        "statement_descriptor" -> planInput.statementDescriptor,
+        "trial_period_days"    -> planInput.trialPeriodDays
+    ))
 
-  def create(planInput: PlanInput)(
-      idempotencyKey: Option[IdempotencyKey] = None)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Plan]] = {
+  def create(planInput: PlanInput)(idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[Plan]] = {
     val postFormParameters: Map[String, String] = {
       Map(
-          "id" -> Option(planInput.id.toString),
-          "amount" -> Option(planInput.amount.toString()),
-          "currency" -> Option(planInput.currency.iso.toLowerCase),
-          "interval" -> Option(planInput.interval.id.toString),
-          "name" -> Option(planInput.name),
-          "interval_count" -> planInput.intervalCount.map(_.toString),
-          "statement_descriptor" -> planInput.statementDescriptor,
-          "trial_period_days" -> planInput.trialPeriodDays.map(_.toString)
+        "id"                   -> Option(planInput.id.toString),
+        "amount"               -> Option(planInput.amount.toString()),
+        "currency"             -> Option(planInput.currency.iso.toLowerCase),
+        "interval"             -> Option(planInput.interval.id.toString),
+        "name"                 -> Option(planInput.name),
+        "interval_count"       -> planInput.intervalCount.map(_.toString),
+        "statement_descriptor" -> planInput.statementDescriptor,
+        "trial_period_days"    -> planInput.trialPeriodDays.map(_.toString)
       ).collect {
         case (k, Some(v)) => (k, v)
       }
@@ -274,12 +271,10 @@ object Plans extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/plans"
 
-    createRequestPOST[Plan](
-        finalUrl, postFormParameters, idempotencyKey, logger)
+    createRequestPOST[Plan](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Plan]] = {
+  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Plan]] = {
     val finalUrl = endpoint.url + s"/v1/plans/$id"
 
     createRequestGET[Plan](finalUrl, logger)
@@ -321,10 +316,10 @@ object Plans extends LazyLogging {
 
   object PlanListInput {
     def default: PlanListInput = PlanListInput(
-        None,
-        None,
-        None,
-        None
+      None,
+      None,
+      None,
+      None
     )
   }
 
@@ -341,8 +336,8 @@ object Plans extends LazyLogging {
     implicit val customerWrites: Writes[PlanList] = listWrites
   }
 
-  def list(planListInput: PlanListInput, includeTotalCount: Boolean)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[PlanList]] = {
+  def list(planListInput: PlanListInput, includeTotalCount: Boolean)(implicit apiKey: ApiKey,
+                                                                     endpoint: Endpoint): Future[Try[PlanList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =
@@ -360,9 +355,9 @@ object Plans extends LazyLogging {
       }
 
       (created ?
-          ("ending_before" -> planListInput.endingBefore) ?
-          ("limit" -> planListInput.limit.map(_.toString)) ?
-          ("starting_after" -> planListInput.startingAfter)).toString()
+        ("ending_before" -> planListInput.endingBefore) ?
+        ("limit" -> planListInput.limit.map(_.toString)) ?
+        ("starting_after" -> planListInput.startingAfter)).toString()
     }
 
     createRequestGET[PlanList](finalUrl, logger)

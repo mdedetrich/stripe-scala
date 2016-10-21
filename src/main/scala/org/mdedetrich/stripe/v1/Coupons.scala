@@ -79,24 +79,24 @@ object Coupons extends LazyLogging {
                 livemode: Boolean,
                 timesRedeemed: Long,
                 valid: Boolean) = Coupon(
-        id,
-        None,
-        created,
-        None,
-        duration,
-        None,
-        livemode,
-        None,
-        None,
-        None,
-        None,
-        timesRedeemed,
-        valid
+      id,
+      None,
+      created,
+      None,
+      duration,
+      None,
+      livemode,
+      None,
+      None,
+      None,
+      None,
+      timesRedeemed,
+      valid
     )
   }
 
   implicit val couponReads: Reads[Coupon] = (
-      (__ \ "id").read[String] ~
+    (__ \ "id").read[String] ~
       (__ \ "amount_off").readNullable[Long] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").readNullable[Currency] ~
@@ -112,24 +112,23 @@ object Coupons extends LazyLogging {
   ).tupled.map((Coupon.apply _).tupled)
 
   implicit val couponWrites: Writes[Coupon] = Writes(
-      (coupon: Coupon) =>
-        Json.obj(
-            "id" -> coupon.id,
-            "object" -> "coupon",
-            "amount_off" -> coupon.amountOff,
-            "created" -> Json.toJson(coupon.created)(stripeDateTimeWrites),
-            "currency" -> coupon.amountOff,
-            "duration" -> coupon.duration,
-            "duration_in_months" -> coupon.durationInMonths,
-            "livemode" -> coupon.livemode,
-            "max_redemptions" -> coupon.maxRedemptions,
-            "metadata" -> coupon.metadata,
-            "percent_off" -> coupon.percentOff,
-            "redeem_by" -> coupon.redeemBy.map(x =>
-                  Json.toJson(x)(stripeDateTimeWrites)),
-            "times_redeemed" -> coupon.timesRedeemed,
-            "valid" -> coupon.valid
-      ))
+    (coupon: Coupon) =>
+      Json.obj(
+        "id"                 -> coupon.id,
+        "object"             -> "coupon",
+        "amount_off"         -> coupon.amountOff,
+        "created"            -> Json.toJson(coupon.created)(stripeDateTimeWrites),
+        "currency"           -> coupon.amountOff,
+        "duration"           -> coupon.duration,
+        "duration_in_months" -> coupon.durationInMonths,
+        "livemode"           -> coupon.livemode,
+        "max_redemptions"    -> coupon.maxRedemptions,
+        "metadata"           -> coupon.metadata,
+        "percent_off"        -> coupon.percentOff,
+        "redeem_by"          -> coupon.redeemBy.map(x => Json.toJson(x)(stripeDateTimeWrites)),
+        "times_redeemed"     -> coupon.timesRedeemed,
+        "valid"              -> coupon.valid
+    ))
 
   /**
     * @see https://stripe.com/docs/api#create_coupon
@@ -174,20 +173,20 @@ object Coupons extends LazyLogging {
 
   object CouponInput {
     def default(duration: Duration): CouponInput = CouponInput(
-        None,
-        duration,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None
+      None,
+      duration,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None
     )
   }
 
   implicit val couponInputReads: Reads[CouponInput] = (
-      (__ \ "id").readNullable[String] ~
+    (__ \ "id").readNullable[String] ~
       (__ \ "duration").read[Duration] ~
       (__ \ "amount_off").readNullable[Long] ~
       (__ \ "currency").readNullable[Currency] ~
@@ -199,33 +198,32 @@ object Coupons extends LazyLogging {
   ).tupled.map((CouponInput.apply _).tupled)
 
   implicit val couponInputWrites: Writes[CouponInput] = Writes(
-      (couponInput: CouponInput) =>
-        Json.obj(
-            "id" -> couponInput.id,
-            "duration" -> couponInput.duration,
-            "amount_off" -> couponInput.amountOff,
-            "currency" -> couponInput.currency,
-            "duration_in_months" -> couponInput.durationInMonths,
-            "max_redemptions" -> couponInput.maxRedemptions,
-            "metadata" -> couponInput.metadata,
-            "percent_off" -> couponInput.percentOff,
-            "redeemBy" -> couponInput.redeemBy.map(x =>
-                  Json.toJson(x)(stripeDateTimeWrites))
-      ))
+    (couponInput: CouponInput) =>
+      Json.obj(
+        "id"                 -> couponInput.id,
+        "duration"           -> couponInput.duration,
+        "amount_off"         -> couponInput.amountOff,
+        "currency"           -> couponInput.currency,
+        "duration_in_months" -> couponInput.durationInMonths,
+        "max_redemptions"    -> couponInput.maxRedemptions,
+        "metadata"           -> couponInput.metadata,
+        "percent_off"        -> couponInput.percentOff,
+        "redeemBy"           -> couponInput.redeemBy.map(x => Json.toJson(x)(stripeDateTimeWrites))
+    ))
 
-  def create(couponInput: CouponInput)(
-      idempotencyKey: Option[IdempotencyKey] = None)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Coupon]] = {
+  def create(couponInput: CouponInput)(idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[Coupon]] = {
     val postFormParameters: Map[String, String] = {
       Map(
-          "id" -> couponInput.id,
-          "duration" -> Option(couponInput.duration.entryName),
-          "amount_off" -> couponInput.amountOff.map(_.toString),
-          "currency" -> couponInput.currency.map(_.iso.toLowerCase),
-          "duration_in_months" -> couponInput.durationInMonths.map(_.toString),
-          "max_redemptions" -> couponInput.maxRedemptions.map(_.toString),
-          "percent_off" -> couponInput.percentOff.map(_.toString()),
-          "redeemBy" -> couponInput.redeemBy.map(stripeDateTimeParamWrites)
+        "id"                 -> couponInput.id,
+        "duration"           -> Option(couponInput.duration.entryName),
+        "amount_off"         -> couponInput.amountOff.map(_.toString),
+        "currency"           -> couponInput.currency.map(_.iso.toLowerCase),
+        "duration_in_months" -> couponInput.durationInMonths.map(_.toString),
+        "max_redemptions"    -> couponInput.maxRedemptions.map(_.toString),
+        "percent_off"        -> couponInput.percentOff.map(_.toString()),
+        "redeemBy"           -> couponInput.redeemBy.map(stripeDateTimeParamWrites)
       ).collect {
         case (k, Some(v)) => (k, v)
       }
@@ -235,12 +233,10 @@ object Coupons extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/charges"
 
-    createRequestPOST[Coupon](
-        finalUrl, postFormParameters, idempotencyKey, logger)
+    createRequestPOST[Coupon](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Coupon]] = {
+  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Coupon]] = {
     val finalUrl = endpoint.url + s"/v1/coupons/$id"
 
     createRequestGET[Coupon](finalUrl, logger)
@@ -281,10 +277,10 @@ object Coupons extends LazyLogging {
 
   object CouponListInput {
     def default: CouponListInput = CouponListInput(
-        None,
-        None,
-        None,
-        None
+      None,
+      None,
+      None,
+      None
     )
   }
 
@@ -301,8 +297,8 @@ object Coupons extends LazyLogging {
     implicit val couponListWrites: Writes[CouponList] = listWrites
   }
 
-  def list(couponListInput: CouponListInput, includeTotalCount: Boolean)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[CouponList]] = {
+  def list(couponListInput: CouponListInput,
+           includeTotalCount: Boolean)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[CouponList]] = {
 
     val finalUrl = {
       import com.netaporter.uri.dsl._
@@ -321,9 +317,9 @@ object Coupons extends LazyLogging {
       }
 
       (created ?
-          ("ending_before" -> couponListInput.endingBefore) ?
-          ("limit" -> couponListInput.limit.map(_.toString)) ?
-          ("starting_after" -> couponListInput.startingAfter)).toString()
+        ("ending_before" -> couponListInput.endingBefore) ?
+        ("limit" -> couponListInput.limit.map(_.toString)) ?
+        ("starting_after" -> couponListInput.startingAfter)).toString()
     }
 
     createRequestGET[CouponList](finalUrl, logger)

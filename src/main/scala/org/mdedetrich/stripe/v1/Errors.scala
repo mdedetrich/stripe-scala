@@ -87,7 +87,7 @@ object Errors {
                               val message: Option[String],
                               val param: Option[String])
       extends Exception {
-    override def toString: String = s"""Error($httpCode, ${`type`}, $code, $message, $param)"""
+    override def toString: String   = s"""Error($httpCode, ${`type`}, $code, $message, $param)"""
     override def getMessage: String = toString
   }
 
@@ -126,12 +126,12 @@ object Errors {
 
   private def tupledErrorReads =
     (
-        (__ \ "type").read[Type] ~
+      (__ \ "type").read[Type] ~
         (__ \ "code").readNullable[Code] ~
         (__ \ "message").readNullable[String] ~
         (__ \ "param").readNullable[String].map {
           case Some(s) if s.isEmpty => None
-          case s => s
+          case s                    => s
         }
     ).tupled
 
@@ -148,26 +148,25 @@ object Errors {
 
   private def errorWrites(error: Error) =
     Json.obj(
-        "type" -> error.`type`,
-        "code" -> error.code,
-        "message" -> error.message,
-        "param" -> error.param
+      "type"    -> error.`type`,
+      "code"    -> error.code,
+      "message" -> error.message,
+      "param"   -> error.param
     )
 
   implicit val badRequestWrites: Writes[Error.BadRequest] = Writes(
-      (badRequest: Error.BadRequest) => errorWrites(badRequest))
+    (badRequest: Error.BadRequest) => errorWrites(badRequest))
 
   implicit val unauthorizedWrites: Writes[Error.Unauthorized] = Writes(
-      (unauthorized: Error.Unauthorized) => errorWrites(unauthorized))
+    (unauthorized: Error.Unauthorized) => errorWrites(unauthorized))
 
   implicit val requestFailedWrites: Writes[Error.RequestFailed] = Writes(
-      (requestFailed: Error.RequestFailed) => errorWrites(requestFailed))
+    (requestFailed: Error.RequestFailed) => errorWrites(requestFailed))
 
-  implicit val notFoundWrites: Writes[Error.NotFound] = Writes(
-      (notFound: Error.NotFound) => errorWrites(notFound))
+  implicit val notFoundWrites: Writes[Error.NotFound] = Writes((notFound: Error.NotFound) => errorWrites(notFound))
 
   implicit val tooManyRequestsWrites: Writes[Error.TooManyRequests] = Writes(
-      (tooManyRequests: Error.TooManyRequests) => errorWrites(tooManyRequests))
+    (tooManyRequests: Error.TooManyRequests) => errorWrites(tooManyRequests))
 
   /**
     * This is thrown when you receive either a 500, 502, 503 or 504

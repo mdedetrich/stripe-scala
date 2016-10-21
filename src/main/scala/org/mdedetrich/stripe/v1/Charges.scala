@@ -23,8 +23,8 @@ import scala.util.Try
 object Charges extends LazyLogging {
 
   case class FraudDetails(
-    userReport: Option[UserReport],
-    stripeReport: Option[StripeReport]
+      userReport: Option[UserReport],
+      stripeReport: Option[StripeReport]
   )
 
   object FraudDetails {
@@ -35,7 +35,7 @@ object Charges extends LazyLogging {
 
     object UserReport extends Enum[UserReport] with PlayJsonEnum[UserReport] {
       val values = findValues
-      case object Safe extends UserReport("safe")
+      case object Safe       extends UserReport("safe")
       case object Fraudulent extends UserReport("fraudulent")
     }
 
@@ -51,7 +51,7 @@ object Charges extends LazyLogging {
 
   implicit val fraudDetailsReads: Reads[FraudDetails] = (
     (__ \ "user_report").readNullable[UserReport] ~
-    (__ \ "stripe_report").readNullable[StripeReport]
+      (__ \ "stripe_report").readNullable[StripeReport]
   ).tupled.map((FraudDetails.apply _).tupled)
 
   sealed abstract class Status(val id: String) extends EnumEntry {
@@ -90,7 +90,7 @@ object Charges extends LazyLogging {
                     name: Option[String],
                     addressState: Option[String],
                     addressZip: Option[String])
-      extends Source
+        extends Source
         with NumberCardSource
   }
 
@@ -109,7 +109,7 @@ object Charges extends LazyLogging {
             (__ \ "name").readNullable[String] ~
             (__ \ "address_state").readNullable[String] ~
             (__ \ "address_zip").readNullable[String]
-          ).tupled.map((Source.Card.apply _).tupled)
+        ).tupled.map((Source.Card.apply _).tupled)
       case jsString: JsString =>
         Reads[Source](_ => JsSuccess(Source.Customer(jsString.value)))
       case _ =>
@@ -121,18 +121,18 @@ object Charges extends LazyLogging {
     override def toMap(t: Card): Map[String, String] = {
       val mandatory = Map(
         "exp_month" -> t.expMonth.toString,
-        "exp_year" -> t.expYear.toString,
-        "number" -> t.number
+        "exp_year"  -> t.expYear.toString,
+        "number"    -> t.number
       )
       val optional = Map(
-        "cvc" -> t.cvc,
-        "address_city" -> t.addressCity,
+        "cvc"             -> t.cvc,
+        "address_city"    -> t.addressCity,
         "address_country" -> t.addressCountry,
-        "address_line1" -> t.addressLine1,
-        "address_line2" -> t.addressLine2,
-        "name" -> t.name,
-        "address_state" -> t.addressState,
-        "address_zip" -> t.addressZip
+        "address_line1"   -> t.addressLine1,
+        "address_line2"   -> t.addressLine2,
+        "name"            -> t.name,
+        "address_state"   -> t.addressState,
+        "address_zip"     -> t.addressZip
       )
       mandatory ++ flatten(optional)
     }
@@ -143,29 +143,29 @@ object Charges extends LazyLogging {
       case Source.Customer(id) =>
         JsString(id)
       case Source.Card(expMonth,
-      expYear,
-      number,
-      cvc,
-      addressCity,
-      addressCountry,
-      addressLine1,
-      addressLine2,
-      name,
-      addressState,
-      addressZip) =>
+                       expYear,
+                       number,
+                       cvc,
+                       addressCity,
+                       addressCountry,
+                       addressLine1,
+                       addressLine2,
+                       name,
+                       addressState,
+                       addressZip) =>
         Json.obj(
-          "exp_month" -> expMonth,
-          "exp_year" -> expYear,
-          "number" -> number,
-          "object" -> "card",
-          "cvc" -> cvc,
-          "address_city" -> addressCity,
+          "exp_month"       -> expMonth,
+          "exp_year"        -> expYear,
+          "number"          -> number,
+          "object"          -> "card",
+          "cvc"             -> cvc,
+          "address_city"    -> addressCity,
           "address_country" -> addressCountry,
-          "address_line1" -> addressLine1,
-          "address_line2" -> addressLine2,
-          "name" -> name,
-          "address_state" -> addressState,
-          "address_zip" -> addressZip
+          "address_line1"   -> addressLine1,
+          "address_line2"   -> addressLine2,
+          "name"            -> name,
+          "address_state"   -> addressState,
+          "address_zip"     -> addressZip
         )
     }
   })
@@ -173,31 +173,31 @@ object Charges extends LazyLogging {
   // Masked card
 
   case class MaskedSource(
-    id: String,
-    last4: String,
-    expMonth: Int,
-    expYear: Int,
-    cvc: Option[String],
-    addressCountry: Option[String],
-    addressLine1: Option[String],
-    addressLine2: Option[String],
-    name: Option[String],
-    addressState: Option[String],
-    addressZip: Option[String]
+      id: String,
+      last4: String,
+      expMonth: Int,
+      expYear: Int,
+      cvc: Option[String],
+      addressCountry: Option[String],
+      addressLine1: Option[String],
+      addressLine2: Option[String],
+      name: Option[String],
+      addressState: Option[String],
+      addressZip: Option[String]
   ) extends MaskedCardSource
 
   implicit val maskedSourceReads: Reads[MaskedSource] = (
     (__ \ "id").read[String] ~
-    (__ \ "last4").read[String] ~
-    (__ \ "exp_month").read[Int] ~
-    (__ \ "exp_year").read[Int] ~
-    (__ \ "cvc").readNullable[String] ~
-    (__ \ "address_country").readNullable[String] ~
-    (__ \ "address_line1").readNullable[String] ~
-    (__ \ "address_line2").readNullable[String] ~
-    (__ \ "name").readNullable[String] ~
-    (__ \ "address_state").readNullable[String] ~
-    (__ \ "addressZip").readNullable[String]
+      (__ \ "last4").read[String] ~
+      (__ \ "exp_month").read[Int] ~
+      (__ \ "exp_year").read[Int] ~
+      (__ \ "cvc").readNullable[String] ~
+      (__ \ "address_country").readNullable[String] ~
+      (__ \ "address_line1").readNullable[String] ~
+      (__ \ "address_line2").readNullable[String] ~
+      (__ \ "name").readNullable[String] ~
+      (__ \ "address_state").readNullable[String] ~
+      (__ \ "addressZip").readNullable[String]
   ).tupled.map((MaskedSource.apply _).tupled)
 
   /**
@@ -291,7 +291,7 @@ object Charges extends LazyLogging {
                     status: Status)
 
   private val chargeReadsOne = (
-      (__ \ "id").read[String] ~
+    (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "amount_refunded").read[BigDecimal] ~
       (__ \ "application_fee").readNullable[String] ~
@@ -315,7 +315,7 @@ object Charges extends LazyLogging {
   ).tupled
 
   private val chargeReadsTwo = (
-      (__ \ "receipt_number").readNullable[String] ~
+    (__ \ "receipt_number").readNullable[String] ~
       (__ \ "refunded").read[Boolean] ~
       (__ \ "refunds").readNullable[RefundList] ~
       (__ \ "shipping").readNullable[Shipping] ~
@@ -326,7 +326,7 @@ object Charges extends LazyLogging {
   ).tupled
 
   implicit val chargeReads: Reads[Charge] = (
-      chargeReadsOne ~ chargeReadsTwo
+    chargeReadsOne ~ chargeReadsTwo
   ) { (one, two) =>
     val (id,
          amount,
@@ -350,14 +350,7 @@ object Charges extends LazyLogging {
          paid,
          receiptEmail) = one
 
-    val (receiptNumber,
-         refunded,
-         refunds,
-         shipping,
-         source,
-         sourceTransfer,
-         statementDescriptor,
-         status) = two
+    val (receiptNumber, refunded, refunds, shipping, source, sourceTransfer, statementDescriptor, status) = two
 
     Charge(id,
            amount,
@@ -471,10 +464,7 @@ object Charges extends LazyLogging {
   // ChargeInput
 
   object ChargeInput {
-    def default(amount: BigDecimal,
-                currency: Currency,
-                capture: Boolean,
-                source: Source.Card): ChargeInput =
+    def default(amount: BigDecimal, currency: Currency, capture: Boolean, source: Source.Card): ChargeInput =
       ChargeInput(
         amount,
         currency,
@@ -490,10 +480,7 @@ object Charges extends LazyLogging {
         None
       )
 
-    def default(amount: BigDecimal,
-                currency: Currency,
-                capture: Boolean,
-                customer: Source.Customer): ChargeInput =
+    def default(amount: BigDecimal, currency: Currency, capture: Boolean, customer: Source.Customer): ChargeInput =
       ChargeInput(
         amount,
         currency,
@@ -511,44 +498,45 @@ object Charges extends LazyLogging {
   }
 
   implicit val chargeInputWrites: Writes[ChargeInput] = Writes(
-      (chargeInput: ChargeInput) =>
-        Json.obj(
-            "amount" -> chargeInput.amount,
-            "currency" -> chargeInput.currency,
-            "application_fee" -> chargeInput.applicationFee,
-            "capture" -> chargeInput.capture,
-            "description" -> chargeInput.description,
-            "destination" -> chargeInput.destination,
-            "metadata" -> chargeInput.metadata,
-            "receipt_email" -> chargeInput.receiptEmail,
-            "shipping" -> chargeInput.shipping,
-            "customer" -> chargeInput.customer,
-            "source" -> chargeInput.source,
-            "statement_descriptor" -> chargeInput.statementDescriptor
-      ))
+    (chargeInput: ChargeInput) =>
+      Json.obj(
+        "amount"               -> chargeInput.amount,
+        "currency"             -> chargeInput.currency,
+        "application_fee"      -> chargeInput.applicationFee,
+        "capture"              -> chargeInput.capture,
+        "description"          -> chargeInput.description,
+        "destination"          -> chargeInput.destination,
+        "metadata"             -> chargeInput.metadata,
+        "receipt_email"        -> chargeInput.receiptEmail,
+        "shipping"             -> chargeInput.shipping,
+        "customer"             -> chargeInput.customer,
+        "source"               -> chargeInput.source,
+        "statement_descriptor" -> chargeInput.statementDescriptor
+    ))
 
   implicit val chargeInputPostParams = new PostParams[ChargeInput] {
     override def toMap(chargeInput: ChargeInput): Map[String, String] =
-      flatten(Map(
-        "amount" -> Option(chargeInput.amount.toString),
-        "currency" -> Option(chargeInput.currency.iso.toLowerCase),
-        "application_fee" -> chargeInput.applicationFee.map(_.toString),
-        "capture" -> Option(chargeInput.capture.toString),
-        "description" -> chargeInput.description,
-        "destination" -> chargeInput.destination,
-        "receipt_email" -> chargeInput.receiptEmail,
-        "customer" -> chargeInput.customer.map(_.id),
-        "statement_descriptor" -> chargeInput.statementDescriptor
-      )) ++
+      flatten(
+        Map(
+          "amount"               -> Option(chargeInput.amount.toString),
+          "currency"             -> Option(chargeInput.currency.iso.toLowerCase),
+          "application_fee"      -> chargeInput.applicationFee.map(_.toString),
+          "capture"              -> Option(chargeInput.capture.toString),
+          "description"          -> chargeInput.description,
+          "destination"          -> chargeInput.destination,
+          "receipt_email"        -> chargeInput.receiptEmail,
+          "customer"             -> chargeInput.customer.map(_.id),
+          "statement_descriptor" -> chargeInput.statementDescriptor
+        )) ++
         PostParams.toPostParams("metadata", chargeInput.metadata) ++
         PostParams.toPostParams("source", chargeInput.source)
   }
 
   // CRUD methods
 
-  def create(chargeInput: ChargeInput)(
-    idempotencyKey: Option[IdempotencyKey] = None)(
-              implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Charge]] = {
+  def create(chargeInput: ChargeInput)(idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[Charge]] = {
 
     val postFormParameters = PostParams.toPostParams(chargeInput)
 
@@ -556,7 +544,6 @@ object Charges extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/charges"
 
-    createRequestPOST[Charge](
-      finalUrl, postFormParameters, idempotencyKey, logger)
+    createRequestPOST[Charge](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 }

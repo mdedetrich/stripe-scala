@@ -38,7 +38,7 @@ object TransferReversals extends LazyLogging {
       extends StripeObject
 
   implicit val transferReversalReads: Reads[TransferReversal] = (
-      (__ \ "id").read[String] ~
+    (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "balance_transaction").read[String] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
@@ -48,18 +48,17 @@ object TransferReversals extends LazyLogging {
   ).tupled.map((TransferReversal.apply _).tupled)
 
   implicit val transferReversalWrites: Writes[TransferReversal] = Writes(
-      (transferReversal: TransferReversal) =>
-        Json.obj(
-            "id" -> transferReversal.id,
-            "object" -> "transfer_reversal",
-            "amount" -> transferReversal.amount,
-            "balance_transaction" -> transferReversal.balanceTransaction,
-            "created" -> Json.toJson(transferReversal.created)(
-                stripeDateTimeWrites),
-            "currency" -> transferReversal.currency,
-            "metadata" -> transferReversal.metadata,
-            "transfer" -> transferReversal.transfer
-      ))
+    (transferReversal: TransferReversal) =>
+      Json.obj(
+        "id"                  -> transferReversal.id,
+        "object"              -> "transfer_reversal",
+        "amount"              -> transferReversal.amount,
+        "balance_transaction" -> transferReversal.balanceTransaction,
+        "created"             -> Json.toJson(transferReversal.created)(stripeDateTimeWrites),
+        "currency"            -> transferReversal.currency,
+        "metadata"            -> transferReversal.metadata,
+        "transfer"            -> transferReversal.transfer
+    ))
 
   /**
     * @see https://stripe.com/docs/api#create_transfer_reversal
@@ -100,16 +99,16 @@ object TransferReversals extends LazyLogging {
 
   object TransferReversalInput {
     def default(id: String): TransferReversalInput = TransferReversalInput(
-        id,
-        None,
-        None,
-        None,
-        None
+      id,
+      None,
+      None,
+      None,
+      None
     )
   }
 
   implicit val transferReversalInputReads: Reads[TransferReversalInput] = (
-      (__ \ "id").read[String] ~
+    (__ \ "id").read[String] ~
       (__ \ "amount").readNullable[BigDecimal] ~
       (__ \ "description").readNullable[String] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
@@ -118,25 +117,23 @@ object TransferReversals extends LazyLogging {
 
   implicit val transferReversalInputWrites: Writes[TransferReversalInput] =
     Writes(
-        (transferReversalInput: TransferReversalInput) =>
-          Json.obj(
-              "id" -> transferReversalInput.id,
-              "amount" -> transferReversalInput.amount,
-              "description" -> transferReversalInput.description,
-              "metadata" -> transferReversalInput.metadata,
-              "refund_application_fee" -> transferReversalInput.refundApplicationFee
-        ))
+      (transferReversalInput: TransferReversalInput) =>
+        Json.obj(
+          "id"                     -> transferReversalInput.id,
+          "amount"                 -> transferReversalInput.amount,
+          "description"            -> transferReversalInput.description,
+          "metadata"               -> transferReversalInput.metadata,
+          "refund_application_fee" -> transferReversalInput.refundApplicationFee
+      ))
 
-  def create(transferReversalInput: TransferReversalInput)(
-      idempotencyKey: Option[IdempotencyKey] = None)(
+  def create(transferReversalInput: TransferReversalInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
       endpoint: Endpoint): Future[Try[TransferReversal]] = {
     val postFormParameters: Map[String, String] = {
       Map(
-          "amount" -> transferReversalInput.amount.map(_.toString()),
-          "description" -> transferReversalInput.description,
-          "refund_application_fee" -> transferReversalInput.refundApplicationFee
-            .map(_.toString)
+        "amount"                 -> transferReversalInput.amount.map(_.toString()),
+        "description"            -> transferReversalInput.description,
+        "refund_application_fee" -> transferReversalInput.refundApplicationFee.map(_.toString)
       ).collect {
         case (k, Some(v)) => (k, v)
       }
@@ -147,13 +144,10 @@ object TransferReversals extends LazyLogging {
     val finalUrl =
       endpoint.url + s"/v1/transfers/${transferReversalInput.id}/reversals"
 
-    createRequestPOST[TransferReversal](
-        finalUrl, postFormParameters, idempotencyKey, logger)
+    createRequestPOST[TransferReversal](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String, transferId: String)(
-      implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[TransferReversal]] = {
+  def get(id: String, transferId: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[TransferReversal]] = {
     val finalUrl = endpoint.url + s"/v1/transfers/$id/reversals/$transferId"
 
     createRequestGET[TransferReversal](finalUrl, logger)
@@ -187,10 +181,10 @@ object TransferReversals extends LazyLogging {
   object TransferReversalListInput {
     def default(id: String): TransferReversalListInput =
       TransferReversalListInput(
-          id,
-          None,
-          None,
-          None
+        id,
+        None,
+        None,
+        None
       )
   }
 
@@ -198,11 +192,9 @@ object TransferReversals extends LazyLogging {
                                   override val hasMore: Boolean,
                                   override val data: List[TransferReversal],
                                   override val totalCount: Option[Long])
-      extends Collections.List[TransferReversal](
-          url, hasMore, data, totalCount)
+      extends Collections.List[TransferReversal](url, hasMore, data, totalCount)
 
-  object TransferReversalList
-      extends Collections.ListJsonMappers[TransferReversal] {
+  object TransferReversalList extends Collections.ListJsonMappers[TransferReversal] {
     implicit val transferReversalReads: Reads[TransferReversalList] =
       listReads.tupled.map((TransferReversalList.apply _).tupled)
 
@@ -210,8 +202,7 @@ object TransferReversals extends LazyLogging {
       listWrites
   }
 
-  def list(transferReversalListInput: TransferReversalListInput,
-           includeTotalCount: Boolean)(
+  def list(transferReversalListInput: TransferReversalListInput, includeTotalCount: Boolean)(
       implicit apiKey: ApiKey,
       endpoint: Endpoint): Future[Try[TransferReversalList]] = {
     val finalUrl = {
@@ -224,13 +215,12 @@ object TransferReversals extends LazyLogging {
 
       val baseUrl =
         endpoint.url +
-        s"/v1/transfers/${transferReversalListInput.id}/reversals$totalCountUrl"
+          s"/v1/transfers/${transferReversalListInput.id}/reversals$totalCountUrl"
 
       (baseUrl ?
-          ("ending_before" -> transferReversalListInput.endingBefore) ?
-          ("limit" -> transferReversalListInput.limit.map(_.toString)) ?
-          ("starting_after" -> transferReversalListInput.startingAfter))
-        .toString()
+        ("ending_before" -> transferReversalListInput.endingBefore) ?
+        ("limit" -> transferReversalListInput.limit.map(_.toString)) ?
+        ("starting_after" -> transferReversalListInput.startingAfter)).toString()
     }
 
     createRequestGET[TransferReversalList](finalUrl, logger)

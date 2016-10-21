@@ -38,23 +38,23 @@ object Balances extends LazyLogging {
                         `type`: FeeType)
 
   implicit val feeDetailReads: Reads[FeeDetails] = (
-      (__ \ "amount").read[BigDecimal] ~
+    (__ \ "amount").read[BigDecimal] ~
       (__ \ "application").read[String] ~
       (__ \ "currency").read[Currency] ~
       (__ \ "description").read[String] ~
       (__ \ "type").read[FeeType]
   )((amount, application, currency, description, `type`) =>
-        FeeDetails(amount, application, currency, description, `type`))
+    FeeDetails(amount, application, currency, description, `type`))
 
   implicit val feeDetailWrites: Writes[FeeDetails] = Writes(
-      (feeDetails: FeeDetails) =>
-        Json.obj(
-            "amount" -> feeDetails.amount,
-            "application" -> feeDetails.application,
-            "currency" -> feeDetails.currency,
-            "description" -> feeDetails.description,
-            "type" -> feeDetails.`type`
-      ))
+    (feeDetails: FeeDetails) =>
+      Json.obj(
+        "amount"      -> feeDetails.amount,
+        "application" -> feeDetails.application,
+        "currency"    -> feeDetails.currency,
+        "description" -> feeDetails.description,
+        "type"        -> feeDetails.`type`
+    ))
 
   sealed abstract class Type(val id: String) extends EnumEntry {
     override val entryName = id
@@ -113,7 +113,7 @@ object Balances extends LazyLogging {
     * @param net              Net amount of the transaction, in cents.
     * @param source           The Stripe object this transaction is related to.
     * @param sourcedTransfers The transfers (if any) for which source is a sourceTransaction.
-    * @param status           If the transaction’s net funds are available in the Stripe balance yet. 
+    * @param status           If the transaction’s net funds are available in the Stripe balance yet.
     *                         Either [[Status.Available]] or [[Status.Pending]].
     * @param `type`           Transaction type: [[Type]]
     */
@@ -133,7 +133,7 @@ object Balances extends LazyLogging {
       extends StripeObject
 
   implicit val balanceTransactionReads: Reads[BalanceTransaction] = (
-      (__ \ "id").read[String] ~
+    (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "available_on").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
@@ -149,87 +149,79 @@ object Balances extends LazyLogging {
   ).tupled.map((BalanceTransaction.apply _).tupled)
 
   implicit val balanceTransactionWrites: Writes[BalanceTransaction] = Writes(
-      (balanceTransaction: BalanceTransaction) =>
-        Json.obj(
-            "id" -> balanceTransaction.id,
-            "object" -> "balance_transaction",
-            "amount" -> balanceTransaction.amount,
-            "currency" -> balanceTransaction.currency,
-            "available_on" -> Json.toJson(balanceTransaction.availableOn)(
-                stripeDateTimeWrites),
-            "created" -> Json.toJson(balanceTransaction.created)(
-                stripeDateTimeWrites),
-            "description" -> balanceTransaction.description,
-            "fee" -> balanceTransaction.fee,
-            "fee_details" -> balanceTransaction.feeDetails,
-            "net" -> balanceTransaction.net,
-            "source" -> balanceTransaction.source,
-            "sourced_transfers" -> balanceTransaction.sourcedTransfers,
-            "status" -> balanceTransaction.status,
-            "type" -> balanceTransaction.`type`
-      ))
+    (balanceTransaction: BalanceTransaction) =>
+      Json.obj(
+        "id"                -> balanceTransaction.id,
+        "object"            -> "balance_transaction",
+        "amount"            -> balanceTransaction.amount,
+        "currency"          -> balanceTransaction.currency,
+        "available_on"      -> Json.toJson(balanceTransaction.availableOn)(stripeDateTimeWrites),
+        "created"           -> Json.toJson(balanceTransaction.created)(stripeDateTimeWrites),
+        "description"       -> balanceTransaction.description,
+        "fee"               -> balanceTransaction.fee,
+        "fee_details"       -> balanceTransaction.feeDetails,
+        "net"               -> balanceTransaction.net,
+        "source"            -> balanceTransaction.source,
+        "sourced_transfers" -> balanceTransaction.sourcedTransfers,
+        "status"            -> balanceTransaction.status,
+        "type"              -> balanceTransaction.`type`
+    ))
 
-  case class SourceTypes(card: BigDecimal,
-                         bankAccount: BigDecimal,
-                         bitcoinReceiver: BigDecimal)
+  case class SourceTypes(card: BigDecimal, bankAccount: BigDecimal, bitcoinReceiver: BigDecimal)
 
   implicit val sourceTypesReads: Reads[SourceTypes] = (
-      (__ \ "card").read[BigDecimal] ~
+    (__ \ "card").read[BigDecimal] ~
       (__ \ "bank_account").read[BigDecimal] ~
       (__ \ "bitcoin_receiver").read[BigDecimal]
   ).tupled.map((SourceTypes.apply _).tupled)
 
   implicit val sourceTypesWrites: Writes[SourceTypes] = Writes(
-      (sourceTypes: SourceTypes) =>
-        Json.obj(
-            "card" -> sourceTypes.card,
-            "bank_account" -> sourceTypes.bankAccount,
-            "bitcoin_receiver" -> sourceTypes.bitcoinReceiver
-      ))
+    (sourceTypes: SourceTypes) =>
+      Json.obj(
+        "card"             -> sourceTypes.card,
+        "bank_account"     -> sourceTypes.bankAccount,
+        "bitcoin_receiver" -> sourceTypes.bitcoinReceiver
+    ))
 
-  case class BalanceFund(currency: Currency,
-                         amount: BigDecimal,
-                         sourceTypes: SourceTypes)
+  case class BalanceFund(currency: Currency, amount: BigDecimal, sourceTypes: SourceTypes)
 
   implicit val balanceFundReads: Reads[BalanceFund] = (
-      (__ \ "currency").read[Currency] ~
+    (__ \ "currency").read[Currency] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "source_types").read[SourceTypes]
   ).tupled.map((BalanceFund.apply _).tupled)
 
   implicit val balanceFundWrites: Writes[BalanceFund] = Writes(
-      (balanceFund: BalanceFund) =>
-        Json.obj(
-            "currency" -> balanceFund.currency,
-            "amount" -> balanceFund.amount,
-            "source_types" -> balanceFund.sourceTypes
-      ))
+    (balanceFund: BalanceFund) =>
+      Json.obj(
+        "currency"     -> balanceFund.currency,
+        "amount"       -> balanceFund.amount,
+        "source_types" -> balanceFund.sourceTypes
+    ))
 
   /**
     * @see https://stripe.com/docs/api#balance_object
-    * @param available Funds that are available to be paid out automatically by Stripe or explicitly via the transfers API. 
+    * @param available Funds that are available to be paid out automatically by Stripe or explicitly via the transfers API.
     *                  The available balance for each currency and payment type can be found in the sourceTypes property.
     * @param livemode
-    * @param pending   Funds that are not available in the balance yet, due to the 7-day rolling pay cycle. 
+    * @param pending   Funds that are not available in the balance yet, due to the 7-day rolling pay cycle.
     *                  The pending balance for each currency and payment type can be found in the sourceTypes property
     */
-  case class Balance(available: List[BalanceFund],
-                     livemode: Boolean,
-                     pending: List[BalanceFund])
+  case class Balance(available: List[BalanceFund], livemode: Boolean, pending: List[BalanceFund])
 
   implicit val balanceReads: Reads[Balance] = (
-      (__ \ "available").read[List[BalanceFund]] ~
+    (__ \ "available").read[List[BalanceFund]] ~
       (__ \ "livemode").read[Boolean] ~
       (__ \ "pending").read[List[BalanceFund]]
   ).tupled.map((Balance.apply _).tupled)
 
   implicit val balanceWrites: Writes[Balance] = Writes(
-      (balance: Balance) =>
-        Json.obj(
-            "available" -> balance.available,
-            "livemode" -> balance.livemode,
-            "pending" -> balance.pending
-      ))
+    (balance: Balance) =>
+      Json.obj(
+        "available" -> balance.available,
+        "livemode"  -> balance.livemode,
+        "pending"   -> balance.pending
+    ))
 
   /**
     * @see https://stripe.com/docs/api#retrieve_balance
@@ -250,9 +242,7 @@ object Balances extends LazyLogging {
     * @param endpoint
     * @return
     */
-  def getBalanceTransaction(id: String)(
-      implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[BalanceTransaction]] = {
+  def getBalanceTransaction(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[BalanceTransaction]] = {
     val finalUrl = endpoint.url + s"/v1/balance/history/$id"
 
     createRequestGET[BalanceTransaction](finalUrl, logger)
@@ -260,30 +250,30 @@ object Balances extends LazyLogging {
 
   /**
     * @see https://stripe.com/docs/api#balance_history
-    * @param availableOn   A filter on the list based on the object [[availableOn]] field. 
-    *                      The value can be a string with an integer Unix timestamp, 
+    * @param availableOn   A filter on the list based on the object [[availableOn]] field.
+    *                      The value can be a string with an integer Unix timestamp,
     *                      or it can be a dictionary with the following options:
-    * @param created       A filter on the list based on the object [[created]] field. 
-    *                      The value can be a string with an integer Unix timestamp, 
+    * @param created       A filter on the list based on the object [[created]] field.
+    *                      The value can be a string with an integer Unix timestamp,
     *                      or it can be a dictionary with the following options:
     * @param currency
-    * @param endingBefore  A cursor for use in pagination. [[endingBefore]] is an 
-    *                      object ID that defines your place in the list. For instance, 
-    *                      if you make a list request and receive 100 objects, 
-    *                      starting with obj_bar, your subsequent call can include 
+    * @param endingBefore  A cursor for use in pagination. [[endingBefore]] is an
+    *                      object ID that defines your place in the list. For instance,
+    *                      if you make a list request and receive 100 objects,
+    *                      starting with obj_bar, your subsequent call can include
     *                      ending_before=obj_bar in order to fetch the previous page of the list.
-    * @param limit         A limit on the number of objects to be returned. 
+    * @param limit         A limit on the number of objects to be returned.
     *                      Limit can range between 1 and 100 items.
-    * @param source        Only returns transactions that are related to the specified Stripe 
+    * @param source        Only returns transactions that are related to the specified Stripe
     *                      object ID (e.g. filtering by a charge ID will return all related charge transactions).
-    * @param startingAfter A cursor for use in pagination. [[startingAfter]] is an 
-    *                      object ID that defines your place in the list. For instance, if you make a 
-    *                      list request and receive 100 objects, ending with obj_foo, your subsequent 
+    * @param startingAfter A cursor for use in pagination. [[startingAfter]] is an
+    *                      object ID that defines your place in the list. For instance, if you make a
+    *                      list request and receive 100 objects, ending with obj_foo, your subsequent
     *                      call can include [[startingAfter]]=obj_foo in order to fetch the next page of the list.
-    * @param transfer      For automatic Stripe transfers only, only returns transactions that were transferred out on 
+    * @param transfer      For automatic Stripe transfers only, only returns transactions that were transferred out on
     *                      the specified transfer ID.
-    * @param `type`        Only returns transactions of the given type. 
-    *                      One of: [[Type.Charge]], [[Type.Adjustment]], [[Type.ApplicationFee]], 
+    * @param `type`        Only returns transactions of the given type.
+    *                      One of: [[Type.Charge]], [[Type.Adjustment]], [[Type.ApplicationFee]],
     *                      [[Type.ApplicationFeeRefund]], [[Type.Transfer]], or [[Type.TransferFailure]]
     */
   case class BalanceHistoryListInput(availableOn: Option[ListFilterInput],
@@ -298,28 +288,25 @@ object Balances extends LazyLogging {
 
   object BalanceHistoryListInput {
     def default: BalanceHistoryListInput = BalanceHistoryListInput(
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None
     )
   }
 
-  case class BalanceTransactionList(
-      override val url: String,
-      override val hasMore: Boolean,
-      override val data: List[BalanceTransaction],
-      override val totalCount: Option[Long])
-      extends Collections.List[BalanceTransaction](
-          url, hasMore, data, totalCount)
+  case class BalanceTransactionList(override val url: String,
+                                    override val hasMore: Boolean,
+                                    override val data: List[BalanceTransaction],
+                                    override val totalCount: Option[Long])
+      extends Collections.List[BalanceTransaction](url, hasMore, data, totalCount)
 
-  object BalanceTransactionList
-      extends Collections.ListJsonMappers[BalanceTransaction] {
+  object BalanceTransactionList extends Collections.ListJsonMappers[BalanceTransaction] {
     implicit val balanceTransactionListReads: Reads[BalanceTransactionList] =
       listReads.tupled.map((BalanceTransactionList.apply _).tupled)
 
@@ -330,8 +317,7 @@ object Balances extends LazyLogging {
   /**
     * @see https://stripe.com/docs/api#balance_history
     */
-  def listBalanceHistory(balanceHistoryListInput: BalanceHistoryListInput,
-                         includeTotalCount: Boolean)(
+  def listBalanceHistory(balanceHistoryListInput: BalanceHistoryListInput, includeTotalCount: Boolean)(
       implicit apiKey: ApiKey,
       endpoint: Endpoint): Future[Try[BalanceTransactionList]] = {
     val finalUrl = {
@@ -347,10 +333,9 @@ object Balances extends LazyLogging {
       val created: com.netaporter.uri.Uri =
         (balanceHistoryListInput.created, balanceHistoryListInput.availableOn) match {
           case (Some(createdInput), Some(availableOnInput)) =>
-            listFilterInputToUri(
-                availableOnInput,
-                listFilterInputToUri(createdInput, baseUrl, "created"),
-                "available_on")
+            listFilterInputToUri(availableOnInput,
+                                 listFilterInputToUri(createdInput, baseUrl, "created"),
+                                 "available_on")
           case (Some(createdInput), None) =>
             listFilterInputToUri(createdInput, baseUrl, "created")
           case (None, Some(availableInput)) =>
@@ -359,14 +344,13 @@ object Balances extends LazyLogging {
         }
 
       (created ?
-          ("currency" -> balanceHistoryListInput.currency.map(
-                  _.iso.toLowerCase)) ?
-          ("ending_before" -> balanceHistoryListInput.endingBefore) ?
-          ("limit" -> balanceHistoryListInput.limit.map(_.toString)) ?
-          ("source" -> balanceHistoryListInput.source) ?
-          ("starting_after" -> balanceHistoryListInput.startingAfter) ?
-          ("transfer" -> balanceHistoryListInput.transfer) ?
-          ("type" -> balanceHistoryListInput.`type`.map(_.id))).toString()
+        ("currency" -> balanceHistoryListInput.currency.map(_.iso.toLowerCase)) ?
+        ("ending_before" -> balanceHistoryListInput.endingBefore) ?
+        ("limit" -> balanceHistoryListInput.limit.map(_.toString)) ?
+        ("source" -> balanceHistoryListInput.source) ?
+        ("starting_after" -> balanceHistoryListInput.startingAfter) ?
+        ("transfer" -> balanceHistoryListInput.transfer) ?
+        ("type" -> balanceHistoryListInput.`type`.map(_.id))).toString()
     }
 
     createRequestGET[BalanceTransactionList](finalUrl, logger)

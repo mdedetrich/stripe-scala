@@ -26,7 +26,7 @@ object Shippings {
   }
 
   implicit val addressReads: Reads[Address] = (
-      (__ \ "city").readNullable[String] ~
+    (__ \ "city").readNullable[String] ~
       (__ \ "country").readNullable[String] ~
       (__ \ "line1").readNullable[String] ~
       (__ \ "line2").readNullable[String] ~
@@ -35,15 +35,15 @@ object Shippings {
   ).tupled.map((Address.apply _).tupled)
 
   implicit val addressWrites: Writes[Address] = Writes(
-      (address: Address) =>
-        Json.obj(
-            "city" -> address.city,
-            "country" -> address.country,
-            "line1" -> address.line1,
-            "line2" -> address.line2,
-            "postal_code" -> address.postalCode,
-            "state" -> address.state
-      ))
+    (address: Address) =>
+      Json.obj(
+        "city"        -> address.city,
+        "country"     -> address.country,
+        "line1"       -> address.line1,
+        "line2"       -> address.line2,
+        "postal_code" -> address.postalCode,
+        "state"       -> address.state
+    ))
 
   /**
     * @see https://stripe.com/docs/api#charge_object-shipping
@@ -65,7 +65,7 @@ object Shippings {
                       trackingNumber: Option[String])
 
   implicit val shippingReads: Reads[Shipping] = (
-      (__ \ "address").readNullable[Address] ~
+    (__ \ "address").readNullable[Address] ~
       (__ \ "carrier").readNullable[String] ~
       (__ \ "name").readNullable[String] ~
       (__ \ "phone").readNullable[String] ~
@@ -73,10 +73,10 @@ object Shippings {
   ).tupled.map((Shipping.apply _).tupled)
 
   implicit val shippingWrites: Writes[Shipping] = Writes(
-      (shipping: Shipping) =>
-        Json.obj(
-            "address" -> shipping.address,
-            "name" -> shipping.name,
-            "phone" -> shipping.phone
-      ))
+    (shipping: Shipping) =>
+      Json.obj(
+        "address" -> shipping.address,
+        "name"    -> shipping.name,
+        "phone"   -> shipping.phone
+    ))
 }

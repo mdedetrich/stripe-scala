@@ -50,22 +50,22 @@ object Alipays {
                 reusable: Boolean,
                 used: Boolean,
                 username: String): AliPay = AliPay(
-        id,
-        created,
-        None,
-        None,
-        livemode,
-        None,
-        None,
-        None,
-        reusable,
-        used,
-        username
+      id,
+      created,
+      None,
+      None,
+      livemode,
+      None,
+      None,
+      None,
+      reusable,
+      used,
+      username
     )
   }
 
   implicit val alipayReads: Reads[AliPay] = (
-      (__ \ "id").read[String] ~
+    (__ \ "id").read[String] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "customer").readNullable[String] ~
       (__ \ "fingerprint").readNullable[String] ~
@@ -79,19 +79,19 @@ object Alipays {
   ).tupled.map((AliPay.apply _).tupled)
 
   implicit val alipayWrites: Writes[AliPay] = Writes(
-      (alipay: AliPay) =>
-        Json.obj(
-            "id" -> alipay.id,
-            "object" -> "alipay_account",
-            "created" -> Json.toJson(alipay.created)(stripeDateTimeWrites),
-            "customer" -> alipay.customer,
-            "fingerprint" -> alipay.fingerprint,
-            "livemode" -> alipay.livemode,
-            "metadata" -> alipay.metadata,
-            "payment_amount" -> alipay.paymentAmount,
-            "payment_currency" -> alipay.paymentCurrency,
-            "reusable" -> alipay.reusable,
-            "used" -> alipay.used,
-            "username" -> alipay.username
-      ))
+    (alipay: AliPay) =>
+      Json.obj(
+        "id"               -> alipay.id,
+        "object"           -> "alipay_account",
+        "created"          -> Json.toJson(alipay.created)(stripeDateTimeWrites),
+        "customer"         -> alipay.customer,
+        "fingerprint"      -> alipay.fingerprint,
+        "livemode"         -> alipay.livemode,
+        "metadata"         -> alipay.metadata,
+        "payment_amount"   -> alipay.paymentAmount,
+        "payment_currency" -> alipay.paymentCurrency,
+        "reusable"         -> alipay.reusable,
+        "used"             -> alipay.used,
+        "username"         -> alipay.username
+    ))
 }

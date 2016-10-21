@@ -22,34 +22,33 @@ object ListFilterInput {
 
   object Object {
     def default: Object = Object(
-        None,
-        None,
-        None,
-        None
+      None,
+      None,
+      None,
+      None
     )
   }
 
   implicit val timestampReads: Reads[Timestamp] =
     stripeDateTimeReads.map(Timestamp)
   implicit val timestampWrites: Writes[Timestamp] = Writes(
-      (timestamp: Timestamp) =>
-        stripeDateTimeWrites.writes(timestamp.timestamp))
+    (timestamp: Timestamp) => stripeDateTimeWrites.writes(timestamp.timestamp))
 
   implicit val objectReads: Reads[Object] = (
-      (__ \ "gt").readNullable(stripeDateTimeReads) ~
+    (__ \ "gt").readNullable(stripeDateTimeReads) ~
       (__ \ "gte").readNullable(stripeDateTimeReads) ~
       (__ \ "lt").readNullable(stripeDateTimeReads) ~
       (__ \ "lte").readNullable(stripeDateTimeReads)
   ).tupled.map((Object.apply _).tupled)
 
   implicit val objectWrites: Writes[Object] = Writes(
-      (o: Object) =>
-        Json.obj(
-            "gt" -> o.gt.map(Json.toJson(_)(stripeDateTimeWrites)),
-            "gte" -> o.gte.map(Json.toJson(_)(stripeDateTimeWrites)),
-            "lt" -> o.lt.map(Json.toJson(_)(stripeDateTimeWrites)),
-            "gte" -> o.lte.map(Json.toJson(_)(stripeDateTimeWrites))
-      ))
+    (o: Object) =>
+      Json.obj(
+        "gt"  -> o.gt.map(Json.toJson(_)(stripeDateTimeWrites)),
+        "gte" -> o.gte.map(Json.toJson(_)(stripeDateTimeWrites)),
+        "lt"  -> o.lt.map(Json.toJson(_)(stripeDateTimeWrites)),
+        "gte" -> o.lte.map(Json.toJson(_)(stripeDateTimeWrites))
+    ))
 
   implicit val listFilterInputReads: Reads[ListFilterInput] =
     __.read[JsValue].flatMap {
@@ -58,12 +57,10 @@ object ListFilterInput {
       case jsString: JsString =>
         __.read[ListFilterInput.Timestamp].map(x => x: ListFilterInput)
       case _ =>
-        Reads[ListFilterInput](_ =>
-              JsError(ValidationError("UnknownListFilterInput")))
+        Reads[ListFilterInput](_ => JsError(ValidationError("UnknownListFilterInput")))
     }
 
-  implicit val listFilterInputWrites: Writes[ListFilterInput] = Writes(
-      (filterInput: ListFilterInput) => {
+  implicit val listFilterInputWrites: Writes[ListFilterInput] = Writes((filterInput: ListFilterInput) => {
     filterInput match {
       case o: ListFilterInput.Object =>
         Json.toJson(o)

@@ -46,7 +46,7 @@ object Disputes extends LazyLogging {
   // This is due to http://stackoverflow.com/questions/28167971/scala-case-having-22-fields-but-having-issue-with-play-json-in-scala-2-11-5
 
   private[this] val disputeEvidenceReadsOne = (
-      (__ \ "access_activity_log").readNullable[String] ~
+    (__ \ "access_activity_log").readNullable[String] ~
       (__ \ "billing_address").readNullable[String] ~
       (__ \ "cancellation_policy").readNullable[String] ~
       (__ \ "cancellation_policy_disclosure").readNullable[String] ~
@@ -70,7 +70,7 @@ object Disputes extends LazyLogging {
   ).tupled
 
   private[this] val disputeEvidenceReadsTwo = (
-      (__ \ "shipping_carrier").readNullable[String] ~
+    (__ \ "shipping_carrier").readNullable[String] ~
       (__ \ "shipping_date").readNullable[String] ~
       (__ \ "shipping_documentation").readNullable[String] ~
       (__ \ "shipping_tracking_number").readNullable[String] ~
@@ -79,7 +79,7 @@ object Disputes extends LazyLogging {
   ).tupled
 
   implicit val disputeEvidenceReads: Reads[DisputeEvidence] = (
-      disputeEvidenceReadsOne ~ disputeEvidenceReadsTwo
+    disputeEvidenceReadsOne ~ disputeEvidenceReadsTwo
   ) { (one, two) =>
     val (accessActivityLog,
          billingAddress,
@@ -140,58 +140,54 @@ object Disputes extends LazyLogging {
   }
 
   implicit val disputeEvidenceWrites: Writes[DisputeEvidence] = Writes(
-      (disputeEvidence: DisputeEvidence) =>
-        Json.obj(
-            "access_activity_log" -> disputeEvidence.accessActivityLog,
-            "billing_address" -> disputeEvidence.billingAddress,
-            "cancellation_policy" -> disputeEvidence.cancellationPolicy,
-            "cancellation_policy_disclosure" -> disputeEvidence.cancellationPolicyDisclosure,
-            "cancellation_rebuttal" -> disputeEvidence.cancellationRebuttal,
-            "customer_communication" -> disputeEvidence.customerCommunication,
-            "customer_email_address" -> disputeEvidence.customerEmailAddress,
-            "customer_name" -> disputeEvidence.customerName,
-            "customer_purchase_ip" -> disputeEvidence.customerPurchaseIp,
-            "customer_signature" -> disputeEvidence.customerSignature,
-            "duplicate_charge_documentation" -> disputeEvidence.duplicateChargeDocumentation,
-            "duplicate_charge_explanation" -> disputeEvidence.duplicateChargeExplanation,
-            "duplicate_charge_id" -> disputeEvidence.duplicateChargeId,
-            "product_description" -> disputeEvidence.productDescription,
-            "receipt" -> disputeEvidence.receipt,
-            "refund_policy" -> disputeEvidence.refundPolicy,
-            "refund_policy_disclosure" -> disputeEvidence.refundPolicyDisclosure,
-            "refund_refusal_explanation" -> disputeEvidence.refundRefusalExplanation,
-            "service_date" -> disputeEvidence.serviceDate,
-            "service_documentation" -> disputeEvidence.serviceDocumentation,
-            "shipping_address" -> disputeEvidence.shippingAddress,
-            "shipping_carrier" -> disputeEvidence.shippingCarrier,
-            "shipping_date" -> disputeEvidence.shippingDate,
-            "shipping_documentation" -> disputeEvidence.shippingDocumentation,
-            "shipping_tracking_number" -> disputeEvidence.shippingTrackingNumber,
-            "uncategorized_file" -> disputeEvidence.uncategorizedFile,
-            "uncategorized_text" -> disputeEvidence.uncategorizedText
-      ))
+    (disputeEvidence: DisputeEvidence) =>
+      Json.obj(
+        "access_activity_log"            -> disputeEvidence.accessActivityLog,
+        "billing_address"                -> disputeEvidence.billingAddress,
+        "cancellation_policy"            -> disputeEvidence.cancellationPolicy,
+        "cancellation_policy_disclosure" -> disputeEvidence.cancellationPolicyDisclosure,
+        "cancellation_rebuttal"          -> disputeEvidence.cancellationRebuttal,
+        "customer_communication"         -> disputeEvidence.customerCommunication,
+        "customer_email_address"         -> disputeEvidence.customerEmailAddress,
+        "customer_name"                  -> disputeEvidence.customerName,
+        "customer_purchase_ip"           -> disputeEvidence.customerPurchaseIp,
+        "customer_signature"             -> disputeEvidence.customerSignature,
+        "duplicate_charge_documentation" -> disputeEvidence.duplicateChargeDocumentation,
+        "duplicate_charge_explanation"   -> disputeEvidence.duplicateChargeExplanation,
+        "duplicate_charge_id"            -> disputeEvidence.duplicateChargeId,
+        "product_description"            -> disputeEvidence.productDescription,
+        "receipt"                        -> disputeEvidence.receipt,
+        "refund_policy"                  -> disputeEvidence.refundPolicy,
+        "refund_policy_disclosure"       -> disputeEvidence.refundPolicyDisclosure,
+        "refund_refusal_explanation"     -> disputeEvidence.refundRefusalExplanation,
+        "service_date"                   -> disputeEvidence.serviceDate,
+        "service_documentation"          -> disputeEvidence.serviceDocumentation,
+        "shipping_address"               -> disputeEvidence.shippingAddress,
+        "shipping_carrier"               -> disputeEvidence.shippingCarrier,
+        "shipping_date"                  -> disputeEvidence.shippingDate,
+        "shipping_documentation"         -> disputeEvidence.shippingDocumentation,
+        "shipping_tracking_number"       -> disputeEvidence.shippingTrackingNumber,
+        "uncategorized_file"             -> disputeEvidence.uncategorizedFile,
+        "uncategorized_text"             -> disputeEvidence.uncategorizedText
+    ))
 
-  case class EvidenceDetails(dueBy: OffsetDateTime,
-                             hasEvidence: Boolean,
-                             pastDue: Boolean,
-                             submissionCount: Long)
+  case class EvidenceDetails(dueBy: OffsetDateTime, hasEvidence: Boolean, pastDue: Boolean, submissionCount: Long)
 
   implicit val evidenceDetailsReads: Reads[EvidenceDetails] = (
-      (__ \ "due_by").read[OffsetDateTime](stripeDateTimeReads) ~
+    (__ \ "due_by").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "has_evidence").read[Boolean] ~
       (__ \ "past_due").read[Boolean] ~
       (__ \ "submission_count").read[Long]
   ).tupled.map((EvidenceDetails.apply _).tupled)
 
   implicit val evidenceDetailsWrites: Writes[EvidenceDetails] = Writes(
-      (evidenceDetails: EvidenceDetails) =>
-        Json.obj(
-            "due_by" -> Json.toJson(evidenceDetails.dueBy)(
-                stripeDateTimeWrites),
-            "has_evidence" -> evidenceDetails.hasEvidence,
-            "past_due" -> evidenceDetails.pastDue,
-            "submission_count" -> evidenceDetails.submissionCount
-      ))
+    (evidenceDetails: EvidenceDetails) =>
+      Json.obj(
+        "due_by"           -> Json.toJson(evidenceDetails.dueBy)(stripeDateTimeWrites),
+        "has_evidence"     -> evidenceDetails.hasEvidence,
+        "past_due"         -> evidenceDetails.pastDue,
+        "submission_count" -> evidenceDetails.submissionCount
+    ))
 
   sealed abstract class Reason(val id: String) extends EnumEntry {
     override val entryName = id
@@ -215,8 +211,7 @@ object Disputes extends LazyLogging {
 
     case object CreditNotProcessed extends Reason("credit_not_processed")
 
-    case object IncorrectAccountDetails
-        extends Reason("incorrect_account_details")
+    case object IncorrectAccountDetails extends Reason("incorrect_account_details")
 
     case object InsufficientFunds extends Reason("insufficient_funds")
 
@@ -273,7 +268,7 @@ object Disputes extends LazyLogging {
                      status: Status)
 
   implicit val disputeReads: Reads[Dispute] = (
-      (__ \ "id").read[String] ~
+    (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "balance_transactions").read[List[BalanceTransaction]] ~
       (__ \ "charge").read[String] ~
@@ -289,33 +284,32 @@ object Disputes extends LazyLogging {
   ).tupled.map((Dispute.apply _).tupled)
 
   implicit val disputeWrites: Writes[Dispute] = Writes(
-      (dispute: Dispute) =>
-        Json.obj(
-            "id" -> dispute.id,
-            "object" -> "dispute",
-            "amount" -> dispute.amount,
-            "balance_transactions" -> dispute.balanceTransactions,
-            "charge" -> dispute.charge,
-            "created" -> Json.toJson(dispute.created)(stripeDateTimeWrites),
-            "currency" -> dispute.currency,
-            "evidence" -> dispute.evidence,
-            "evidence_details" -> dispute.evidenceDetails,
-            "is_charge_refundable" -> dispute.isChargeRefundable,
-            "livemode" -> dispute.livemode,
-            "metadata" -> dispute.metadata,
-            "reason" -> dispute.reason,
-            "status" -> dispute.status
-      ))
+    (dispute: Dispute) =>
+      Json.obj(
+        "id"                   -> dispute.id,
+        "object"               -> "dispute",
+        "amount"               -> dispute.amount,
+        "balance_transactions" -> dispute.balanceTransactions,
+        "charge"               -> dispute.charge,
+        "created"              -> Json.toJson(dispute.created)(stripeDateTimeWrites),
+        "currency"             -> dispute.currency,
+        "evidence"             -> dispute.evidence,
+        "evidence_details"     -> dispute.evidenceDetails,
+        "is_charge_refundable" -> dispute.isChargeRefundable,
+        "livemode"             -> dispute.livemode,
+        "metadata"             -> dispute.metadata,
+        "reason"               -> dispute.reason,
+        "status"               -> dispute.status
+    ))
 
-  def get(id: String)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Dispute]] = {
+  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Dispute]] = {
     val finalUrl = endpoint.url + s"/v1/disputes/$id"
 
     createRequestGET[Dispute](finalUrl, logger)
   }
 
-  def close(id: String)(idempotencyKey: Option[IdempotencyKey] = None)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Dispute]] = {
+  def close(id: String)(idempotencyKey: Option[IdempotencyKey] = None)(implicit apiKey: ApiKey,
+                                                                       endpoint: Endpoint): Future[Try[Dispute]] = {
     val finalUrl = endpoint.url + s"/v1/disputes/$id/close"
 
     createRequestPOST[Dispute](finalUrl, Map.empty, idempotencyKey, logger)
@@ -328,10 +322,10 @@ object Disputes extends LazyLogging {
 
   object DisputeListInput {
     def default: DisputeListInput = DisputeListInput(
-        None,
-        None,
-        None,
-        None
+      None,
+      None,
+      None,
+      None
     )
   }
 
@@ -348,9 +342,8 @@ object Disputes extends LazyLogging {
     implicit val disputeWrites: Writes[DisputeList] = listWrites
   }
 
-  def list(disputeListInput: DisputeListInput, includeTotalCount: Boolean)(
-      implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[DisputeList]] = {
+  def list(disputeListInput: DisputeListInput,
+           includeTotalCount: Boolean)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[DisputeList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =
@@ -368,9 +361,9 @@ object Disputes extends LazyLogging {
       }
 
       (created ?
-          ("ending_before" -> disputeListInput.endingBefore) ?
-          ("limit" -> disputeListInput.limit.map(_.toString)) ?
-          ("starting_after" -> disputeListInput.startingAfter)).toString()
+        ("ending_before" -> disputeListInput.endingBefore) ?
+        ("limit" -> disputeListInput.limit.map(_.toString)) ?
+        ("starting_after" -> disputeListInput.startingAfter)).toString()
     }
 
     createRequestGET[DisputeList](finalUrl, logger)

@@ -47,25 +47,25 @@ object Customers extends LazyLogging {
                 shipping: Shipping,
                 sources: PaymentSourceList,
                 subscriptions: List[Subscription]): Customer = Customer(
-        id,
-        accountBalance,
-        created,
-        None,
-        None,
-        delinquent,
-        None,
-        None,
-        None,
-        livemode,
-        None,
-        shipping,
-        sources,
-        subscriptions
+      id,
+      accountBalance,
+      created,
+      None,
+      None,
+      delinquent,
+      None,
+      None,
+      None,
+      livemode,
+      None,
+      shipping,
+      sources,
+      subscriptions
     )
   }
 
   implicit val customerReads: Reads[Customer] = (
-      (__ \ "id").read[String] ~
+    (__ \ "id").read[String] ~
       (__ \ "account_balance").read[BigDecimal] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").readNullable[Currency] ~
@@ -82,24 +82,24 @@ object Customers extends LazyLogging {
   ).tupled.map((Customer.apply _).tupled)
 
   implicit val customerWrites: Writes[Customer] = Writes(
-      (customer: Customer) =>
-        Json.obj(
-            "id" -> customer.id,
-            "object" -> "customer",
-            "account_balance" -> customer.accountBalance,
-            "created" -> Json.toJson(customer.created)(stripeDateTimeWrites),
-            "currency" -> customer.currency,
-            "default_source" -> customer.defaultSource,
-            "delinquent" -> customer.delinquent,
-            "description" -> customer.description,
-            "discount" -> customer.discount,
-            "email" -> customer.email,
-            "livemode" -> customer.livemode,
-            "metadata" -> customer.metadata,
-            "shipping" -> customer.shipping,
-            "sources" -> customer.sources,
-            "subscriptions" -> customer.subscriptions
-      ))
+    (customer: Customer) =>
+      Json.obj(
+        "id"              -> customer.id,
+        "object"          -> "customer",
+        "account_balance" -> customer.accountBalance,
+        "created"         -> Json.toJson(customer.created)(stripeDateTimeWrites),
+        "currency"        -> customer.currency,
+        "default_source"  -> customer.defaultSource,
+        "delinquent"      -> customer.delinquent,
+        "description"     -> customer.description,
+        "discount"        -> customer.discount,
+        "email"           -> customer.email,
+        "livemode"        -> customer.livemode,
+        "metadata"        -> customer.metadata,
+        "shipping"        -> customer.shipping,
+        "sources"         -> customer.sources,
+        "subscriptions"   -> customer.subscriptions
+    ))
 
   sealed abstract class Source
 
@@ -125,23 +125,21 @@ object Customers extends LazyLogging {
         with NumberCardSource
 
     object Card {
-      def default(expMonth: Int,
-                  expYear: Int,
-                  number: String): Card = Card(
-          expMonth,
-          expYear,
-          number,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None
+      def default(expMonth: Int, expYear: Int, number: String): Card = Card(
+        expMonth,
+        expYear,
+        number,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None
       )
     }
   }
@@ -150,7 +148,7 @@ object Customers extends LazyLogging {
     __.read[JsValue].flatMap {
       case jsObject: JsObject =>
         (
-            (__ \ "exp_month").read[Int] ~
+          (__ \ "exp_month").read[Int] ~
             (__ \ "exp_year").read[Int] ~
             (__ \ "number").read[String] ~
             (__ \ "address_city").readNullable[String] ~
@@ -196,21 +194,21 @@ object Customers extends LazyLogging {
             name
             ) =>
           Json.obj(
-              "object" -> "card",
-              "exp_month" -> expMonth,
-              "exp_year" -> expYear,
-              "number" -> number,
-              "address_city" -> addressCity,
-              "address_country" -> addressCountry,
-              "address_line1" -> addressLine1,
-              "address_line2" -> addressLine2,
-              "address_state" -> addressState,
-              "address_zip" -> addressZip,
-              "currency" -> currency,
-              "cvc" -> cvc,
-              "default_for_currency" -> defaultForCurrency,
-              "metadata" -> metadata,
-              "name" -> name
+            "object"               -> "card",
+            "exp_month"            -> expMonth,
+            "exp_year"             -> expYear,
+            "number"               -> number,
+            "address_city"         -> addressCity,
+            "address_country"      -> addressCountry,
+            "address_line1"        -> addressLine1,
+            "address_line2"        -> addressLine2,
+            "address_state"        -> addressState,
+            "address_zip"          -> addressZip,
+            "currency"             -> currency,
+            "cvc"                  -> cvc,
+            "default_for_currency" -> defaultForCurrency,
+            "metadata"             -> metadata,
+            "name"                 -> name
           )
       }
     })
@@ -230,22 +228,22 @@ object Customers extends LazyLogging {
 
   object CustomerInput {
     def default: CustomerInput = CustomerInput(
-        None,
-        None,
-        None,
-        None,
-        Map.empty,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None
+      None,
+      None,
+      None,
+      None,
+      Map.empty,
+      None,
+      None,
+      None,
+      None,
+      None,
+      None
     )
   }
 
   implicit val customerInputReads: Reads[CustomerInput] = (
-      (__ \ "account_balance").readNullable[BigDecimal] ~
+    (__ \ "account_balance").readNullable[BigDecimal] ~
       (__ \ "coupon").readNullable[String] ~
       (__ \ "description").readNullable[String] ~
       (__ \ "email").readNullable[String] ~
@@ -259,24 +257,23 @@ object Customers extends LazyLogging {
   ).tupled.map((CustomerInput.apply _).tupled)
 
   implicit val customerInputWrites: Writes[CustomerInput] = Writes(
-      (customerInput: CustomerInput) =>
-        Json.obj(
-            "account_balance" -> customerInput.accountBalance,
-            "coupon" -> customerInput.coupon,
-            "description" -> customerInput.description,
-            "email" -> customerInput.email,
-            "metadata" -> customerInput.metadata,
-            "plan" -> customerInput.plan,
-            "quantity" -> customerInput.quantity,
-            "shipping" -> customerInput.shipping,
-            "source" -> customerInput.source,
-            "tax_percent" -> customerInput.taxPercent,
-            "trial_end" -> customerInput.trialEnd.map(x =>
-                  Json.toJson(x)(stripeDateTimeWrites))
-      ))
+    (customerInput: CustomerInput) =>
+      Json.obj(
+        "account_balance" -> customerInput.accountBalance,
+        "coupon"          -> customerInput.coupon,
+        "description"     -> customerInput.description,
+        "email"           -> customerInput.email,
+        "metadata"        -> customerInput.metadata,
+        "plan"            -> customerInput.plan,
+        "quantity"        -> customerInput.quantity,
+        "shipping"        -> customerInput.shipping,
+        "source"          -> customerInput.source,
+        "tax_percent"     -> customerInput.taxPercent,
+        "trial_end"       -> customerInput.trialEnd.map(x => Json.toJson(x)(stripeDateTimeWrites))
+    ))
 
   case class CustomerUpdate(
-    paymentSource: Option[Token]
+      paymentSource: Option[Token]
   )
 
   implicit val customerUpdatePostParams = new PostParams[CustomerUpdate] {
@@ -286,19 +283,19 @@ object Customers extends LazyLogging {
 
   // CRUD methods
 
-  def create(customerInput: CustomerInput)(
-      idempotencyKey: Option[IdempotencyKey] = None)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Customer]] = {
+  def create(customerInput: CustomerInput)(idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[Customer]] = {
     val postFormParameters: Map[String, String] = {
       Map(
-          "account_balance" -> customerInput.accountBalance.map(_.toString()),
-          "coupon" -> customerInput.coupon,
-          "description" -> customerInput.description,
-          "email" -> customerInput.email,
-          "plan" -> customerInput.plan,
-          "quantity" -> customerInput.quantity.map(_.toString),
-          "tax_percent" -> customerInput.taxPercent.map(_.toString()),
-          "trial_end" -> customerInput.trialEnd.map(stripeDateTimeParamWrites)
+        "account_balance" -> customerInput.accountBalance.map(_.toString()),
+        "coupon"          -> customerInput.coupon,
+        "description"     -> customerInput.description,
+        "email"           -> customerInput.email,
+        "plan"            -> customerInput.plan,
+        "quantity"        -> customerInput.quantity.map(_.toString),
+        "tax_percent"     -> customerInput.taxPercent.map(_.toString()),
+        "trial_end"       -> customerInput.trialEnd.map(stripeDateTimeParamWrites)
       ).collect {
         case (k, Some(v)) => (k, v)
       }
@@ -306,20 +303,20 @@ object Customers extends LazyLogging {
       customerInput.source match {
         case Some(
             Source.Card(
-            expMonth,
-            expYear,
-            number,
-            addressCity,
-            addressCountry,
-            addressLine1,
-            addressLine2,
-            addressState,
-            addressZip,
-            currency,
-            cvc,
-            defaultForCurrency,
-            metadata,
-            name
+              expMonth,
+              expYear,
+              number,
+              addressCity,
+              addressCountry,
+              addressLine1,
+              addressLine2,
+              addressState,
+              addressZip,
+              currency,
+              cvc,
+              defaultForCurrency,
+              metadata,
+              name
             )) =>
           /*
             TODO: metadata is missing from serialization here,
@@ -328,19 +325,19 @@ object Customers extends LazyLogging {
            */
 
           val map = Map(
-              "exp_month" -> Option(expMonth.toString),
-              "exp_year" -> Option(expYear.toString),
-              "number" -> Option(number),
-              "address_city" -> addressCity,
-              "address_country" -> addressCountry,
-              "address_line1" -> addressLine1,
-              "address_line2" -> addressLine2,
-              "address_state" -> addressState,
-              "address_zip" -> addressZip,
-              "currency" -> currency.map(_.iso.toLowerCase),
-              "cvc" -> cvc,
-              "default_for_currency" -> defaultForCurrency.map(_.toString),
-              "name" -> name
+            "exp_month"            -> Option(expMonth.toString),
+            "exp_year"             -> Option(expYear.toString),
+            "number"               -> Option(number),
+            "address_city"         -> addressCity,
+            "address_country"      -> addressCountry,
+            "address_line1"        -> addressLine1,
+            "address_line2"        -> addressLine2,
+            "address_state"        -> addressState,
+            "address_zip"          -> addressZip,
+            "currency"             -> currency.map(_.iso.toLowerCase),
+            "cvc"                  -> cvc,
+            "default_for_currency" -> defaultForCurrency.map(_.toString),
+            "name"                 -> name
           ).collect {
             case (k, Some(v)) => (k, v)
           }
@@ -358,12 +355,10 @@ object Customers extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/customers"
 
-    createRequestPOST[Customer](
-        finalUrl, postFormParameters, idempotencyKey, logger)
+    createRequestPOST[Customer](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Customer]] = {
+  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Customer]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
     createRequestGET[Customer](finalUrl, logger)
@@ -377,19 +372,17 @@ object Customers extends LazyLogging {
     *
     * @see https://stripe.github.io/stripe-ios/docs/Protocols/STPBackendAPIAdapter.html
     */
-  def getCustomerJson(id: String)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[JsValue]] = {
+  def getCustomerJson(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[JsValue]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
     createRequestGET[JsValue](finalUrl, logger)
   }
 
+  def update(id: String, customerUpdate: CustomerUpdate)(idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint): Future[Try[Customer]] = {
 
-  def update(id: String, customerUpdate: CustomerUpdate)
-            (idempotencyKey: Option[IdempotencyKey] = None)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Customer]] = {
-
-    val finalUrl = endpoint.url + s"/v1/customers/$id"
+    val finalUrl   = endpoint.url + s"/v1/customers/$id"
     val postParams = PostParams.toPostParams(customerUpdate)
     createRequestPOST[Customer](finalUrl, postParams, idempotencyKey, logger)
   }
@@ -409,10 +402,10 @@ object Customers extends LazyLogging {
 
   object CustomerListInput {
     def default: CustomerListInput = CustomerListInput(
-        None,
-        None,
-        None,
-        None
+      None,
+      None,
+      None,
+      None
     )
   }
 
@@ -429,9 +422,8 @@ object Customers extends LazyLogging {
     implicit val customerWrites: Writes[CustomerList] = listWrites
   }
 
-  def list(customerListInput: CustomerListInput, includeTotalCount: Boolean)(
-      implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[CustomerList]] = {
+  def list(customerListInput: CustomerListInput,
+           includeTotalCount: Boolean)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[CustomerList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =
@@ -449,9 +441,9 @@ object Customers extends LazyLogging {
       }
 
       (created ?
-          ("ending_before" -> customerListInput.endingBefore) ?
-          ("limit" -> customerListInput.limit.map(_.toString)) ?
-          ("starting_after" -> customerListInput.startingAfter)).toString()
+        ("ending_before" -> customerListInput.endingBefore) ?
+        ("limit" -> customerListInput.limit.map(_.toString)) ?
+        ("starting_after" -> customerListInput.startingAfter)).toString()
     }
 
     createRequestGET[CustomerList](finalUrl, logger)
