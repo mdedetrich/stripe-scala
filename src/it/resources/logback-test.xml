@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true">
+
+  <appender name="consoleAppender" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <charset>UTF-8</charset>
+      <Pattern>%date{HH:mm:ss} %-5level %logger{10} - %msg%n</Pattern>
+    </encoder>
+  </appender>
+
+
+  <logger name="com.ning.http.client" level="error"/>
+  <logger name="org.mdedetrich.stripe" level="error"/>
+
+  <root level="info">
+    <appender-ref ref="consoleAppender" />
+  </root>
+</configuration>

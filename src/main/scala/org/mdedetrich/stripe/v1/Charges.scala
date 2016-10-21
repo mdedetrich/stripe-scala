@@ -1,17 +1,18 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.mdedetrich.playjson.Utils._
-import org.mdedetrich.stripe.v1.Cards._
 import org.mdedetrich.stripe.v1.Charges.FraudDetails.{StripeReport, UserReport}
+import org.mdedetrich.stripe.v1.Charges.Source.Card
 import org.mdedetrich.stripe.v1.Disputes._
 import org.mdedetrich.stripe.v1.Errors._
 import org.mdedetrich.stripe.v1.Refunds.RefundList
 import org.mdedetrich.stripe.v1.Shippings.Shipping
-import org.mdedetrich.stripe.v1.Sources.BaseCardSource
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.v1.Sources.{MaskedCardSource, NumberCardSource}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -21,69 +22,37 @@ import scala.util.Try
 
 object Charges extends LazyLogging {
 
-  sealed trait FraudDetails
+  case class FraudDetails(
+    userReport: Option[UserReport],
+    stripeReport: Option[StripeReport]
+  )
 
   object FraudDetails {
 
-    sealed abstract class UserReport(val id: String)
-        extends EnumEntry
-        with FraudDetails {
+    sealed abstract class UserReport(val id: String) extends EnumEntry {
       override val entryName = id
     }
 
-    object UserReport extends Enum[UserReport] {
-
+    object UserReport extends Enum[UserReport] with PlayJsonEnum[UserReport] {
       val values = findValues
-
       case object Safe extends UserReport("safe")
-
       case object Fraudulent extends UserReport("fraudulent")
     }
 
-    sealed abstract class StripeReport(val id: String)
-        extends EnumEntry
-        with FraudDetails {
+    sealed abstract class StripeReport(val id: String) extends EnumEntry {
       override val entryName = id
     }
 
-    object StripeReport extends Enum[UserReport] {
-
+    object StripeReport extends Enum[StripeReport] with PlayJsonEnum[StripeReport] {
       val values = findValues
-
       case object Fraudulent extends StripeReport("fraudulent")
     }
   }
 
-  implicit val fraudDetailsReads: Reads[FraudDetails] =
-    (__ \ "user_report").readNullable[String].flatMap {
-      case Some("safe") =>
-        Reads[FraudDetails](_ => JsSuccess(FraudDetails.UserReport.Safe))
-      case Some("fraudulent") =>
-        Reads[FraudDetails](_ => JsSuccess(FraudDetails.UserReport.Safe))
-      case _ =>
-        (__ \ "stripe_report").readNullable[String].flatMap {
-          case Some("fraudulent") =>
-            Reads[FraudDetails](_ =>
-                  JsSuccess(FraudDetails.StripeReport.Fraudulent))
-          case _ =>
-            Reads[FraudDetails](_ =>
-                  JsError(ValidationError("UnknownFraudDetails")))
-        }
-    }
-
-  implicit val fraudDetailsWrites: Writes[FraudDetails] = Writes {
-    (fraudDetails: FraudDetails) =>
-      fraudDetails match {
-        case userReport: UserReport =>
-          Json.obj(
-              "user_report" -> userReport.id
-          )
-        case stripeReport: StripeReport =>
-          Json.obj(
-              "stripe_report" -> stripeReport.id
-          )
-      }
-  }
+  implicit val fraudDetailsReads: Reads[FraudDetails] = (
+    (__ \ "user_report").readNullable[UserReport] ~
+    (__ \ "stripe_report").readNullable[StripeReport]
+  ).tupled.map((FraudDetails.apply _).tupled)
 
   sealed abstract class Status(val id: String) extends EnumEntry {
     override val entryName = id
@@ -102,64 +71,193 @@ object Charges extends LazyLogging {
 
   implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
+  // Source
+
+  sealed abstract class Source
+
+  object Source {
+
+    case class Customer(id: String) extends Source
+
+    case class Card(expMonth: Int,
+                    expYear: Int,
+                    number: String,
+                    cvc: Option[String],
+                    addressCity: Option[String],
+                    addressCountry: Option[String],
+                    addressLine1: Option[String],
+                    addressLine2: Option[String],
+                    name: Option[String],
+                    addressState: Option[String],
+                    addressZip: Option[String])
+      extends Source
+        with NumberCardSource
+  }
+
+  implicit val sourceReads: Reads[Source] = {
+    __.read[JsValue].flatMap {
+      case jsObject: JsObject =>
+        (
+          (__ \ "exp_month").read[Int] ~
+            (__ \ "exp_year").read[Int] ~
+            (__ \ "number").read[String] ~
+            (__ \ "cvc").readNullable[String] ~
+            (__ \ "address_city").readNullable[String] ~
+            (__ \ "address_country").readNullable[String] ~
+            (__ \ "address_line1").readNullable[String] ~
+            (__ \ "address_line2").readNullable[String] ~
+            (__ \ "name").readNullable[String] ~
+            (__ \ "address_state").readNullable[String] ~
+            (__ \ "address_zip").readNullable[String]
+          ).tupled.map((Source.Card.apply _).tupled)
+      case jsString: JsString =>
+        Reads[Source](_ => JsSuccess(Source.Customer(jsString.value)))
+      case _ =>
+        Reads[Source](_ => JsError(ValidationError("InvalidSource")))
+    }
+  }
+
+  implicit val cardPostParams = new PostParams[Source.Card] {
+    override def toMap(t: Card): Map[String, String] = {
+      val mandatory = Map(
+        "exp_month" -> t.expMonth.toString,
+        "exp_year" -> t.expYear.toString,
+        "number" -> t.number
+      )
+      val optional = Map(
+        "cvc" -> t.cvc,
+        "address_city" -> t.addressCity,
+        "address_country" -> t.addressCountry,
+        "address_line1" -> t.addressLine1,
+        "address_line2" -> t.addressLine2,
+        "name" -> t.name,
+        "address_state" -> t.addressState,
+        "address_zip" -> t.addressZip
+      )
+      mandatory ++ flatten(optional)
+    }
+  }
+
+  implicit val sourceWrites: Writes[Source] = Writes((source: Source) => {
+    source match {
+      case Source.Customer(id) =>
+        JsString(id)
+      case Source.Card(expMonth,
+      expYear,
+      number,
+      cvc,
+      addressCity,
+      addressCountry,
+      addressLine1,
+      addressLine2,
+      name,
+      addressState,
+      addressZip) =>
+        Json.obj(
+          "exp_month" -> expMonth,
+          "exp_year" -> expYear,
+          "number" -> number,
+          "object" -> "card",
+          "cvc" -> cvc,
+          "address_city" -> addressCity,
+          "address_country" -> addressCountry,
+          "address_line1" -> addressLine1,
+          "address_line2" -> addressLine2,
+          "name" -> name,
+          "address_state" -> addressState,
+          "address_zip" -> addressZip
+        )
+    }
+  })
+
+  // Masked card
+
+  case class MaskedSource(
+    id: String,
+    last4: String,
+    expMonth: Int,
+    expYear: Int,
+    cvc: Option[String],
+    addressCountry: Option[String],
+    addressLine1: Option[String],
+    addressLine2: Option[String],
+    name: Option[String],
+    addressState: Option[String],
+    addressZip: Option[String]
+  ) extends MaskedCardSource
+
+  implicit val maskedSourceReads: Reads[MaskedSource] = (
+    (__ \ "id").read[String] ~
+    (__ \ "last4").read[String] ~
+    (__ \ "exp_month").read[Int] ~
+    (__ \ "exp_year").read[Int] ~
+    (__ \ "cvc").readNullable[String] ~
+    (__ \ "address_country").readNullable[String] ~
+    (__ \ "address_line1").readNullable[String] ~
+    (__ \ "address_line2").readNullable[String] ~
+    (__ \ "name").readNullable[String] ~
+    (__ \ "address_state").readNullable[String] ~
+    (__ \ "addressZip").readNullable[String]
+  ).tupled.map((MaskedSource.apply _).tupled)
+
   /**
     * https://stripe.com/docs/api#charges
     *
     * @param id
     * @param amount              Amount charged in cents
-    * @param amountRefunded      Amount in cents refunded (can be less than the 
-    *                            amount attribute on the charge if a partial 
+    * @param amountRefunded      Amount in cents refunded (can be less than the
+    *                            amount attribute on the charge if a partial
     *                            refund was issued).
-    * @param applicationFee      The application fee (if any) for the charge. 
+    * @param applicationFee      The application fee (if any) for the charge.
     *                            See the Connect documentation for details.
-    * @param balanceTransaction  ID of the balance transaction that describes the 
-    *                            impact of this charge on your account balance 
+    * @param balanceTransaction  ID of the balance transaction that describes the
+    *                            impact of this charge on your account balance
     *                            (not including refunds or disputes).
-    * @param captured            If the charge was created without capturing, 
-    *                            this boolean represents whether or not it is still 
+    * @param captured            If the charge was created without capturing,
+    *                            this boolean represents whether or not it is still
     *                            uncaptured or has since been captured.
     * @param created
-    * @param currency            Three-letter ISO currency code representing 
+    * @param currency            Three-letter ISO currency code representing
     *                            the currency in which the charge was made.
     * @param customer            ID of the customer this charge is for if one exists.
     * @param description
-    * @param destination         The account (if any) the charge was made on behalf of. 
+    * @param destination         The account (if any) the charge was made on behalf of.
     *                            See the Connect documentation for details.
     * @param dispute             Details about the dispute if the charge has been disputed.
-    * @param failureCode         Error code explaining reason for charge failure if 
+    * @param failureCode         Error code explaining reason for charge failure if
     *                            available (see the errors section for a list of codes).
-    * @param failureMessage      Message to user further explaining reason for charge 
+    * @param failureMessage      Message to user further explaining reason for charge
     *                            failure if available.
-    * @param fraudDetails        Hash with information on fraud assessments for the charge. 
-    *                            Assessments reported by you have the key [[FraudDetails.UserReport]] and, 
-    *                            if set, possible values of [[FraudDetails.UserReport.Safe]] and 
-    *                            [[FraudDetails.UserReport.Fraudulent]]. Assessments 
-    *                            from Stripe have the key [[FraudDetails.StripeReport]] and, if set, 
+    * @param fraudDetails        Hash with information on fraud assessments for the charge.
+    *                            Assessments reported by you have the key [[FraudDetails.UserReport]] and,
+    *                            if set, possible values of [[FraudDetails.UserReport.Safe]] and
+    *                            [[FraudDetails.UserReport.Fraudulent]]. Assessments
+    *                            from Stripe have the key [[FraudDetails.StripeReport]] and, if set,
     *                            the value [[FraudDetails.StripeReport.Fraudulent]].
     * @param invoice             ID of the invoice this charge is for if one exists.
     * @param livemode
-    * @param metadata            A set of key/value pairs that you can attach to a charge object. 
-    *                            It can be useful for storing additional information about the charge 
+    * @param metadata            A set of key/value pairs that you can attach to a charge object.
+    *                            It can be useful for storing additional information about the charge
     *                            in a structured format.
     * @param order               ID of the order this charge is for if one exists.
-    * @param paid                true if the charge succeeded, or was successfully 
+    * @param paid                true if the charge succeeded, or was successfully
     *                            authorized for later capture.
     * @param receiptEmail        This is the email address that the receipt for this charge was sent to.
-    * @param receiptNumber       This is the transaction number that appears on email 
+    * @param receiptNumber       This is the transaction number that appears on email
     *                            receipts sent for this charge.
-    * @param refunded            Whether or not the charge has been fully refunded. 
-    *                            If the charge is only partially refunded, 
+    * @param refunded            Whether or not the charge has been fully refunded.
+    *                            If the charge is only partially refunded,
     *                            this attribute will still be false.
     * @param refunds             A list of refunds that have been applied to the charge.
     * @param shipping            Shipping information for the charge.
-    * @param source              For most Stripe users, the source of every charge is a credit or debit card. 
+    * @param source              For most Stripe users, the source of every charge is a credit or debit card.
     *                            This hash is then the card object describing that card.
-    * @param sourceTransfer      The transfer ID which created this charge. Only present if the 
-    *                            charge came from another Stripe account. See the Connect 
+    * @param sourceTransfer      The transfer ID which created this charge. Only present if the
+    *                            charge came from another Stripe account. See the Connect
     *                            documentation for details.
-    * @param statementDescriptor Extra information about a charge. This will appear 
+    * @param statementDescriptor Extra information about a charge. This will appear
     *                            on your customer’s credit card statement.
-    * @param status              The status of the payment is either [[Status.Succeeded]], 
+    * @param status              The status of the payment is either [[Status.Succeeded]],
     *                            [[Status.Pending]], or [[Status.Failed]].
     */
   case class Charge(id: String,
@@ -171,7 +269,7 @@ object Charges extends LazyLogging {
                     created: OffsetDateTime,
                     currency: Currency,
                     customer: Option[String],
-                    description: String,
+                    description: Option[String],
                     destination: Option[String],
                     dispute: Option[Dispute],
                     failureCode: Option[Type],
@@ -187,56 +285,10 @@ object Charges extends LazyLogging {
                     refunded: Boolean,
                     refunds: Option[RefundList],
                     shipping: Option[Shipping],
-                    source: Card,
+                    source: MaskedSource,
                     sourceTransfer: Option[String],
                     statementDescriptor: Option[String],
                     status: Status)
-
-  object Charge {
-    def default(id: String,
-                amount: BigDecimal,
-                amountRefunded: BigDecimal,
-                balanceTransaction: String,
-                captured: Boolean,
-                created: OffsetDateTime,
-                currency: Currency,
-                description: String,
-                livemode: Boolean,
-                paid: Boolean,
-                refunded: Boolean,
-                source: Card,
-                status: Status): Charge = Charge(
-        id,
-        amount,
-        amountRefunded,
-        None,
-        balanceTransaction,
-        captured,
-        created,
-        currency,
-        None,
-        description,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        livemode,
-        None,
-        None,
-        paid,
-        None,
-        None,
-        refunded,
-        None,
-        None,
-        source,
-        None,
-        None,
-        status
-    )
-  }
 
   private val chargeReadsOne = (
       (__ \ "id").read[String] ~
@@ -248,7 +300,7 @@ object Charges extends LazyLogging {
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "customer").readNullable[String] ~
-      (__ \ "description").read[String] ~
+      (__ \ "description").readNullable[String] ~
       (__ \ "destination").readNullable[String] ~
       (__ \ "dispute").readNullable[Dispute] ~
       (__ \ "failure_code").readNullable[Type] ~
@@ -267,7 +319,7 @@ object Charges extends LazyLogging {
       (__ \ "refunded").read[Boolean] ~
       (__ \ "refunds").readNullable[RefundList] ~
       (__ \ "shipping").readNullable[Shipping] ~
-      (__ \ "source").read[Card] ~
+      (__ \ "source").read[MaskedSource] ~
       (__ \ "source_transfer").readNullable[String] ~
       (__ \ "statement_descriptor").readNullable[String] ~
       (__ \ "status").read[Status]
@@ -338,108 +390,6 @@ object Charges extends LazyLogging {
            status)
   }
 
-  implicit val chargeWrites: Writes[Charge] = Writes(
-      (charge: Charge) =>
-        Json.obj(
-            "id" -> charge.id,
-            "object" -> "charge",
-            "amount" -> charge.amount,
-            "amount_refunded" -> charge.amountRefunded,
-            "application_fee" -> charge.applicationFee,
-            "balance_transaction" -> charge.balanceTransaction,
-            "captured" -> charge.captured,
-            "created" -> Json.toJson(charge.created)(stripeDateTimeWrites),
-            "currency" -> charge.currency,
-            "customer" -> charge.customer,
-            "description" -> charge.description,
-            "dispute" -> charge.dispute,
-            "failure_code" -> charge.failureCode,
-            "failure_message" -> charge.failureMessage,
-            "fraud_details" -> charge.fraudDetails,
-            "invoice" -> charge.invoice,
-            "livemode" -> charge.livemode,
-            "metadata" -> charge.metadata,
-            "order" -> charge.order,
-            "paid" -> charge.paid,
-            "receipt_email" -> charge.receiptEmail
-      ))
-
-  sealed abstract class Source
-
-  object Source {
-
-    case class Customer(id: String) extends Source
-
-    case class Card(expMonth: Int,
-                    expYear: Int,
-                    number: String,
-                    cvc: Option[String],
-                    addressCity: Option[String],
-                    addressCountry: Option[String],
-                    addressLine1: Option[String],
-                    addressLine2: Option[String],
-                    name: Option[String],
-                    addressState: Option[String],
-                    addressZip: Option[String])
-        extends Source
-        with BaseCardSource
-  }
-
-  implicit val sourceReads: Reads[Source] = {
-    __.read[JsValue].flatMap {
-      case jsObject: JsObject =>
-        (
-            (__ \ "exp_month").read[Int] ~
-            (__ \ "exp_year").read[Int] ~
-            (__ \ "number").read[String] ~
-            (__ \ "cvc").readNullable[String] ~
-            (__ \ "address_city").readNullable[String] ~
-            (__ \ "address_country").readNullable[String] ~
-            (__ \ "address_line1").readNullable[String] ~
-            (__ \ "address_line2").readNullable[String] ~
-            (__ \ "name").readNullable[String] ~
-            (__ \ "address_state").readNullable[String] ~
-            (__ \ "address_zip").readNullable[String]
-        ).tupled.map((Source.Card.apply _).tupled)
-      case jsString: JsString =>
-        Reads[Source](_ => JsSuccess(Source.Customer(jsString.value)))
-      case _ =>
-        Reads[Source](_ => JsError(ValidationError("InvalidSource")))
-    }
-  }
-
-  implicit val sourceWrites: Writes[Source] = Writes((source: Source) => {
-    source match {
-      case Source.Customer(id) =>
-        JsString(id)
-      case Source.Card(expMonth,
-                       expYear,
-                       number,
-                       cvc,
-                       addressCity,
-                       addressCountry,
-                       addressLine1,
-                       addressLine2,
-                       name,
-                       addressState,
-                       addressZip) =>
-        Json.obj(
-            "exp_month" -> expMonth,
-            "exp_year" -> expYear,
-            "number" -> number,
-            "object" -> "card",
-            "cvc" -> cvc,
-            "address_city" -> addressCity,
-            "address_country" -> addressCountry,
-            "address_line1" -> addressLine1,
-            "address_line2" -> addressLine2,
-            "name" -> name,
-            "address_state" -> addressState,
-            "address_zip" -> addressZip
-        )
-    }
-  })
-
   /**
     * @see https://stripe.com/docs/api#create_charge
     * @param amount              A positive integer in the smallest currency unit (e.g 100 cents to charge $1.00,
@@ -495,12 +445,12 @@ object Charges extends LazyLogging {
                          applicationFee: Option[BigDecimal],
                          capture: Boolean,
                          description: Option[String],
-                         destination: String,
-                         metadata: Option[Map[String, String]],
+                         destination: Option[String],
+                         metadata: Map[String, String],
                          receiptEmail: Option[String],
                          shipping: Option[Shipping],
-                         customer: Option[String],
-                         source: Source,
+                         customer: Option[Source.Customer],
+                         source: Option[Source.Card],
                          statementDescriptor: Option[String])
       extends StripeObject {
     statementDescriptor match {
@@ -518,41 +468,47 @@ object Charges extends LazyLogging {
     }
   }
 
+  // ChargeInput
+
   object ChargeInput {
     def default(amount: BigDecimal,
                 currency: Currency,
                 capture: Boolean,
-                destination: String,
-                source: Source): ChargeInput = ChargeInput(
+                source: Source.Card): ChargeInput =
+      ChargeInput(
         amount,
         currency,
         None,
         capture,
         None,
-        destination,
+        None,
+        Map.empty,
         None,
         None,
         None,
-        None,
-        source,
+        Some(source),
         None
-    )
-  }
+      )
 
-  implicit val chargeInputReads: Reads[ChargeInput] = (
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "application_fee").readNullable[BigDecimal] ~
-      (__ \ "capture").read[Boolean] ~
-      (__ \ "description").readNullable[String] ~
-      (__ \ "destination").read[String] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "receipt_email").readNullable[String] ~
-      (__ \ "shipping").readNullableOrEmptyJsObject[Shipping] ~
-      (__ \ "customer").readNullable[String] ~
-      (__ \ "source").read[Source] ~
-      (__ \ "statement_descriptor").readNullable[String]
-  ).tupled.map((ChargeInput.apply _).tupled)
+    def default(amount: BigDecimal,
+                currency: Currency,
+                capture: Boolean,
+                customer: Source.Customer): ChargeInput =
+      ChargeInput(
+        amount,
+        currency,
+        None,
+        capture,
+        None,
+        None,
+        Map.empty,
+        None,
+        None,
+        Some(customer),
+        None,
+        None
+      )
+  }
 
   implicit val chargeInputWrites: Writes[ChargeInput] = Writes(
       (chargeInput: ChargeInput) =>
@@ -571,64 +527,36 @@ object Charges extends LazyLogging {
             "statement_descriptor" -> chargeInput.statementDescriptor
       ))
 
+  implicit val chargeInputPostParams = new PostParams[ChargeInput] {
+    override def toMap(chargeInput: ChargeInput): Map[String, String] =
+      flatten(Map(
+        "amount" -> Option(chargeInput.amount.toString),
+        "currency" -> Option(chargeInput.currency.iso.toLowerCase),
+        "application_fee" -> chargeInput.applicationFee.map(_.toString),
+        "capture" -> Option(chargeInput.capture.toString),
+        "description" -> chargeInput.description,
+        "destination" -> chargeInput.destination,
+        "receipt_email" -> chargeInput.receiptEmail,
+        "customer" -> chargeInput.customer.map(_.id),
+        "statement_descriptor" -> chargeInput.statementDescriptor
+      )) ++
+        PostParams.toPostParams("metadata", chargeInput.metadata) ++
+        PostParams.toPostParams("source", chargeInput.source)
+  }
+
+  // CRUD methods
+
   def create(chargeInput: ChargeInput)(
-      idempotencyKey: Option[IdempotencyKey] = None)(
-      implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Charge]] = {
+    idempotencyKey: Option[IdempotencyKey] = None)(
+              implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Charge]] = {
 
-    val postFormParameters: Map[String, String] = {
-      Map(
-          "amount" -> Option(chargeInput.amount.toString),
-          "currency" -> Option(chargeInput.currency.iso.toLowerCase),
-          "application_fee" -> chargeInput.applicationFee.map(_.toString),
-          "capture" -> Option(chargeInput.capture.toString),
-          "description" -> chargeInput.description,
-          "destination" -> Option(chargeInput.destination),
-          "receipt_email" -> chargeInput.receiptEmail,
-          "customer" -> chargeInput.customer,
-          "statement_descriptor" -> chargeInput.statementDescriptor
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ mapToPostParams(chargeInput.metadata, "metadata") ++ {
-      chargeInput.source match {
-        case Source.Customer(id) =>
-          Map("source" -> id)
-        case Source.Card(expMonth,
-                         expYear,
-                         number,
-                         cvc,
-                         addressCity,
-                         addressCountry,
-                         addressLine1,
-                         addressLine2,
-                         name,
-                         addressState,
-                         addressZip) =>
-          val map: Map[String, String] = Map(
-              "exp_month" -> Option(expMonth.toString),
-              "exp_year" -> Option(expYear.toString),
-              "number" -> Option(number),
-              "cvc" -> cvc,
-              "address_city" -> addressCity,
-              "address_country" -> addressCountry,
-              "address_line1" -> addressLine1,
-              "address_line2" -> addressLine2,
-              "name" -> name,
-              "address_state" -> addressState,
-              "address_zip" -> addressZip
-          ).collect {
-            case (k, Some(v)) => (k, v)
-          }
-
-          mapToPostParams(Option(map), "card")
-      }
-    }
+    val postFormParameters = PostParams.toPostParams(chargeInput)
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
     val finalUrl = endpoint.url + "/v1/charges"
 
     createRequestPOST[Charge](
-        finalUrl, postFormParameters, idempotencyKey, logger)
+      finalUrl, postFormParameters, idempotencyKey, logger)
   }
 }

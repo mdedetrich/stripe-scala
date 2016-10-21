@@ -86,7 +86,10 @@ object Errors {
                               val code: Option[Code],
                               val message: Option[String],
                               val param: Option[String])
-      extends Exception
+      extends Exception {
+    override def toString: String = s"""Error($httpCode, ${`type`}, $code, $message, $param)"""
+    override def getMessage: String = toString
+  }
 
   object Error {
 

@@ -18,7 +18,8 @@ resolvers ++= Seq(
 
 scalacOptions ++= Seq(
   "-target:jvm-1.8",
-  "-encoding", "UTF-8",
+  "-encoding",
+  "UTF-8",
   "-deprecation", // warning and location for usages of deprecated APIs
   "-feature", // warning and location for usages of features that should be imported explicitly
   "-unchecked", // additional warnings where generated code depends on assumptions
@@ -27,20 +28,26 @@ scalacOptions ++= Seq(
   "-Ywarn-adapted-args", // Warn if an argument list is modified to match the receiver
   "-Ywarn-value-discard", // Warn when non-Unit expression results are unused
   "-Ywarn-inaccessible",
-  "-Ywarn-dead-code"
+  "-Ywarn-dead-code",
+  "-language:postfixOps"
 )
 
-val jawnVersion = "0.8.4"
-val enumeratumVersion = "1.3.7"
+Defaults.itSettings
+
+configs(IntegrationTest)
+
+val enumeratumVersion = "1.4.16"
 
 libraryDependencies ++= Seq(
-  "net.databinder.dispatch" %% "dispatch-core" % "0.11.3",
-  "com.beachape" %% "enumeratum" % enumeratumVersion,
-  "com.beachape" %% "enumeratum-play-json" % enumeratumVersion,
-  "org.spire-math" %% "jawn-parser" % jawnVersion,
-  "org.spire-math" %% "jawn-play" % jawnVersion,
-  "com.iheart" %% "ficus" % "1.2.2",
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.1.0",
-  "com.netaporter" %% "scala-uri" % "0.4.13",
-  "org.mdedetrich" %% "play-json-utils" % "1.0.0-SNAPSHOT"
+  "net.databinder.dispatch"    %% "dispatch-core"        % "0.11.3",
+  "com.beachape"               %% "enumeratum"           % enumeratumVersion,
+  "com.beachape"               %% "enumeratum-play-json" % enumeratumVersion,
+  "com.iheart"                 %% "ficus"                % "1.2.2",
+  "com.typesafe.scala-logging" %% "scala-logging"        % "3.1.0",
+  "com.netaporter"             %% "scala-uri"            % "0.4.13",
+  "com.typesafe.play"          %% "play-json"            % "2.5.8",
+  "org.spire-math"             %% "jawn-play"            % "0.10.1",
+  // test
+  "org.scalatest"  %% "scalatest"      % "3.0.0" % "test, it",
+  "ch.qos.logback" % "logback-classic" % "1.1.7" % "test, it"
 )

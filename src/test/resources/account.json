@@ -1,0 +1,101 @@
+{
+  "id": "acct_191dzJG5YhaiJXJY",
+  "object": "account",
+  "business_logo": null,
+  "business_name": null,
+  "business_url": null,
+  "charges_enabled": true,
+  "country": "DE",
+  "debit_negative_balances": false,
+  "decline_charge_on": {
+    "avs_failure": false,
+    "cvc_failure": false
+  },
+  "default_currency": "usd",
+  "details_submitted": true,
+  "display_name": null,
+  "email": null,
+  "external_accounts": {
+    "object": "list",
+    "data": [
+      {
+        "id": "ba_191dzLG5YhaiJXJYeWv9KHmR",
+        "object": "bank_account",
+        "account": "acct_191dzJG5YhaiJXJY",
+        "account_holder_name": null,
+        "account_holder_type": null,
+        "bank_name": "STRIPE TEST BANK",
+        "country": "DE",
+        "currency": "eur",
+        "default_for_currency": true,
+        "fingerprint": "r9agq7vIYlx6wp9g",
+        "last4": "3000",
+        "metadata": {},
+        "routing_number": "110000000",
+        "status": "new"
+      }
+    ],
+    "has_more": false,
+    "total_count": 1,
+    "url": "/v1/accounts/acct_191dzJG5YhaiJXJY/external_accounts"
+  },
+  "legal_entity": {
+    "additional_owners": null,
+    "address": {
+      "city": "Berlin",
+      "country": "DE",
+      "line1": "Dircksenstr. 41",
+      "line2": null,
+      "postal_code": "10178",
+      "state": null
+    },
+    "business_name": null,
+    "business_tax_id_provided": false,
+    "dob": {
+      "day": 6,
+      "month": 10,
+      "year": 1986
+    },
+    "first_name": "Horst",
+    "last_name": "Kasuppke",
+    "personal_address": {
+      "city": null,
+      "country": "DE",
+      "line1": null,
+      "line2": null,
+      "postal_code": null,
+      "state": null
+    },
+    "type": "individual",
+    "verification": {
+      "details": null,
+      "details_code": null,
+      "document": null,
+      "status": "unverified"
+    }
+  },
+  "managed": true,
+  "metadata": {},
+  "product_description": null,
+  "statement_descriptor": null,
+  "support_email": null,
+  "support_phone": null,
+  "timezone": "Etc/UTC",
+  "tos_acceptance": {
+    "date": 1475768448,
+    "ip": "62.96.204.171",
+    "user_agent": null
+  },
+  "transfer_schedule": {
+    "delay_days": 7,
+    "interval": "daily"
+  },
+  "transfers_enabled": true,
+  "verification": {
+    "disabled_reason": null,
+    "due_by": null,
+    "fields_needed": [
+      "legal_entity.verification.document"
+    ]
+  }
+}

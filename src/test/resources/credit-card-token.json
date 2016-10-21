@@ -1,0 +1,33 @@
+{
+  "id": "tok_195vy8J6y4jvjvHho3Fin0x3",
+  "object": "token",
+  "card": {
+    "id": "card_195vy8J6y4jvjvHhCo2tkszc",
+    "object": "card",
+    "address_city": null,
+    "address_country": null,
+    "address_line1": null,
+    "address_line1_check": null,
+    "address_line2": null,
+    "address_state": null,
+    "address_zip": null,
+    "address_zip_check": null,
+    "brand": "Visa",
+    "country": "DE",
+    "cvc_check": "unchecked",
+    "dynamic_last4": null,
+    "exp_month": 10,
+    "exp_year": 2018,
+    "fingerprint": "cUHOYlTdBAsjMkK6",
+    "funding": "credit",
+    "last4": "4242",
+    "metadata": {},
+    "name": null,
+    "tokenization_method": null
+  },
+  "client_ip": "95.91.245.100",
+  "created": 1476790880,
+  "livemode": false,
+  "type": "card",
+  "used": false
+}

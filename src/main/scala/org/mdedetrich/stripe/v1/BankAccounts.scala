@@ -4,7 +4,7 @@ import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -64,28 +64,28 @@ object BankAccounts extends LazyLogging {
     * @param last4
     * @param metadata           A set of key/value pairs that you can attach to a bank account object. It can be useful for storing additional information about the bank account in a structured format.
     * @param routingNumber      The routing transit number for the bank account.
-    * @param status             Possible values are new, [[Status.Validated]], [[Status.Verified]], [[Status.VerificationFailed]], or errored. 
-    *                           A bank account that hasn’t had any activity or validation performed is new. 
-    *                           If Stripe can determine that the bank account exists, its status will be validated. 
-    *                           Note that there often isn’t enough information to know (e.g. for smaller credit unions), 
-    *                           and the validation is not always run. If customer bank account verification has succeeded, 
-    *                           the bank account status will be verified. If the verification failed for any reason, such 
-    *                           as microdeposit failure, the status will be [[Status.VerificationFailed]]. 
-    *                           If a transfer sent to this bank account fails, we’ll set the status to errored and will 
+    * @param status             Possible values are new, [[Status.Validated]], [[Status.Verified]], [[Status.VerificationFailed]], or errored.
+    *                           A bank account that hasn’t had any activity or validation performed is new.
+    *                           If Stripe can determine that the bank account exists, its status will be validated.
+    *                           Note that there often isn’t enough information to know (e.g. for smaller credit unions),
+    *                           and the validation is not always run. If customer bank account verification has succeeded,
+    *                           the bank account status will be verified. If the verification failed for any reason, such
+    *                           as microdeposit failure, the status will be [[Status.VerificationFailed]].
+    *                           If a transfer sent to this bank account fails, we’ll set the status to errored and will
     *                           not continue to send transfers until the bank details are updated.
     */
   case class BankAccount(id: String,
                          account: Option[String],
-                         accountHolderName: String,
-                         accountHolderType: AccountHolderType,
+                         accountHolderName: Option[String],
+                         accountHolderType: Option[AccountHolderType],
                          bankName: String,
                          country: String,
                          currency: Currency,
-                         defaultForCurrency: Boolean,
+                         defaultForCurrency: Option[Boolean],
                          fingerprint: String,
                          last4: String,
                          metadata: Option[Map[String, String]],
-                         name: String,
+                         name: Option[String],
                          routingNumber: String,
                          status: Status)
       extends StripeObject
@@ -93,16 +93,16 @@ object BankAccounts extends LazyLogging {
   implicit val bankAccountReads: Reads[BankAccount] = (
       (__ \ "id").read[String] ~
       (__ \ "account").readNullable[String] ~
-      (__ \ "account_holder_name").read[String] ~
-      (__ \ "account_holder_type").read[AccountHolderType] ~
+      (__ \ "account_holder_name").readNullable[String] ~
+      (__ \ "account_holder_type").readNullable[AccountHolderType] ~
       (__ \ "bank_name").read[String] ~
       (__ \ "country").read[String] ~
       (__ \ "currency").read[Currency] ~
-      (__ \ "default_for_currency").read[Boolean] ~
+      (__ \ "default_for_currency").readNullable[Boolean] ~
       (__ \ "fingerprint").read[String] ~
       (__ \ "last4").read[String] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "name").read[String] ~
+      (__ \ "name").readNullable[String] ~
       (__ \ "routing_number").read[String] ~
       (__ \ "status").read[Status]
   ).tupled.map((BankAccount.apply _).tupled)
@@ -190,6 +190,15 @@ object BankAccounts extends LazyLogging {
                 "account_holder_type" -> `object`.accountHolderType,
                 "routing_number" -> `object`.routingNumber
           ))
+
+      implicit val sourceObjectParams = new PostParams[Object] {
+        override def toMap(externalAccount: Object): Map[String, String] = Map(
+          "object" -> "bank_account",
+          "account_number" -> externalAccount.accountNumber,
+          "country" -> externalAccount.country,
+          "currency" -> externalAccount.currency.iso
+        )
+      }
 
       case class Token(id: String) extends Source
 
@@ -370,16 +379,16 @@ object BankAccounts extends LazyLogging {
 
   /**
     * @see https://stripe.com/docs/api#list_bank_accounts
-    * @param endingBefore  A cursor for use in pagination. [[endingBefore]] is an object ID 
-    *                      that defines your place in the list. For instance, if you make a 
-    *                      list request and receive 100 objects, starting with obj_bar, your 
-    *                      subsequent call can include [[endingBefore]]=obj_bar in order to 
+    * @param endingBefore  A cursor for use in pagination. [[endingBefore]] is an object ID
+    *                      that defines your place in the list. For instance, if you make a
+    *                      list request and receive 100 objects, starting with obj_bar, your
+    *                      subsequent call can include [[endingBefore]]=obj_bar in order to
     *                      fetch the previous page of the list.
     * @param limit         A limit on the number of objects to be returned. Limit can range between 1 and 100 items.
-    * @param startingAfter A cursor for use in pagination. [[startingAfter]] is an object ID 
-    *                      that defines your place in the list. For instance, if you make a 
-    *                      list request and receive 100 objects, ending with obj_foo, your 
-    *                      subsequent call can include [[startingAfter]]=obj_foo in order 
+    * @param startingAfter A cursor for use in pagination. [[startingAfter]] is an object ID
+    *                      that defines your place in the list. For instance, if you make a
+    *                      list request and receive 100 objects, ending with obj_foo, your
+    *                      subsequent call can include [[startingAfter]]=obj_foo in order
     *                      to fetch the next page of the list.
     */
   case class BankAccountListInput(endingBefore: Option[String],
