@@ -452,8 +452,8 @@ object Customers extends LazyLogging {
       }
 
       (created ?
-        ("ending_before" -> customerListInput.endingBefore) ?
-        ("limit" -> customerListInput.limit.map(_.toString)) ?
+        ("ending_before"  -> customerListInput.endingBefore) ?
+        ("limit"          -> customerListInput.limit.map(_.toString)) ?
         ("starting_after" -> customerListInput.startingAfter)).toString()
     }
 
