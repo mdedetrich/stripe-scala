@@ -273,12 +273,23 @@ object Customers extends LazyLogging {
     ))
 
   case class CustomerUpdate(
-      paymentSource: Option[Token]
+      paymentSource: Option[Token],
+      defaultSource: Option[String]
   )
 
+  object CustomerUpdate {
+    def default: CustomerUpdate = CustomerUpdate(None, None)
+  }
+
   implicit val customerUpdatePostParams = new PostParams[CustomerUpdate] {
-    override def toMap(t: CustomerUpdate): Map[String, String] =
-      Map("source" -> t.paymentSource.map(_.id)).collect({ case (key, Some(value)) => (key, value) })
+    override def toMap(t: CustomerUpdate): Map[String, String] = {
+      val params = Map(
+        "source"         -> t.paymentSource.map(_.id),
+        "default_source" -> t.defaultSource
+      )
+      flatten(params)
+    }
+
   }
 
   // CRUD methods

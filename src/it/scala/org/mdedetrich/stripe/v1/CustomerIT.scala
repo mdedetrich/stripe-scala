@@ -44,7 +44,7 @@ object CustomerIT {
       for {
         token <- handle(Tokens.create(tokenInput)())
         newCustomer <- handle(Customers.create(CustomerInput.default)())
-        updated <- handle(Customers.update(newCustomer.id, CustomerUpdate(Some(Token(token.id))))())
+        updated <- handle(Customers.update(newCustomer.id, CustomerUpdate.default.copy(paymentSource = Some(Token(token.id))))())
       } yield updated
 
   }
