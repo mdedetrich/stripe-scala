@@ -202,6 +202,10 @@ In stripe-scala, there is a base List collection at `org.mdedetrich.stripe.v1.Co
 the model for the list. Other stripe objects extend `org.mdedetrich.stripe.v1.Collections.List` to provide an implementation
 of the object as a list collection, i.e. `BankAccountList` for `BankAccount`
 
+### Formatting/Style Guide
+The project uses scalafmt to enforce consistent Scala formatting. Please run scalafmt before commiting your
+code to github (i.e. do `scalafmt` inside of sbt)
+
 ### Testing
 
 The project has unit and integration tests. These can be run with:
