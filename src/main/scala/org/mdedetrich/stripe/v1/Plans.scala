@@ -355,8 +355,8 @@ object Plans extends LazyLogging {
       }
 
       (created ?
-        ("ending_before" -> planListInput.endingBefore) ?
-        ("limit" -> planListInput.limit.map(_.toString)) ?
+        ("ending_before"  -> planListInput.endingBefore) ?
+        ("limit"          -> planListInput.limit.map(_.toString)) ?
         ("starting_after" -> planListInput.startingAfter)).toString()
     }
 

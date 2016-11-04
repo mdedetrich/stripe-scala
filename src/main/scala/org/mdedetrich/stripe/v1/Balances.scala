@@ -344,13 +344,13 @@ object Balances extends LazyLogging {
         }
 
       (created ?
-        ("currency" -> balanceHistoryListInput.currency.map(_.iso.toLowerCase)) ?
-        ("ending_before" -> balanceHistoryListInput.endingBefore) ?
-        ("limit" -> balanceHistoryListInput.limit.map(_.toString)) ?
-        ("source" -> balanceHistoryListInput.source) ?
+        ("currency"       -> balanceHistoryListInput.currency.map(_.iso.toLowerCase)) ?
+        ("ending_before"  -> balanceHistoryListInput.endingBefore) ?
+        ("limit"          -> balanceHistoryListInput.limit.map(_.toString)) ?
+        ("source"         -> balanceHistoryListInput.source) ?
         ("starting_after" -> balanceHistoryListInput.startingAfter) ?
-        ("transfer" -> balanceHistoryListInput.transfer) ?
-        ("type" -> balanceHistoryListInput.`type`.map(_.id))).toString()
+        ("transfer"       -> balanceHistoryListInput.transfer) ?
+        ("type"           -> balanceHistoryListInput.`type`.map(_.id))).toString()
     }
 
     createRequestGET[BalanceTransactionList](finalUrl, logger)

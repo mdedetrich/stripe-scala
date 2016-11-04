@@ -242,9 +242,9 @@ object Refunds extends LazyLogging {
       val baseUrl = endpoint.url + s"/v1/refunds$totalCountUrl"
 
       (baseUrl ?
-        ("charge" -> refundListInput.charge) ?
-        ("ending_before" -> refundListInput.endingBefore) ?
-        ("limit" -> refundListInput.limit.map(_.toString)) ?
+        ("charge"         -> refundListInput.charge) ?
+        ("ending_before"  -> refundListInput.endingBefore) ?
+        ("limit"          -> refundListInput.limit.map(_.toString)) ?
         ("starting_after" -> refundListInput.startingAfter)).toString()
     }
 

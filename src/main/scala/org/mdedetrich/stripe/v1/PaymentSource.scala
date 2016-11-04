@@ -802,9 +802,9 @@ object Cards extends LazyLogging {
         endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
 
       (baseUrl ?
-        ("object" -> "card") ?
-        ("ending_before" -> cardListInput.endingBefore) ?
-        ("limit" -> cardListInput.limit.map(_.toString)) ?
+        ("object"         -> "card") ?
+        ("ending_before"  -> cardListInput.endingBefore) ?
+        ("limit"          -> cardListInput.limit.map(_.toString)) ?
         ("starting_after" -> cardListInput.startingAfter)).toString()
     }
 
@@ -814,13 +814,14 @@ object Cards extends LazyLogging {
 
 object BankAccountsPaymentSource extends LazyLogging {
   case class BankAccount(
-    id: String,
-    accountHolderName: Option[String],
-    last4: String,
-    routingNumber: String,
-    country: String,
-    defaultForCurrency: Boolean
-  ) extends StripeObject with PaymentSource
+      id: String,
+      accountHolderName: Option[String],
+      last4: String,
+      routingNumber: String,
+      country: String,
+      defaultForCurrency: Boolean
+  ) extends StripeObject
+      with PaymentSource
 
   implicit val bankAccountReads: Reads[BankAccount] = (
     (__ \ "id").read[String] ~
@@ -1208,11 +1209,11 @@ object BitcoinReceivers extends LazyLogging {
       val baseUrl = endpoint.url + s"/v1/bitcoin/receivers$totalCountUrl"
 
       (baseUrl ?
-        ("active" -> bitcoinReceiverListInput.active) ?
-        ("ending_before" -> bitcoinReceiverListInput.endingBefore) ?
-        ("filled" -> bitcoinReceiverListInput.filled) ?
-        ("limit" -> bitcoinReceiverListInput.limit.map(_.toString)) ?
-        ("starting_after" -> bitcoinReceiverListInput.startingAfter) ?
+        ("active"           -> bitcoinReceiverListInput.active) ?
+        ("ending_before"    -> bitcoinReceiverListInput.endingBefore) ?
+        ("filled"           -> bitcoinReceiverListInput.filled) ?
+        ("limit"            -> bitcoinReceiverListInput.limit.map(_.toString)) ?
+        ("starting_after"   -> bitcoinReceiverListInput.startingAfter) ?
         ("uncaptured_funds" -> bitcoinReceiverListInput.uncapturedFunds)).toString()
     }
 

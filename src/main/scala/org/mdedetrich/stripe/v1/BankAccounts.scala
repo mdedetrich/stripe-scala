@@ -416,9 +416,9 @@ object BankAccounts extends LazyLogging {
         endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
 
       (baseUrl ?
-        ("object" -> "bank_account") ?
-        ("ending_before" -> bankAccountListInput.endingBefore) ?
-        ("limit" -> bankAccountListInput.limit.map(_.toString)) ?
+        ("object"         -> "bank_account") ?
+        ("ending_before"  -> bankAccountListInput.endingBefore) ?
+        ("limit"          -> bankAccountListInput.limit.map(_.toString)) ?
         ("starting_after" -> bankAccountListInput.startingAfter)).toString()
     }
 
