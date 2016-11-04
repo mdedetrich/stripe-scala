@@ -317,8 +317,8 @@ object Coupons extends LazyLogging {
       }
 
       (created ?
-        ("ending_before" -> couponListInput.endingBefore) ?
-        ("limit" -> couponListInput.limit.map(_.toString)) ?
+        ("ending_before"  -> couponListInput.endingBefore) ?
+        ("limit"          -> couponListInput.limit.map(_.toString)) ?
         ("starting_after" -> couponListInput.startingAfter)).toString()
     }
 

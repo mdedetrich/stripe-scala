@@ -5,6 +5,7 @@ import java.time.{LocalDate, OffsetDateTime}
 import org.mdedetrich.stripe.PostParams
 import org.mdedetrich.stripe.v1.Accounts.{Account, AccountInput, AccountUpdate, LegalEntity, TosAcceptance}
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
+import org.mdedetrich.stripe.v1.BankAccountsPaymentSource.BankAccount
 import org.mdedetrich.stripe.v1.Shippings.Address
 import org.scalatest.{Matchers, WordSpec}
 import play.api.libs.json.{JsSuccess, Json}
@@ -26,6 +27,10 @@ class AccountsSpec extends WordSpec with Matchers {
       val JsSuccess(account, _) = json.validate[Account]
       account.id should be("acct_191dzJG5YhaiJXJY")
       account.legalEntity.address.country should be(Some("DE"))
+
+      val ba = account.externalAccounts.data.head.asInstanceOf[BankAccount]
+      ba.id should be("ba_191dzLG5YhaiJXJYeWv9KHmR")
+      ba.last4 should be("3000")
     }
   }
 

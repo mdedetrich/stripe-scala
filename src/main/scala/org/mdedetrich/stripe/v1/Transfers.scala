@@ -415,12 +415,12 @@ object Transfers extends LazyLogging {
         }
 
       (created ?
-        ("destination" -> transferListInput.destination) ?
-        ("ending_before" -> transferListInput.endingBefore) ?
-        ("limit" -> transferListInput.limit.map(_.toString)) ?
-        ("recipient" -> transferListInput.recipient) ?
+        ("destination"    -> transferListInput.destination) ?
+        ("ending_before"  -> transferListInput.endingBefore) ?
+        ("limit"          -> transferListInput.limit.map(_.toString)) ?
+        ("recipient"      -> transferListInput.recipient) ?
         ("starting_after" -> transferListInput.startingAfter) ?
-        ("status" -> transferListInput.status.map(_.id))).toString()
+        ("status"         -> transferListInput.status.map(_.id))).toString()
     }
 
     createRequestGET[TransferList](finalUrl, logger)

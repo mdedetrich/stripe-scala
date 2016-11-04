@@ -361,8 +361,8 @@ object Disputes extends LazyLogging {
       }
 
       (created ?
-        ("ending_before" -> disputeListInput.endingBefore) ?
-        ("limit" -> disputeListInput.limit.map(_.toString)) ?
+        ("ending_before"  -> disputeListInput.endingBefore) ?
+        ("limit"          -> disputeListInput.limit.map(_.toString)) ?
         ("starting_after" -> disputeListInput.startingAfter)).toString()
     }
 

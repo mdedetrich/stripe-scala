@@ -218,8 +218,8 @@ object TransferReversals extends LazyLogging {
           s"/v1/transfers/${transferReversalListInput.id}/reversals$totalCountUrl"
 
       (baseUrl ?
-        ("ending_before" -> transferReversalListInput.endingBefore) ?
-        ("limit" -> transferReversalListInput.limit.map(_.toString)) ?
+        ("ending_before"  -> transferReversalListInput.endingBefore) ?
+        ("limit"          -> transferReversalListInput.limit.map(_.toString)) ?
         ("starting_after" -> transferReversalListInput.startingAfter)).toString()
     }
 

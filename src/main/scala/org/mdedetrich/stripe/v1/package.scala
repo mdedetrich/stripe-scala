@@ -160,9 +160,9 @@ package object v1 {
     createdInput match {
       case c: ListFilterInput.Object =>
         baseUrl ?
-          (s"$key[gt]" -> c.gt.map(stripeDateTimeParamWrites)) ?
+          (s"$key[gt]"  -> c.gt.map(stripeDateTimeParamWrites)) ?
           (s"$key[gte]" -> c.gte.map(stripeDateTimeParamWrites)) ?
-          (s"$key[lt]" -> c.lt.map(stripeDateTimeParamWrites)) ?
+          (s"$key[lt]"  -> c.lt.map(stripeDateTimeParamWrites)) ?
           (s"$key[lte]" -> c.lte.map(stripeDateTimeParamWrites))
       case c: ListFilterInput.Timestamp =>
         baseUrl ? (s"$key" -> Option(stripeDateTimeParamWrites(c.timestamp)))
