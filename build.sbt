@@ -8,7 +8,7 @@ crossScalaVersions := Seq(currentScalaVersion)
 
 organization := "org.mdedetrich"
 
-version := "1.0.0-SNAPSHOT"
+version := "0.1.0-SNAPSHOT"
 
 resolvers ++= Seq(
   Resolver.jcenterRepo,
