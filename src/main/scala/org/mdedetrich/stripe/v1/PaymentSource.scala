@@ -813,9 +813,24 @@ object Cards extends LazyLogging {
 }
 
 object BankAccountsPaymentSource extends LazyLogging {
-  case class BankAccount(id: String) extends StripeObject with PaymentSource
+  case class BankAccount(
+    id: String,
+    accountHolderName: Option[String],
+    last4: String,
+    routingNumber: String,
+    country: String,
+    defaultForCurrency: Boolean
+  ) extends StripeObject with PaymentSource
+
+  implicit val bankAccountReads: Reads[BankAccount] = (
+    (__ \ "id").read[String] ~
+      (__ \ "account_holder_name").readNullable[String] ~
+      (__ \ "last4").read[String] ~
+      (__ \ "routing_number").read[String] ~
+      (__ \ "country").read[String] ~
+      (__ \ "default_for_currency").read[Boolean]
+  ).tupled.map((BankAccount.apply _).tupled)
   implicit val bankAccountWrites: Writes[BankAccount] = Json.writes[BankAccount]
-  implicit val bankAccountReads: Reads[BankAccount]   = Json.reads[BankAccount]
 }
 
 object BitcoinReceivers extends LazyLogging {
