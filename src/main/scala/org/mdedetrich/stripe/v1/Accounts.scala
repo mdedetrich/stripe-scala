@@ -1,9 +1,11 @@
 package org.mdedetrich.stripe.v1
 
-import java.time.{LocalDate, OffsetDateTime}
+import java.time.format.TextStyle
+import java.time.{DayOfWeek, LocalDate, OffsetDateTime}
+import java.util.Locale
 
 import com.typesafe.scalalogging.LazyLogging
-import enumeratum.{Enum, EnumEntry, EnumFormats}
+import enumeratum.{Enum, EnumEntry, EnumFormats, PlayJsonEnum}
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.v1.Shippings.Address
@@ -111,6 +113,56 @@ object Accounts extends LazyLogging {
 
   implicit val verificationWrites: Writes[Verification] = Json.writes[Verification]
 
+  /**
+    * @see https://stripe.com/docs/connect/bank-transfers#payout-information
+    */
+  sealed abstract class TransferInverval(value: String) extends EnumEntry {
+    override val entryName = value
+  }
+
+  object TransferInverval extends Enum[TransferInverval] with PlayJsonEnum[TransferInverval] {
+    val values = findValues
+    case object Manual  extends TransferInverval("manual")
+    case object Daily   extends TransferInverval("daily")
+    case object Weekly  extends TransferInverval("weekly")
+    case object Monthly extends TransferInverval("monthly")
+  }
+
+  case class TransferSchedule(
+      interval: Option[TransferInverval],
+      monthlyAnchor: Option[Int],
+      weeklyAnchor: Option[DayOfWeek]
+  )
+
+  implicit val dayOfWeekReads = new Format[DayOfWeek] {
+    override def reads(json: JsValue): JsResult[DayOfWeek] = json match {
+      case JsString(day) =>
+        Try(DayOfWeek.valueOf(day)).map(JsSuccess(_)).getOrElse(JsError(s"Could not convert $day to a day."))
+      case _ => JsError(s"Could not read day of week '$json'")
+    }
+
+    override def writes(o: DayOfWeek): JsValue = JsString(o.getDisplayName(TextStyle.FULL, Locale.ENGLISH).toLowerCase)
+  }
+
+  implicit val transferScheduleReads: Reads[TransferSchedule] = (
+    (__ \ "interval").readNullable[TransferInverval] ~
+      (__ \ "monthly_anchor").readNullable[Int] ~
+      (__ \ "weekly_anchor").readNullable[DayOfWeek]
+  ).tupled.map((TransferSchedule.apply _).tupled)
+
+  implicit val transferScheduleWrites = Json.writes[TransferSchedule]
+
+  implicit val transferSchedulePostParams = new PostParams[TransferSchedule] {
+    override def toMap(transferSchedule: TransferSchedule): Map[String, String] =
+      flatten(
+        Map(
+          "interval"       -> transferSchedule.interval.map(_.entryName),
+          "monthly_anchor" -> transferSchedule.monthlyAnchor.map(_.toString),
+          "weekly_anchor" -> transferSchedule.weeklyAnchor.map(
+            _.getDisplayName(TextStyle.FULL, Locale.ENGLISH).toLowerCase)
+        ))
+  }
+
   //
   // Account
   //
@@ -120,6 +172,7 @@ object Accounts extends LazyLogging {
                      country: String,
                      debitNegativeBalances: Boolean,
                      transfersEnabled: Boolean,
+                     transferSchedule: TransferSchedule,
                      defaultCurrency: Currency,
                      detailsSubmitted: Boolean,
                      externalAccounts: PaymentSourceList,
@@ -134,6 +187,7 @@ object Accounts extends LazyLogging {
       (__ \ "country").read[String] ~
       (__ \ "debit_negative_balances").read[Boolean] ~
       (__ \ "transfers_enabled").read[Boolean] ~
+      (__ \ "transfer_schedule").read[TransferSchedule] ~
       (__ \ "default_currency").read[Currency] ~
       (__ \ "details_submitted").read[Boolean] ~
       (__ \ "external_accounts").read[PaymentSourceList] ~
@@ -169,6 +223,7 @@ object Accounts extends LazyLogging {
       managed: Boolean,
       metadata: Map[String, String],
       legalEntity: Option[LegalEntity],
+      transferSchedule: Option[TransferSchedule],
       tosAcceptance: Option[TosAcceptance]
   )
 
@@ -176,6 +231,7 @@ object Accounts extends LazyLogging {
     def default: AccountInput = AccountInput(
       false,
       Map.empty,
+      None,
       None,
       None
     )
@@ -187,6 +243,7 @@ object Accounts extends LazyLogging {
         "managed" -> update.managed.toString
       ) ++
         PostParams.toPostParams("metadata", update.metadata) ++
+        PostParams.toPostParams("transfer_schedule", update.transferSchedule) ++
         PostParams.toPostParams("tos_acceptance", update.tosAcceptance) ++
         PostParams.toPostParams("legal_entity", update.legalEntity)
   }
@@ -198,11 +255,12 @@ object Accounts extends LazyLogging {
       legalEntity: Option[LegalEntity],
       externalAccount: Option[BankAccountData.Source],
       defaultCurrency: Option[Currency],
-      tosAcceptance: Option[TosAcceptance]
+      tosAcceptance: Option[TosAcceptance],
+      transferSchedule: Option[TransferSchedule]
   )
 
   object AccountUpdate {
-    def default = AccountUpdate(None, None, None, None)
+    def default = AccountUpdate(None, None, None, None, None)
   }
 
   implicit val accountUpdatePostParams = new PostParams[AccountUpdate] {
