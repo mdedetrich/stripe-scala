@@ -137,7 +137,9 @@ object Accounts extends LazyLogging {
   implicit val dayOfWeekReads = new Format[DayOfWeek] {
     override def reads(json: JsValue): JsResult[DayOfWeek] = json match {
       case JsString(day) =>
-        Try(DayOfWeek.valueOf(day)).map(JsSuccess(_)).getOrElse(JsError(s"Could not convert $day to a day."))
+        Try(DayOfWeek.valueOf(day.toUpperCase))
+          .map(JsSuccess(_))
+          .getOrElse(JsError(s"Could not convert $day to a day."))
       case _ => JsError(s"Could not read day of week '$json'")
     }
 

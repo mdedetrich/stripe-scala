@@ -8,7 +8,7 @@ import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
 import org.mdedetrich.stripe.v1.BankAccountsPaymentSource.BankAccount
 import org.mdedetrich.stripe.v1.Shippings.Address
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsSuccess, Json}
+import play.api.libs.json.{JsString, JsSuccess, Json}
 
 class AccountsSpec extends WordSpec with Matchers {
   val address = Address.default.copy(
@@ -132,6 +132,12 @@ class AccountsSpec extends WordSpec with Matchers {
       val map = PostParams.toPostParams(update)
 
       map("external_account") should be(token)
+    }
+  }
+
+  "Day of week" should {
+    "parse correctly" in {
+      Accounts.dayOfWeekReads.reads(JsString("monday")).get should be(DayOfWeek.MONDAY)
     }
   }
 }
