@@ -1,14 +1,14 @@
 package org.mdedetrich.stripe.v1
 
-import java.time.{LocalDate, OffsetDateTime}
+import java.time.{DayOfWeek, LocalDate, OffsetDateTime}
 
 import org.mdedetrich.stripe.PostParams
-import org.mdedetrich.stripe.v1.Accounts.{Account, AccountInput, AccountUpdate, LegalEntity, TosAcceptance}
+import org.mdedetrich.stripe.v1.Accounts.{Account, AccountInput, AccountUpdate, LegalEntity, TosAcceptance, TransferInverval, TransferSchedule}
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
 import org.mdedetrich.stripe.v1.BankAccountsPaymentSource.BankAccount
 import org.mdedetrich.stripe.v1.Shippings.Address
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsSuccess, Json}
+import play.api.libs.json.{JsString, JsSuccess, Json}
 
 class AccountsSpec extends WordSpec with Matchers {
   val address = Address.default.copy(
@@ -31,6 +31,8 @@ class AccountsSpec extends WordSpec with Matchers {
       val ba = account.externalAccounts.data.head.asInstanceOf[BankAccount]
       ba.id should be("ba_191dzLG5YhaiJXJYeWv9KHmR")
       ba.last4 should be("3000")
+
+      account.transferSchedule.interval.get should be(TransferInverval.Daily)
     }
   }
 
@@ -55,6 +57,13 @@ class AccountsSpec extends WordSpec with Matchers {
       map("legal_entity[address][city]") should be(address.city.get)
       map("legal_entity[address][postal_code]") should be(address.postalCode.get)
       map("legal_entity[address][country]") should be(address.country.get)
+    }
+
+    "convert transfer schedule" in {
+      val input = AccountInput.default.copy(transferSchedule = Some(TransferSchedule(Some(TransferInverval.Manual), None, Some(DayOfWeek.SUNDAY))))
+      val map = PostParams.toPostParams(input)
+      map("transfer_schedule[interval]") should be("manual")
+      map("transfer_schedule[weekly_anchor]") should be("sunday")
     }
   }
 
@@ -123,6 +132,12 @@ class AccountsSpec extends WordSpec with Matchers {
       val map = PostParams.toPostParams(update)
 
       map("external_account") should be(token)
+    }
+  }
+
+  "Day of week" should {
+    "parse correctly" in {
+      Accounts.dayOfWeekReads.reads(JsString("monday")).get should be(DayOfWeek.MONDAY)
     }
   }
 }

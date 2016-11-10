@@ -4,7 +4,7 @@ import java.time.{LocalDate, OffsetDateTime}
 
 import org.mdedetrich.stripe.Config._
 import org.mdedetrich.stripe.v1.Accounts.LegalEntityType.Individual
-import org.mdedetrich.stripe.v1.Accounts.{Account, LegalEntity, TosAcceptance}
+import org.mdedetrich.stripe.v1.Accounts.{Account, LegalEntity, TosAcceptance, TransferInverval, TransferSchedule}
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
 
 import scala.concurrent.Future
@@ -37,15 +37,18 @@ object AccountIT extends DefaultExecutionContext{
       lastName = Some("Kasuppke"),
       dob = Some(dob)))
 
+    val transferSchedule = Some(TransferSchedule(Some(TransferInverval.Manual), None, None))
+
     // weirdly, this needs to be here in order for the following line not to throw a NullPointerException
     Currency.lowerCaseNamesToValuesMap
     val ba = Some(BankAccountData.Source.Object.default("DE89370400440532013000", "DE", Currency.`Euro`))
 
-    val accountInput = Accounts.AccountInput.default.copy(managed = true, metadata = meta)
+    val accountInput = Accounts.AccountInput.default.copy(managed = true, metadata = meta, transferSchedule = transferSchedule)
     val accountUpdate = Accounts.AccountUpdate.default.copy(
       tosAcceptance = tosAcceptance,
       legalEntity = legalEntity,
-      externalAccount = ba
+      externalAccount = ba,
+      transferSchedule = transferSchedule
     )
 
     for {
