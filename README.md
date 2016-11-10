@@ -46,7 +46,6 @@ libraryDependencies ++= Seq(
   - [ ] update
   - [x] list
   - [x] delete
-- [ ] Release another branch for Play Json 2.5
 - [ ] Clean up/refactor code (still a lot of duplication)
 - [ ] Webhooks/Events
 
