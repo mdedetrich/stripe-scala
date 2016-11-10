@@ -28,7 +28,7 @@ resolvers ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "org.mdedetrich" %% "stripe-scala" % "1.0.0-SNAPSHOT"
+  "org.mdedetrich" %% "stripe-scala" % "0.1.0-SNAPSHOT"
 )
 ```
 
