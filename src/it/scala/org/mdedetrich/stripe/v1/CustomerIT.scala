@@ -8,17 +8,16 @@ import org.mdedetrich.stripe.v1.Customers.Source.Token
 import org.mdedetrich.stripe.v1.Customers.{Customer, CustomerInput, CustomerUpdate}
 import org.mdedetrich.stripe.v1.Tokens.{TokenData, TokenInput}
 
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 
 class CustomerIT extends IntegrationTest {
 
   "Customer" should {
-    "should save credit card, create customer and add token to customer" in {
+    "save credit card, create customer and add token to customer" in {
 
       val customer = CustomerIT.createCustomerWithCC
 
-      whenReady(customer) { updatedCustomer =>
+      customer.map { updatedCustomer =>
         updatedCustomer shouldBe a[Customer]
 
         updatedCustomer.sources.data should have length 1
@@ -36,7 +35,7 @@ object CustomerIT {
 
   val testCard = "4242424242424242"
 
-  def createCustomerWithCC: Future[Customer] = {
+  def createCustomerWithCC(implicit ec: ExecutionContext): Future[Customer] = {
     val in2years = OffsetDateTime.now.plusYears(2)
       val cardData = TokenData.Card.default(in2years.getMonthValue, in2years.getYear, testCard).copy(cvc = Some("123"))
       val tokenInput = TokenInput.default(cardData)

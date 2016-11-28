@@ -6,17 +6,35 @@ import org.mdedetrich.stripe.Config._
 import org.mdedetrich.stripe.v1.Accounts.LegalEntityType.Individual
 import org.mdedetrich.stripe.v1.Accounts.{Account, LegalEntity, TosAcceptance, TransferInverval, TransferSchedule}
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
+import org.scalatest.ParallelTestExecution
 
 import scala.concurrent.Future
 
-class AccountIT extends IntegrationTest {
+class AccountIT extends IntegrationTest with ParallelTestExecution {
 
   "Account" should {
+    "create managed account with non-ascii character" in {
+      val dob = LocalDate.now().minusYears(30)
+      val firstName = "Gaspard"
+      val lastName  = "Augé"
+      val legalEntity   = Some(LegalEntity.default.copy(`type` = Some(Individual),
+        firstName = Some(firstName),
+        lastName = Some(lastName),
+        dob = Some(dob))
+      )
+
+      val accountInput = Accounts.AccountInput.default.copy(managed = true, legalEntity = legalEntity)
+      handleIdempotent(Accounts.create(accountInput)).map({ account =>
+        account.legalEntity.firstName.get should be(firstName)
+        account.legalEntity.lastName.get should be(lastName)
+      })
+    }
+
     "create a managed account into which money can be paid" in {
 
       val managedAccount = AccountIT.createManagedAccountWithBankAccount
 
-      whenReady(managedAccount) { account =>
+      managedAccount.map { account =>
         account shouldBe a[Accounts.Account]
         account.metadata should be(AccountIT.meta)
         account.transfersEnabled should be(true)

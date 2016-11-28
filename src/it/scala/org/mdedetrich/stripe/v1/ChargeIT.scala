@@ -24,7 +24,7 @@ class ChargeIT extends IntegrationTest {
         charge <- handleIdempotent(Charges.create(chargeInput(managedAccount.id, Customer(customer.id))))
       } yield charge
 
-      whenReady(chargeF) { charge =>
+      chargeF.map { charge =>
         charge shouldBe a[Charges.Charge]
         charge.source.expYear should be(LocalDate.now.plusYears(2).getYear)
         charge.source.last4 should be(CustomerIT.testCard.takeRight(4))
