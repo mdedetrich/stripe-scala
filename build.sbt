@@ -40,7 +40,7 @@ libraryDependencies ++= Seq(
   "com.beachape"               %% "enumeratum-play-json" % enumeratumVersion,
   "com.iheart"                 %% "ficus"                % "1.3.4",
   "com.typesafe.scala-logging" %% "scala-logging"        % "3.4.0",
-  "com.netaporter"             %% "scala-uri"            % "0.4.13" exclude ("io.spray", "spray-json"),
+  "com.netaporter"             %% "scala-uri"            % "0.4.13" exclude ("io.spray", "spray-json_2.11"),
   "com.typesafe.play"          %% "play-json"            % "2.5.8",
   "org.spire-math"             %% "jawn-play"            % "0.10.1",
   "org.scalatest"              %% "scalatest"            % "3.0.0" % "test, it",
