@@ -15,7 +15,7 @@ class CustomerIT extends IntegrationTest {
   "Customer" should {
     "save credit card, create customer and add token to customer" in {
 
-      val customer = CustomerIT.createCustomerWithCC
+      val customer = CustomerIT.createCustomerWithCC()
 
       customer.map { updatedCustomer =>
         updatedCustomer shouldBe a[Customer]
@@ -24,7 +24,7 @@ class CustomerIT extends IntegrationTest {
         val cards = updatedCustomer.sources.data.collect({ case c:Card => c })
         cards should have length 1
 
-        cards.head.last4 should be(CustomerIT.testCard.takeRight(4))
+        cards.head.last4 should be(CustomerIT.defaultTestCard.takeRight(4))
       }
     }
   }
@@ -33,18 +33,19 @@ class CustomerIT extends IntegrationTest {
 
 object CustomerIT {
 
-  val testCard = "4242424242424242"
+  val defaultTestCard = "4242424242424242"
+  val cardBypassingPendingCheck = "4000000000000077"
 
-  def createCustomerWithCC(implicit ec: ExecutionContext): Future[Customer] = {
+  def createCustomerWithCC(cardNumber: String = defaultTestCard)(implicit ec: ExecutionContext): Future[Customer] = {
     val in2years = OffsetDateTime.now.plusYears(2)
-      val cardData = TokenData.Card.default(in2years.getMonthValue, in2years.getYear, testCard).copy(cvc = Some("123"))
-      val tokenInput = TokenInput.default(cardData)
+    val cardData = TokenData.Card.default(in2years.getMonthValue, in2years.getYear, cardNumber).copy(cvc = Some("123"))
+    val tokenInput = TokenInput.default(cardData)
 
-      for {
-        token <- handle(Tokens.create(tokenInput)())
-        newCustomer <- handle(Customers.create(CustomerInput.default)())
-        updated <- handle(Customers.update(newCustomer.id, CustomerUpdate.default.copy(paymentSource = Some(Token(token.id))))())
-      } yield updated
+    for {
+      token <- handle(Tokens.create(tokenInput)())
+      newCustomer <- handle(Customers.create(CustomerInput.default)())
+      updated <- handle(Customers.update(newCustomer.id, CustomerUpdate.default.copy(paymentSource = Some(Token(token.id))))())
+    } yield updated
 
   }
 }

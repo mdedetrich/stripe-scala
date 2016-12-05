@@ -131,25 +131,25 @@ object Transfers extends LazyLogging {
   case class Transfer(id: String,
                       amount: BigDecimal,
                       amountReversed: BigDecimal,
-                      applicationFee: BigDecimal,
+                      applicationFee: Option[BigDecimal],
                       balanceTransaction: String,
-                      bankAccount: BankAccount,
+                      bankAccount: Option[BankAccount],
                       created: OffsetDateTime,
                       currency: Currency,
                       date: OffsetDateTime,
-                      description: String,
+                      description: Option[String],
                       destination: String,
                       destinationPayment: Option[String],
                       failureCode: Option[FailureCode],
                       failureMessage: Option[String],
                       livemode: Boolean,
                       metadata: Option[Map[String, String]],
-                      recipient: String,
+                      recipient: Option[String],
                       reversals: TransferReversalList,
                       reversed: Boolean,
-                      sourceTransaction: String,
+                      sourceTransaction: Option[String],
                       sourceType: SourceType,
-                      statementDescriptor: String,
+                      statementDescriptor: Option[String],
                       status: Status,
                       `type`: Type)
 
@@ -159,28 +159,28 @@ object Transfers extends LazyLogging {
     (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "amount_reversed").read[BigDecimal] ~
-      (__ \ "application_fee").read[BigDecimal] ~
+      (__ \ "application_fee").readNullable[BigDecimal] ~
       (__ \ "balance_transaction").read[String] ~
-      (__ \ "bank_account").read[BankAccount] ~
+      (__ \ "bank_account").readNullable[BankAccount] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
       (__ \ "date").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "description").read[String] ~
+      (__ \ "description").readNullable[String] ~
       (__ \ "destination").read[String] ~
       (__ \ "destination_payment").readNullable[String] ~
       (__ \ "failure_code").readNullable[FailureCode] ~
       (__ \ "failure_message").readNullable[String] ~
       (__ \ "livemode").read[Boolean] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "recipient").read[String] ~
+      (__ \ "recipient").readNullable[String] ~
       (__ \ "reversals").read[TransferReversalList] ~
       (__ \ "reversed").read[Boolean] ~
-      (__ \ "source_transaction").read[String] ~
+      (__ \ "source_transaction").readNullable[String] ~
       (__ \ "source_type").read[SourceType]
   ).tupled
 
   private val transferReadsTwo = (
-    (__ \ "statement_descriptor").read[String] ~
+    (__ \ "statement_descriptor").readNullable[String] ~
       (__ \ "status").read[Status] ~
       (__ \ "type").read[Type]
   ).tupled
@@ -304,6 +304,9 @@ object Transfers extends LazyLogging {
                            metadata: Option[Map[String, String]],
                            sourceTransaction: Option[String],
                            statementDescriptor: Option[String],
+                           // https://stripe.com/docs/connect/bank-transfers#standard-transfers
+                           // TODO: add documentation
+                           stripeAccount: Option[String],
                            sourceType: Option[SourceType]) {
     statementDescriptor match {
       case Some(sD) if sD.length > 22 =>
@@ -318,6 +321,28 @@ object Transfers extends LazyLogging {
         throw StatementDescriptorInvalidCharacter("\'")
       case _ =>
     }
+  }
+
+  object TransferInput {
+    def default(amount: BigDecimal,
+                currency: Currency,
+                destination: String,
+                description: Option[String] = None,
+                metadata: Option[Map[String, String]] = None,
+                sourceTransaction: Option[String] = None,
+                statementDescriptor: Option[String] = None,
+                stripeAccount: Option[String] = None,
+                sourceType: Option[SourceType] = None) =
+      TransferInput(amount,
+                    currency,
+                    destination,
+                    description,
+                    metadata,
+                    sourceTransaction,
+                    statementDescriptor,
+                    stripeAccount,
+                    sourceType)
+
   }
 
   def create(transferInput: TransferInput)(idempotencyKey: Option[IdempotencyKey] = None)(
@@ -341,7 +366,7 @@ object Transfers extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/transfers"
 
-    createRequestPOST[Transfer](finalUrl, postFormParameters, idempotencyKey, logger)
+    createRequestPOST[Transfer](finalUrl, postFormParameters, idempotencyKey, logger, stripeAccount = transferInput.stripeAccount)
   }
 
   def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Transfer]] = {

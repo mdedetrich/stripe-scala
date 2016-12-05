@@ -44,5 +44,5 @@ libraryDependencies ++= Seq(
   "com.typesafe.play"          %% "play-json"            % "2.5.8",
   "org.spire-math"             %% "jawn-play"            % "0.10.1",
   "org.scalatest"              %% "scalatest"            % "3.0.0" % "test, it",
-  "ch.qos.logback"             % "logback-core"          % "1.1.7" % "test, it"
+  "ch.qos.logback"             % "logback-classic"       % "1.1.7" % "test, it"
 )

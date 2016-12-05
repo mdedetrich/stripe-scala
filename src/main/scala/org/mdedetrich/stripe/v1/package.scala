@@ -110,10 +110,12 @@ package object v1 {
     * @tparam M The model which this request should return
     * @return
     */
-  private[v1] def createRequestPOST[M](finalUrl: String,
-                                       postFormParameters: Map[String, String],
-                                       idempotencyKey: Option[IdempotencyKey],
-                                       logger: Logger)(implicit reads: Reads[M], apiKey: ApiKey): Future[Try[M]] = {
+  private[v1] def createRequestPOST[M](
+      finalUrl: String,
+      postFormParameters: Map[String, String],
+      idempotencyKey: Option[IdempotencyKey],
+      logger: Logger,
+      stripeAccount: Option[String] = None)(implicit reads: Reads[M], apiKey: ApiKey): Future[Try[M]] = {
     import dispatch.Defaults._
     import dispatch._
 
@@ -122,12 +124,10 @@ package object v1 {
         url(finalUrl).addHeader("Content-Type", "application/x-www-form-urlencoded") << postFormParameters
       ).POST.as(apiKey.apiKey, "")
 
-      idempotencyKey match {
-        case Some(key) =>
-          r.addHeader(idempotencyKeyHeader, key.key)
-        case None =>
-          r
-      }
+      val withIdempotencyKey = idempotencyKey.map(key => r.addHeader(idempotencyKeyHeader, key.key)).getOrElse(r)
+      stripeAccount
+        .map(stripeAccount => withIdempotencyKey.addHeader(stripeAccountHeader, stripeAccount))
+        .getOrElse(withIdempotencyKey)
     }
 
     Http(req).map { response =>
@@ -281,9 +281,14 @@ package object v1 {
   }
 
   /**
-    * This is a header constat to specify a Idempotency-Key
+    * This is a header constant to specify a Idempotency-Key
     */
   private[v1] val idempotencyKeyHeader = "Idempotency-Key"
+
+  /**
+    * Header to specify on behalf of which stripe account this API call should be executed.
+    */
+  private[v1] val stripeAccountHeader = "Stripe-Account"
 
   /**
     * Parses a response from dispatch and attempts to do error process handling for specific stripe errors
