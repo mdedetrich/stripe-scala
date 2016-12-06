@@ -289,6 +289,7 @@ object Transfers extends LazyLogging {
     *                            longer than 22 characters will return an error.
     *                            Note: Most banks will truncate this information and/or display it inconsistently.
     *                            Some may not display it at all.
+    * @param stripeAccount       The Stripe Connect managed account on whose behalf the transfer should be initiated.
     * @param sourceType          The source balance to draw this transfer from.
     *                            Balances for different payment sources are kept separately.
     *                            You can find the amounts with the balances API. Valid options are:
@@ -304,8 +305,6 @@ object Transfers extends LazyLogging {
                            metadata: Option[Map[String, String]],
                            sourceTransaction: Option[String],
                            statementDescriptor: Option[String],
-                           // https://stripe.com/docs/connect/bank-transfers#standard-transfers
-                           // TODO: add documentation
                            stripeAccount: Option[String],
                            sourceType: Option[SourceType]) {
     statementDescriptor match {
