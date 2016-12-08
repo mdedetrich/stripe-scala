@@ -365,7 +365,11 @@ object Transfers extends LazyLogging {
 
     val finalUrl = endpoint.url + "/v1/transfers"
 
-    createRequestPOST[Transfer](finalUrl, postFormParameters, idempotencyKey, logger, stripeAccount = transferInput.stripeAccount)
+    createRequestPOST[Transfer](finalUrl,
+                                postFormParameters,
+                                idempotencyKey,
+                                logger,
+                                stripeAccount = transferInput.stripeAccount)
   }
 
   def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Transfer]] = {

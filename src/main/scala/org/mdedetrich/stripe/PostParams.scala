@@ -3,7 +3,7 @@ package org.mdedetrich.stripe
 trait PostParams[T] {
   def toMap(t: T): Map[String, String]
 
-  def flatten[K, V](input: Map[K, Option[V]]): Map[K, V] = input.collect({ case (k, Some(v)) => (k, v) })
+  def flatten[K, V](input: Map[K, Option[V]]): Map[K, V] = PostParams.flatten(input)
 }
 
 object PostParams {
@@ -38,4 +38,10 @@ object PostParams {
         (s"$prefix[$first][$rest", value)
       case (key, value) => (s"$prefix[$key]", value)
     })
+
+  def params[T](transformer: T => Map[String, String]): PostParams[T] = new PostParams[T] {
+    override def toMap(t: T) = transformer(t)
+  }
+
+  def flatten[K, V](input: Map[K, Option[V]]): Map[K, V] = input.collect({ case (k, Some(v)) => (k, v) })
 }
