@@ -281,15 +281,12 @@ object Customers extends LazyLogging {
     def default: CustomerUpdate = CustomerUpdate(None, None)
   }
 
-  implicit val customerUpdatePostParams = new PostParams[CustomerUpdate] {
-    override def toMap(t: CustomerUpdate): Map[String, String] = {
-      val params = Map(
-        "source"         -> t.paymentSource.map(_.id),
-        "default_source" -> t.defaultSource
-      )
-      flatten(params)
-    }
-
+  implicit val customerUpdatePostParams = PostParams.params[CustomerUpdate] { t =>
+    val params = Map(
+      "source"         -> t.paymentSource.map(_.id),
+      "default_source" -> t.defaultSource
+    )
+    PostParams.flatten(params)
   }
 
   // CRUD methods
