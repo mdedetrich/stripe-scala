@@ -1,12 +1,14 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
 import com.typesafe.scalalogging.LazyLogging
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import org.mdedetrich.playjson.Utils._
 import enumeratum._
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.PostParams.{flatten, toPostParams}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.Future
 import scala.util.Try
@@ -58,7 +60,7 @@ object Refunds extends LazyLogging {
                     currency: Currency,
                     metadata: Option[Map[String, String]],
                     reason: Reason,
-                    receiptNumber: String)
+                    receiptNumber: Option[String])
 
   implicit val refundReads: Reads[Refund] = (
     (__ \ "id").read[String] ~
@@ -69,7 +71,7 @@ object Refunds extends LazyLogging {
       (__ \ "currency").read[Currency] ~
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "reason").read[Reason] ~
-      (__ \ "receipt_number").read[String]
+      (__ \ "receipt_number").readNullable[String]
   ).tupled.map((Refund.apply _).tupled)
 
   implicit val refundWrites: Writes[Refund] = Writes(
@@ -89,6 +91,12 @@ object Refunds extends LazyLogging {
   /**
     * @see https://stripe.com/docs/api#create_refund
     * @param charge               The identifier of the charge to refund.
+    * @param reason               String indicating the reason for the refund.
+    *                             If set, possible values are [[Reason.Duplicate]],
+    *                             [[Reason.Fraudulent]], and [[Reason.RequestedByCustomer]].
+    *                             Specifying fraudulent as the reason when you believe the
+    *                             charge to be fraudulent will help us improve our
+    *                             fraud detection algorithms.
     * @param amount               A positive integer in cents representing
     *                             how much of this charge to refund. Can only
     *                             refund up to the unrefunded amount remaining
@@ -100,12 +108,6 @@ object Refunds extends LazyLogging {
     *                             individual keys if you POST an empty value
     *                             for that key. You can clear all keys if you
     *                             POST an empty value for metadata.
-    * @param reason               String indicating the reason for the refund.
-    *                             If set, possible values are [[Reason.Duplicate]],
-    *                             [[Reason.Fraudulent]], and [[Reason.RequestedByCustomer]].
-    *                             Specifying fraudulent as the reason when you believe the
-    *                             charge to be fraudulent will help us improve our
-    *                             fraud detection algorithms.
     * @param refundApplicationFee Boolean indicating whether the
     *                             application fee should be refunded
     *                             when refunding this charge. If a full
@@ -123,17 +125,27 @@ object Refunds extends LazyLogging {
     *                             that created the charge.
     */
   case class RefundInput(charge: String,
-                         amount: Option[BigDecimal],
-                         metadata: Option[Map[String, String]] = None,
                          reason: Reason,
+                         amount: Option[BigDecimal],
+                         metadata: Map[String, String],
                          refundApplicationFee: Option[Boolean],
                          reverseTransfer: Option[Boolean])
+  object RefundInput {
+    def default(charge: String, reason: Reason) = RefundInput(
+      charge,
+      reason,
+      None,
+      Map.empty,
+      None,
+      None
+    )
+  }
 
   implicit val refundInputReads: Reads[RefundInput] = (
     (__ \ "charge").read[String] ~
-      (__ \ "amount").readNullable[BigDecimal] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "reason").read[Reason] ~
+      (__ \ "amount").readNullable[BigDecimal] ~
+      (__ \ "metadata").read[Map[String, String]] ~
       (__ \ "refund_application_fee").readNullable[Boolean] ~
       (__ \ "reverse_transfer").readNullable[Boolean]
   ).tupled.map((RefundInput.apply _).tupled)
@@ -149,30 +161,33 @@ object Refunds extends LazyLogging {
         "reverse_transfer"       -> refundInput.reverseTransfer
     ))
 
+  implicit val refundInputPostParams = PostParams.params[RefundInput] { refundInput =>
+    val optional = Map(
+      "amount"                 -> refundInput.amount.map(_.toString()),
+      "refund_application_fee" -> refundInput.refundApplicationFee.map(_.toString),
+      "reverse_transfer"       -> refundInput.reverseTransfer.map(_.toString)
+    )
+    Map(
+      "charge" -> refundInput.charge,
+      "reason" -> refundInput.reason.id
+    ) ++ flatten(optional) ++ PostParams.toPostParams("metadata", refundInput.metadata)
+
+  }
+
   def create(refundInput: RefundInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
       endpoint: Endpoint): Future[Try[Refund]] = {
-    val postFormParameters: Map[String, String] = {
-      Map(
-        "charge"                 -> Option(refundInput.charge),
-        "amount"                 -> refundInput.amount.map(_.toString()),
-        "reason"                 -> Option(refundInput.reason.id),
-        "refund_application_fee" -> refundInput.refundApplicationFee.map(_.toString),
-        "reverse_transfer"       -> refundInput.reverseTransfer.map(_.toString)
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ mapToPostParams(refundInput.metadata, "metadata")
 
+    val postFormParameters = toPostParams(refundInput)
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
-    val finalUrl = endpoint.url + "/v1/customers"
+    val finalUrl = endpoint.url + "/v1/refunds"
 
     createRequestPOST[Refund](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
   def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Refund]] = {
-    val finalUrl = endpoint.url + s"/v1/customers/$id"
+    val finalUrl = endpoint.url + s"/v1/refunds/$id"
 
     createRequestGET[Refund](finalUrl, logger)
   }

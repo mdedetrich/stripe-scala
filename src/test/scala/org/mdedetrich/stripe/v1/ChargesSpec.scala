@@ -9,7 +9,7 @@ class ChargesSpec extends WordSpec with Matchers {
 
   "Charges" should {
     "parse JSON correctly" in {
-      val in = getClass.getResourceAsStream("/charge.json")
+      val in   = getClass.getResourceAsStream("/charge.json")
       val json = Json.parse(in)
 
       val JsSuccess(account, _) = json.validate[Charge]
@@ -27,11 +27,11 @@ class ChargesSpec extends WordSpec with Matchers {
 
       // must be here for the next line to not throw an NPE
       Currency.lowerCaseNamesToValuesMap
-      val input = Charges.ChargeInput.default(100, Currency.`Euro`, capture = true, customerSource)
+      val input  = Charges.ChargeInput.default(100, Currency.`Euro`, capture = true, customerSource)
       val params = PostParams.toPostParams(input)
 
       params("customer") should be(customerId)
-      params should not contain key ("source")
+      params should not contain key("source")
     }
 
   }

@@ -13,7 +13,7 @@ class FileUploadIT extends IntegrationTest{
       val is = getClass.getResourceAsStream("/id-card.jpg")
       val uploadF = handle(FileUploads.upload(Purpose.IdentityDocument, s"file-upload-${OffsetDateTime.now}.jpg", is))
 
-      whenReady(uploadF) { u =>
+      uploadF.map { u =>
         u shouldBe a[FileUpload]
       }
     }

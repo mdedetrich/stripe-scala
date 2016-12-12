@@ -1,0 +1,33 @@
+{
+  "id": "tr_19N5vuJ6y4jvjvHh8S1r8WfH",
+  "object": "transfer",
+  "amount": 1500,
+  "amount_reversed": 0,
+  "application_fee": null,
+  "balance_transaction": "txn_19N5vuJ6y4jvjvHh9Fc41j1Y",
+  "created": 1480880758,
+  "currency": "eur",
+  "date": 1480880758,
+  "description": null,
+  "destination": "acct_19N5voJ1Go5hWiNo",
+  "destination_payment": "py_19N5vuJ1Go5hWiNoZxXYXQwx",
+  "failure_code": null,
+  "failure_message": null,
+  "livemode": false,
+  "metadata": {},
+  "method": "standard",
+  "recipient": null,
+  "reversals": {
+    "object": "list",
+    "data": [],
+    "has_more": false,
+    "total_count": 0,
+    "url": "/v1/transfers/tr_19N5vuJ6y4jvjvHh8S1r8WfH/reversals"
+  },
+  "reversed": false,
+  "source_transaction": null,
+  "source_type": "card",
+  "statement_descriptor": null,
+  "status": "paid",
+  "type": "stripe_account"
+}

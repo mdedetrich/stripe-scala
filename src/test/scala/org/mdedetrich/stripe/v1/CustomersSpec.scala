@@ -10,7 +10,7 @@ class CustomersSpec extends WordSpec with Matchers {
 
   "Customers" should {
     "parse JSON correctly" in {
-      val in = getClass.getResourceAsStream("/customer.json")
+      val in   = getClass.getResourceAsStream("/customer.json")
       val json = Json.parse(in)
 
       val JsSuccess(customer, _) = json.validate[Customer]
@@ -19,7 +19,7 @@ class CustomersSpec extends WordSpec with Matchers {
     }
 
     "convert to JSON" in {
-      val in = getClass.getResourceAsStream("/customer.json")
+      val in        = getClass.getResourceAsStream("/customer.json")
       val inputJson = Json.parse(in)
 
       val JsSuccess(customer, _) = inputJson.validate[Customer]
@@ -33,15 +33,15 @@ class CustomersSpec extends WordSpec with Matchers {
   "Customer update POST params" should {
 
     "convert payment source" in {
-      val token = "radiohead"
-      val update = CustomerUpdate.default.copy(paymentSource = Some(Token(token)))
+      val token      = "radiohead"
+      val update     = CustomerUpdate.default.copy(paymentSource = Some(Token(token)))
       val postParams = PostParams.toPostParams(update)
       postParams should be(Map("source" -> token))
     }
 
     "convert default source" in {
-      val id = "georgio-moroder"
-      val update = CustomerUpdate.default.copy(defaultSource = Some(id))
+      val id         = "georgio-moroder"
+      val update     = CustomerUpdate.default.copy(defaultSource = Some(id))
       val postParams = PostParams.toPostParams(update)
       postParams should be(Map("default_source" -> id))
     }

@@ -7,7 +7,7 @@ import play.api.libs.json.{JsSuccess, Json}
 class TokensSpec extends WordSpec with Matchers {
   "Tokens" should {
     "parse bank account token JSON correctly" in {
-      val in = getClass.getResourceAsStream("/bank-account-token.json")
+      val in   = getClass.getResourceAsStream("/bank-account-token.json")
       val json = Json.parse(in)
 
       val JsSuccess(account, _) = json.validate[Token]
@@ -15,7 +15,7 @@ class TokensSpec extends WordSpec with Matchers {
     }
 
     "parse credit card token JSON correctly" in {
-      val in = getClass.getResourceAsStream("/credit-card-token.json")
+      val in   = getClass.getResourceAsStream("/credit-card-token.json")
       val json = Json.parse(in)
 
       val JsSuccess(account, _) = json.validate[Token]

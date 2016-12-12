@@ -1,0 +1,13 @@
+{
+  "id": "re_20OUr9J6y4jvjvHAKUY47to",
+  "object": "refund",
+  "amount": 1500,
+  "balance_transaction": "txn_19OUr9J6y4jvjvHhCDNM1SqP",
+  "charge": "ch_19OUr8J6y4jvjvHhYLlNCDG6",
+  "created": 1481214891,
+  "currency": "eur",
+  "metadata": {},
+  "reason": "requested_by_customer",
+  "receipt_number": null,
+  "status": "succeeded"
+}

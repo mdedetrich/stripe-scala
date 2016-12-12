@@ -7,7 +7,7 @@ import play.api.libs.json.{JsSuccess, Json}
 class FileUploadSpec extends WordSpec with Matchers {
   "File Upload" should {
     "parse JSON correctly" in {
-      val in = this.getClass.getResourceAsStream("/file-upload.json")
+      val in   = this.getClass.getResourceAsStream("/file-upload.json")
       val json = Json.parse(in)
 
       val JsSuccess(fileUpload, _) = json.validate[FileUpload]
