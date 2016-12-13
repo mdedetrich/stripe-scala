@@ -189,8 +189,8 @@ object BankAccounts extends LazyLogging {
             "routing_number"      -> `object`.routingNumber
         ))
 
-      implicit val sourceObjectParams = new PostParams[Object] {
-        override def toMap(externalAccount: Object): Map[String, String] = Map(
+      implicit val sourceObjectParams = PostParams.params[Object] { externalAccount =>
+        Map(
           "object"         -> "bank_account",
           "account_number" -> externalAccount.accountNumber,
           "country"        -> externalAccount.country,

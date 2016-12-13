@@ -5,6 +5,7 @@ import java.time.OffsetDateTime
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.mdedetrich.playjson.Utils._
+import org.mdedetrich.stripe.PostParams.flatten
 import org.mdedetrich.stripe.v1.Charges.FraudDetails.{StripeReport, UserReport}
 import org.mdedetrich.stripe.v1.Charges.Source.Card
 import org.mdedetrich.stripe.v1.Disputes._
@@ -117,25 +118,23 @@ object Charges extends LazyLogging {
     }
   }
 
-  implicit val cardPostParams = new PostParams[Source.Card] {
-    override def toMap(t: Card): Map[String, String] = {
-      val mandatory = Map(
-        "exp_month" -> t.expMonth.toString,
-        "exp_year"  -> t.expYear.toString,
-        "number"    -> t.number
-      )
-      val optional = Map(
-        "cvc"             -> t.cvc,
-        "address_city"    -> t.addressCity,
-        "address_country" -> t.addressCountry,
-        "address_line1"   -> t.addressLine1,
-        "address_line2"   -> t.addressLine2,
-        "name"            -> t.name,
-        "address_state"   -> t.addressState,
-        "address_zip"     -> t.addressZip
-      )
-      mandatory ++ flatten(optional)
-    }
+  implicit val cardPostParams = PostParams.params[Source.Card] { t =>
+    val mandatory = Map(
+      "exp_month" -> t.expMonth.toString,
+      "exp_year"  -> t.expYear.toString,
+      "number"    -> t.number
+    )
+    val optional = Map(
+      "cvc"             -> t.cvc,
+      "address_city"    -> t.addressCity,
+      "address_country" -> t.addressCountry,
+      "address_line1"   -> t.addressLine1,
+      "address_line2"   -> t.addressLine2,
+      "name"            -> t.name,
+      "address_state"   -> t.addressState,
+      "address_zip"     -> t.addressZip
+    )
+    mandatory ++ flatten(optional)
   }
 
   implicit val sourceWrites: Writes[Source] = Writes((source: Source) => {
@@ -514,22 +513,21 @@ object Charges extends LazyLogging {
         "statement_descriptor" -> chargeInput.statementDescriptor
     ))
 
-  implicit val chargeInputPostParams = new PostParams[ChargeInput] {
-    override def toMap(chargeInput: ChargeInput): Map[String, String] =
-      flatten(
-        Map(
-          "amount"               -> Option(chargeInput.amount.toString),
-          "currency"             -> Option(chargeInput.currency.iso.toLowerCase),
-          "application_fee"      -> chargeInput.applicationFee.map(_.toString),
-          "capture"              -> Option(chargeInput.capture.toString),
-          "description"          -> chargeInput.description,
-          "destination"          -> chargeInput.destination,
-          "receipt_email"        -> chargeInput.receiptEmail,
-          "customer"             -> chargeInput.customer.map(_.id),
-          "statement_descriptor" -> chargeInput.statementDescriptor
-        )) ++
-        PostParams.toPostParams("metadata", chargeInput.metadata) ++
-        PostParams.toPostParams("source", chargeInput.source)
+  implicit val chargeInputPostParams = PostParams.params[ChargeInput] { chargeInput =>
+    flatten(
+      Map(
+        "amount"               -> Option(chargeInput.amount.toString),
+        "currency"             -> Option(chargeInput.currency.iso.toLowerCase),
+        "application_fee"      -> chargeInput.applicationFee.map(_.toString),
+        "capture"              -> Option(chargeInput.capture.toString),
+        "description"          -> chargeInput.description,
+        "destination"          -> chargeInput.destination,
+        "receipt_email"        -> chargeInput.receiptEmail,
+        "customer"             -> chargeInput.customer.map(_.id),
+        "statement_descriptor" -> chargeInput.statementDescriptor
+      )) ++
+      PostParams.toPostParams("metadata", chargeInput.metadata) ++
+      PostParams.toPostParams("source", chargeInput.source)
   }
 
   // CRUD methods

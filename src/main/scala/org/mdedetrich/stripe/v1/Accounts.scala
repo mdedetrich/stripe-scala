@@ -6,6 +6,7 @@ import java.util.Locale
 
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum.{Enum, EnumEntry, EnumFormats, PlayJsonEnum}
+import org.mdedetrich.stripe.PostParams.flatten
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
 import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.v1.Shippings.Address
@@ -24,13 +25,12 @@ object Accounts extends LazyLogging {
       ip: Option[String]
   )
 
-  implicit val tosAcceptancePostParams: PostParams[TosAcceptance] = new PostParams[TosAcceptance] {
-    override def toMap(t: TosAcceptance): Map[String, String] =
-      flatten(
-        Map(
-          "date" -> t.date.map(d => d.toEpochSecond.toString),
-          "ip"   -> t.ip
-        ))
+  implicit val tosAcceptancePostParams: PostParams[TosAcceptance] = PostParams.params[TosAcceptance] { t =>
+    flatten(
+      Map(
+        "date" -> t.date.map(d => d.toEpochSecond.toString),
+        "ip"   -> t.ip
+      ))
   }
 
   implicit val tosAcceptanceReads: Reads[TosAcceptance] = (
@@ -154,15 +154,14 @@ object Accounts extends LazyLogging {
 
   implicit val transferScheduleWrites = Json.writes[TransferSchedule]
 
-  implicit val transferSchedulePostParams = new PostParams[TransferSchedule] {
-    override def toMap(transferSchedule: TransferSchedule): Map[String, String] =
-      flatten(
-        Map(
-          "interval"       -> transferSchedule.interval.map(_.entryName),
-          "monthly_anchor" -> transferSchedule.monthlyAnchor.map(_.toString),
-          "weekly_anchor" -> transferSchedule.weeklyAnchor.map(
-            _.getDisplayName(TextStyle.FULL, Locale.ENGLISH).toLowerCase)
-        ))
+  implicit val transferSchedulePostParams = PostParams.params[TransferSchedule] { transferSchedule =>
+    flatten(
+      Map(
+        "interval"       -> transferSchedule.interval.map(_.entryName),
+        "monthly_anchor" -> transferSchedule.monthlyAnchor.map(_.toString),
+        "weekly_anchor" -> transferSchedule.weeklyAnchor.map(
+          _.getDisplayName(TextStyle.FULL, Locale.ENGLISH).toLowerCase)
+      ))
   }
 
   //
@@ -199,23 +198,21 @@ object Accounts extends LazyLogging {
 
   implicit val accountWrites: Writes[Account] = Json.writes[Account]
 
-  implicit val legalEntityPostParams = new PostParams[LegalEntity] {
-    override def toMap(legalEntity: LegalEntity): Map[String, String] = {
-      val postParams = Map(
-        "first_name"           -> legalEntity.firstName,
-        "last_name"            -> legalEntity.lastName,
-        "type"                 -> legalEntity.`type`.map(_.entryName),
-        "address[line1]"       -> legalEntity.address.line1,
-        "address[line2]"       -> legalEntity.address.line2,
-        "address[postal_code]" -> legalEntity.address.postalCode,
-        "address[city]"        -> legalEntity.address.city,
-        "address[country]"     -> legalEntity.address.country,
-        "dob[year]"            -> legalEntity.dob.map(_.getYear.toString),
-        "dob[month]"           -> legalEntity.dob.map(_.getMonthValue.toString),
-        "dob[day]"             -> legalEntity.dob.map(_.getDayOfMonth.toString)
-      )
-      flatten(postParams)
-    }
+  implicit val legalEntityPostParams = PostParams.params[LegalEntity] { legalEntity =>
+    val postParams = Map(
+      "first_name"           -> legalEntity.firstName,
+      "last_name"            -> legalEntity.lastName,
+      "type"                 -> legalEntity.`type`.map(_.entryName),
+      "address[line1]"       -> legalEntity.address.line1,
+      "address[line2]"       -> legalEntity.address.line2,
+      "address[postal_code]" -> legalEntity.address.postalCode,
+      "address[city]"        -> legalEntity.address.city,
+      "address[country]"     -> legalEntity.address.country,
+      "dob[year]"            -> legalEntity.dob.map(_.getYear.toString),
+      "dob[month]"           -> legalEntity.dob.map(_.getMonthValue.toString),
+      "dob[day]"             -> legalEntity.dob.map(_.getDayOfMonth.toString)
+    )
+    flatten(postParams)
   }
 
   //
@@ -239,15 +236,14 @@ object Accounts extends LazyLogging {
     )
   }
 
-  implicit val accountInputPostParams = new PostParams[AccountInput] {
-    override def toMap(update: AccountInput): Map[String, String] =
-      Map(
-        "managed" -> update.managed.toString
-      ) ++
-        PostParams.toPostParams("metadata", update.metadata) ++
-        PostParams.toPostParams("transfer_schedule", update.transferSchedule) ++
-        PostParams.toPostParams("tos_acceptance", update.tosAcceptance) ++
-        PostParams.toPostParams("legal_entity", update.legalEntity)
+  implicit val accountInputPostParams = PostParams.params[AccountInput] { update =>
+    Map(
+      "managed" -> update.managed.toString
+    ) ++
+      PostParams.toPostParams("metadata", update.metadata) ++
+      PostParams.toPostParams("transfer_schedule", update.transferSchedule) ++
+      PostParams.toPostParams("tos_acceptance", update.tosAcceptance) ++
+      PostParams.toPostParams("legal_entity", update.legalEntity)
   }
 
   //
@@ -265,21 +261,19 @@ object Accounts extends LazyLogging {
     def default = AccountUpdate(None, None, None, None, None)
   }
 
-  implicit val accountUpdatePostParams = new PostParams[AccountUpdate] {
-    override def toMap(update: AccountUpdate): Map[String, String] = {
-      val defaultCurrency = Map("default_currency" -> update.defaultCurrency.map(_.iso))
+  implicit val accountUpdatePostParams = PostParams.params[AccountUpdate] { update =>
+    val defaultCurrency = Map("default_currency" -> update.defaultCurrency.map(_.iso))
 
-      val externalAccount = update.externalAccount
-        .map({
-          case o: BankAccountData.Source.Object    => PostParams.toPostParams("external_account", o)
-          case token: BankAccountData.Source.Token => Map("external_account" -> token.id)
-        })
-        .getOrElse(Map.empty)
+    val externalAccount = update.externalAccount
+      .map({
+        case o: BankAccountData.Source.Object    => PostParams.toPostParams("external_account", o)
+        case token: BankAccountData.Source.Token => Map("external_account" -> token.id)
+      })
+      .getOrElse(Map.empty)
 
-      flatten(defaultCurrency) ++ externalAccount ++
-        PostParams.toPostParams("tos_acceptance", update.tosAcceptance) ++
-        PostParams.toPostParams("legal_entity", update.legalEntity)
-    }
+    flatten(defaultCurrency) ++ externalAccount ++
+      PostParams.toPostParams("tos_acceptance", update.tosAcceptance) ++
+      PostParams.toPostParams("legal_entity", update.legalEntity)
   }
 
   //
