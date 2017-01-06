@@ -14,8 +14,8 @@ class RefundIT extends IntegrationTest with ParallelTestExecution {
 
       val f = for {
         customer <- customerF
-        charge <- handleIdempotent(Charges.create(ChargeIT.chargeInput(Customer(customer.id))))
-        refund <- handleIdempotent(Refunds.create(RefundInput.default(charge.id, Reason.RequestedByCustomer)))
+        charge   <- handleIdempotent(Charges.create(ChargeIT.chargeInput(Customer(customer.id))))
+        refund   <- handleIdempotent(Refunds.create(RefundInput.default(charge.id, Reason.RequestedByCustomer)))
       } yield refund
 
       f.map { refund =>

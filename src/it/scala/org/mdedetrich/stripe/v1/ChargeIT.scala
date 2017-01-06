@@ -11,14 +11,13 @@ class ChargeIT extends IntegrationTest {
   "Charge" should {
     "transfer money from a customer credit card into the bank account of a managed account and add a fee for the platform" in {
 
-
       val customerF = CustomerIT.createCustomerWithCC()
-      val accountF = AccountIT.createManagedAccountWithBankAccount
+      val accountF  = AccountIT.createManagedAccountWithBankAccount
 
       val chargeF = for {
-        customer <- customerF
+        customer       <- customerF
         managedAccount <- accountF
-        charge <- handleIdempotent(Charges.create(ChargeIT.chargeInput(managedAccount.id, Customer(customer.id))))
+        charge         <- handleIdempotent(Charges.create(ChargeIT.chargeInput(managedAccount.id, Customer(customer.id))))
       } yield charge
 
       chargeF.map { charge =>
@@ -33,9 +32,10 @@ class ChargeIT extends IntegrationTest {
 }
 
 object ChargeIT {
-  def chargeInput(customer: Customer): ChargeInput = chargeInput(None, customer).copy(applicationFee = None)
+  def chargeInput(customer: Customer): ChargeInput                      = chargeInput(None, customer).copy(applicationFee = None)
   def chargeInput(destination: String, customer: Customer): ChargeInput = chargeInput(Some(destination), customer)
   def chargeInput(destination: Option[String], customer: Customer): ChargeInput =
-    Charges.ChargeInput.default(1500, Currency.`Euro`, capture = true, customer)
+    Charges.ChargeInput
+      .default(1500, Currency.`Euro`, capture = true, customer)
       .copy(applicationFee = Some(100), destination = destination)
 }

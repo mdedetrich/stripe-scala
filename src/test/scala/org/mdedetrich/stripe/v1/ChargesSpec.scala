@@ -12,9 +12,10 @@ class ChargesSpec extends WordSpec with Matchers {
       val in   = getClass.getResourceAsStream("/charge.json")
       val json = Json.parse(in)
 
-      val JsSuccess(account, _) = json.validate[Charge]
-      account.id should be("ch_194UQpJ4y4jIjvHhJji6ElAp")
-      account.source.expYear should be(2018)
+      val JsSuccess(charge, _) = json.validate[Charge]
+      charge.id should be("ch_194UQpJ4y4jIjvHhJji6ElAp")
+      charge.source.expYear should be(2018)
+      charge.applicationFee should be(Some("fee_9OKMRHcB2CcVPD"))
     }
   }
 

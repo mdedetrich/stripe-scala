@@ -10,8 +10,6 @@ organization := "org.mdedetrich"
 
 version := "0.1.0-SNAPSHOT"
 
-scalafmtConfig in ThisBuild := Some(file(".scalafmt.conf"))
-
 scalacOptions ++= Seq(
   "-target:jvm-1.8",
   "-encoding",

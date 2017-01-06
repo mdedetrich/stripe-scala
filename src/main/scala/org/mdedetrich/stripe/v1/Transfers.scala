@@ -211,30 +211,32 @@ object Transfers extends LazyLogging {
          sourceType)                         = one
     val (statementDescriptor, status, type_) = two
 
-    Transfer(id,
-             amount,
-             amountReversed,
-             applicationFee,
-             balanceTransaction,
-             bankAccount,
-             created,
-             currency,
-             date,
-             description,
-             destination,
-             destinationPayment,
-             failureCode,
-             failureMessage,
-             livemode,
-             metadata,
-             recipient,
-             reversals,
-             reversed,
-             sourceTransaction,
-             sourceType,
-             statementDescriptor,
-             status,
-             type_)
+    Transfer(
+      id,
+      amount,
+      amountReversed,
+      applicationFee,
+      balanceTransaction,
+      bankAccount,
+      created,
+      currency,
+      date,
+      description,
+      destination,
+      destinationPayment,
+      failureCode,
+      failureMessage,
+      livemode,
+      metadata,
+      recipient,
+      reversals,
+      reversed,
+      sourceTransaction,
+      sourceType,
+      statementDescriptor,
+      status,
+      type_
+    )
   }
 
   implicit val transferWrites: Writes[Transfer] = Writes(

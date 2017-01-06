@@ -14,14 +14,12 @@ class AccountIT extends IntegrationTest with ParallelTestExecution {
 
   "Account" should {
     "create managed account with non-ascii character" in {
-      val dob = LocalDate.now().minusYears(30)
+      val dob       = LocalDate.now().minusYears(30)
       val firstName = "Gaspard"
       val lastName  = "Augé"
-      val legalEntity   = Some(LegalEntity.default.copy(`type` = Some(Individual),
-        firstName = Some(firstName),
-        lastName = Some(lastName),
-        dob = Some(dob))
-      )
+      val legalEntity = Some(
+        LegalEntity.default
+          .copy(`type` = Some(Individual), firstName = Some(firstName), lastName = Some(lastName), dob = Some(dob)))
 
       val accountInput = Accounts.AccountInput.default.copy(managed = true, legalEntity = legalEntity)
       handleIdempotent(Accounts.create(accountInput)).map({ account =>
@@ -43,17 +41,16 @@ class AccountIT extends IntegrationTest with ParallelTestExecution {
   }
 }
 
-object AccountIT extends DefaultExecutionContext{
+object AccountIT extends DefaultExecutionContext {
 
   val meta = Map("foo" -> "bar")
 
   def createManagedAccountWithBankAccount: Future[Account] = {
     val dob           = LocalDate.now().minusYears(30)
     val tosAcceptance = Some(TosAcceptance(Some(OffsetDateTime.now()), Some("62.96.204.171")))
-    val legalEntity   = Some(LegalEntity.default.copy(`type` = Some(Individual),
-      firstName = Some("Horst"),
-      lastName = Some("Kasuppke"),
-      dob = Some(dob)))
+    val legalEntity = Some(
+      LegalEntity.default
+        .copy(`type` = Some(Individual), firstName = Some("Horst"), lastName = Some("Kasuppke"), dob = Some(dob)))
 
     val transferSchedule = Some(TransferSchedule(Some(TransferInverval.Manual), None, None))
 
@@ -61,7 +58,8 @@ object AccountIT extends DefaultExecutionContext{
     Currency.lowerCaseNamesToValuesMap
     val ba = Some(BankAccountData.Source.Object.default("DE89370400440532013000", "DE", Currency.`Euro`))
 
-    val accountInput = Accounts.AccountInput.default.copy(managed = true, metadata = meta, transferSchedule = transferSchedule)
+    val accountInput =
+      Accounts.AccountInput.default.copy(managed = true, metadata = meta, transferSchedule = transferSchedule)
     val accountUpdate = Accounts.AccountUpdate.default.copy(
       tosAcceptance = tosAcceptance,
       legalEntity = legalEntity,
@@ -70,7 +68,7 @@ object AccountIT extends DefaultExecutionContext{
     )
 
     for {
-      account <- handleIdempotent(Accounts.create(accountInput))
+      account        <- handleIdempotent(Accounts.create(accountInput))
       updatedAccount <- handleIdempotent(Accounts.update(account.id, accountUpdate))
     } yield updatedAccount
 
