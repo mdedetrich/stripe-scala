@@ -12,20 +12,23 @@ class TransferIT extends IntegrationTest with ParallelTestExecution {
     "transfer money from credit card to bank account" in {
 
       val customerF = CustomerIT.createCustomerWithCC(CustomerIT.cardBypassingPendingCheck)
-      val accountF = AccountIT.createManagedAccountWithBankAccount
+      val accountF  = AccountIT.createManagedAccountWithBankAccount
 
       val f = for {
         managedAccount <- accountF
-        customer <- customerF
-        _ <- handleIdempotent(Charges.create(ChargeIT.chargeInput(managedAccount.id, Customer(customer.id))))
-        transfer <- handleIdempotent(Transfers.create(TransferInput.default(1400, Currency.`Euro`, "default_for_currency", stripeAccount = Some(managedAccount.id))))
+        customer       <- customerF
+        _              <- handleIdempotent(Charges.create(ChargeIT.chargeInput(managedAccount.id, Customer(customer.id))))
+        transfer <- handleIdempotent(
+          Transfers.create(TransferInput
+            .default(1400, Currency.`Euro`, "default_for_currency", stripeAccount = Some(managedAccount.id))))
       } yield (transfer, managedAccount)
 
-      f.map { case (transfer, managedAccount) =>
-        transfer.id should startWith("tr")
-        transfer.amount should be(1400)
-        val bankAccount = managedAccount.externalAccounts.data.collect({ case b:BankAccount => b }).head
-        transfer.destination should be(bankAccount.id)
+      f.map {
+        case (transfer, managedAccount) =>
+          transfer.id should startWith("tr")
+          transfer.amount should be(1400)
+          val bankAccount = managedAccount.externalAccounts.data.collect({ case b: BankAccount => b }).head
+          transfer.destination should be(bankAccount.id)
       }
 
     }
