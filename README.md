@@ -19,8 +19,9 @@ stripe-scala was intentionally designed to use bare minimum external dependencie
 
 ## Installation
 
-Currently, stripe-scala is in alpha stage. The models are being completed, and very few endpoints have been coded. It is being uploaded
-frequently as a SNAPSHOT on sonatype
+Currently, stripe-scala is in beta stage. The models are being completed, and quite a few endpoints have been coded but not the
+entirety of the Stripe API is covered. 
+It is being uploaded frequently as a SNAPSHOT on sonatype.
 
 ```scala
 resolvers ++= Seq(
@@ -40,10 +41,10 @@ libraryDependencies ++= Seq(
 - [x] Figure out how to deal with list collections
 - [x] Figure out how to deal with error handling
 - [x] Provide default methods for models so that building them is nicer
-- [ ] Implement a single instance of all operation types to figure out if there are any potential issues
+- [x] Implement a single instance of all operation types to figure out if there are any potential issues
   - [x] get
   - [x] create
-  - [ ] update
+  - [x] update
   - [x] list
   - [x] delete
 - [ ] Clean up/refactor code (still a lot of duplication)
