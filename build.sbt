@@ -44,3 +44,28 @@ libraryDependencies ++= Seq(
   "org.scalatest"              %% "scalatest"            % "3.0.0" % "test, it",
   "ch.qos.logback"             % "logback-classic"       % "1.1.7" % "test, it"
 )
+
+pomExtra := <url>https://github.com/mdedetrich/stripe-scala</url>
+  <licenses>
+    <license>
+      <name>BSD 3-Clause</name>
+      <url>https://opensource.org/licenses/BSD-3-Clause</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <scm>
+    <url>git@github.com:mdedetrich/stripe-scala.git</url>
+    <connection>scm:git:git@github.com:mdedetrich/stripe-scala.git</connection>
+  </scm>
+  <developers>
+    <developer>
+      <id>mdedetrich</id>
+      <name>Matthew de Detrich</name>
+      <email>mdedetrich@gmail.com</email>
+    </developer>
+    <developer>
+      <id>leonardehrenfried</id>
+      <name>Leonard Ehrenfried</name>
+      <email>leonard.ehrenfried@gmail.com</email>
+    </developer>
+  </developers>
