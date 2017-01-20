@@ -8,7 +8,7 @@ crossScalaVersions := Seq(currentScalaVersion)
 
 organization := "org.mdedetrich"
 
-version := "0.1.0-SNAPSHOT"
+version := "0.1.0"
 
 scalacOptions ++= Seq(
   "-target:jvm-1.8",
