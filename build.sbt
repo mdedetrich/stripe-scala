@@ -45,27 +45,16 @@ libraryDependencies ++= Seq(
   "ch.qos.logback"             % "logback-classic"       % "1.1.7" % "test, it"
 )
 
-pomExtra := <url>https://github.com/mdedetrich/stripe-scala</url>
-  <licenses>
-    <license>
-      <name>BSD 3-Clause</name>
-      <url>https://opensource.org/licenses/BSD-3-Clause</url>
-      <distribution>repo</distribution>
-    </license>
-  </licenses>
-  <scm>
-    <url>git@github.com:mdedetrich/stripe-scala.git</url>
-    <connection>scm:git:git@github.com:mdedetrich/stripe-scala.git</connection>
-  </scm>
-  <developers>
-    <developer>
-      <id>mdedetrich</id>
-      <name>Matthew de Detrich</name>
-      <email>mdedetrich@gmail.com</email>
-    </developer>
-    <developer>
-      <id>leonardehrenfried</id>
-      <name>Leonard Ehrenfried</name>
-      <email>leonard.ehrenfried@gmail.com</email>
-    </developer>
-  </developers>
+homepage := Some(url("https://github.com/mdedetrich/stripe-scala"))
+
+scmInfo := Some(
+  ScmInfo(url("https://github.com/mdedetrich/stripe-scala"), "git@github.com:mdedetrich/stripe-scala.git"))
+
+developers := List(
+  Developer("mdedetrich", "Matthew de Detrich", "mdedetrich@gmail.com", url("https://github.com/mdedetrich")),
+  Developer("leonardehrenfried", "Leonard Ehrenfried", "leonard.ehrenfried@gmail.com", url("https://leonard.io"))
+)
+
+licenses += ("BSD 3 Clause", url("https://opensource.org/licenses/BSD-3-Clause"))
+
+pomIncludeRepository := (_ => false)
