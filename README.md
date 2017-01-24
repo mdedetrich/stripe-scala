@@ -19,19 +19,17 @@ stripe-scala was intentionally designed to use bare minimum external dependencie
 
 ## Installation
 
-Currently, stripe-scala is in beta stage. The models are being completed, and quite a few endpoints have been coded but not the
-entirety of the Stripe API is covered. 
-It is being uploaded frequently as a SNAPSHOT on sonatype.
+Currently, stripe-scala is in pre-1.0 stage. It is powering the payment processing of at least one company in production but not all endpoints are completed.
+
+It has been deployed to Maven Central. Add the following to your build definition:
 
 ```scala
-resolvers ++= Seq(
-  Resolver.sonatypeRepo("snapshots")
-)
-
 libraryDependencies ++= Seq(
-  "org.mdedetrich" %% "stripe-scala" % "0.1.0-SNAPSHOT"
+  "org.mdedetrich" %% "stripe-scala" % "0.1.0"
 )
 ```
+
+To get the latest version please check the [repository search](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mdedetrich%22%20AND%20a%3A%22stripe-scala_2.11%22).
 
 ## TODO for release
 - [ ] Add all operations for all endpoints
