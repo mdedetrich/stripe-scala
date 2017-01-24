@@ -21,7 +21,7 @@ stripe-scala was intentionally designed to use bare minimum external dependencie
 
 Currently, stripe-scala is in pre-1.0 stage. It is powering the payment processing of at least one company in production but not all endpoints are completed.
 
-It has been deployed to Maven Central. Add the following to your build definition:
+It has been deployed to Maven Central, so to install it add the following to your build definition:
 
 ```scala
 libraryDependencies ++= Seq(
@@ -29,7 +29,7 @@ libraryDependencies ++= Seq(
 )
 ```
 
-To get the latest version please check the [repository search](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mdedetrich%22%20AND%20a%3A%22stripe-scala_2.11%22).
+To get the latest version please check the [Maven repository search](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mdedetrich%22%20AND%20a%3A%22stripe-scala_2.11%22).
 
 ## TODO for release
 - [ ] Add all operations for all endpoints
