@@ -22,7 +22,8 @@ object ApplicationFeeRefunds extends LazyLogging {
                                   metadata: Option[Map[String, String]],
                                   created: OffsetDateTime,
                                   currency: Currency,
-                                  fee: String)
+                                  fee: String,
+                                  balanceTransaction: Option[String])
 
   implicit val refundReads: Reads[ApplicationFeeRefund] = (
     (__ \ "id").read[String] ~
@@ -30,7 +31,8 @@ object ApplicationFeeRefunds extends LazyLogging {
       (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
-      (__ \ "fee").read[String]
+      (__ \ "fee").read[String] ~
+      (__ \ "balance_transaction").readNullable[String]
   ).tupled.map((ApplicationFeeRefund.apply _).tupled)
 
   implicit val refundWrites: Writes[ApplicationFeeRefund] = Json.writes[ApplicationFeeRefund]
