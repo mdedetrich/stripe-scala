@@ -1,6 +1,8 @@
 # stripe-scala, API for Stripe Using Scala
 
 [![Build Status](https://travis-ci.org/mdedetrich/stripe-scala.svg?branch=master)](https://travis-ci.org/mdedetrich/stripe-scala)
+[![Maven Central Version](https://img.shields.io/maven-central/v/org.mdedetrich/stripe-scala_2.11.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mdedetrich%22%20AND%20a%3A%22stripe-scala_2.11%22)
+
 
 stripe-scala is a wrapper over the [Stripe](https://stripe.com/) [REST api](https://stripe.com/docs/api/curl#intro). Unlike
 [stripe-java](https://github.com/stripe/stripe-java), stripe-scala binds JSON response to the stripe object models (using Scala
