@@ -7,7 +7,7 @@ object Config {
   lazy val conf = ConfigFactory.load
 
   implicit lazy val endpoint           = Endpoint(conf.as[String]("stripe-scala.endpoint"))
-  implicit lazy val fileUploadEndpoint = FileUploadEndpoint(conf.as[String]("stripe-scala.file-upload-endpoint"))
+  implicit lazy val fileUploadEndpoint = FileUploadEndpoint(conf.as[String]("stripe-scala.fileUploadEndpoint"))
 
   implicit lazy val apiKey = ApiKey(conf.as[String]("stripe-scala.apiKey"))
 
