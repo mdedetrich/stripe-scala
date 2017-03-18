@@ -13,6 +13,7 @@ class ApplicationFeeRefundsSpec extends WordSpec with Matchers {
 
       val JsSuccess(account, _) = json.validate[ApplicationFeeRefund]
       account.id should be("fr_7iEwuXNLaHBGdZ")
+      account.balanceTransaction should be(Some("123"))
     }
   }
 
