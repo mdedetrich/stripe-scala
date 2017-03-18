@@ -2,6 +2,8 @@ package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
 
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.v1.Customers.Source.Token
@@ -16,7 +18,7 @@ import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object Customers extends LazyLogging {
@@ -293,7 +295,10 @@ object Customers extends LazyLogging {
 
   def create(customerInput: CustomerInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Customer]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Customer]] = {
     val postFormParameters: Map[String, String] = {
       Map(
         "account_balance" -> customerInput.accountBalance.map(_.toString()),
@@ -366,7 +371,11 @@ object Customers extends LazyLogging {
     createRequestPOST[Customer](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Customer]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[Customer]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
     createRequestGET[Customer](finalUrl, logger)
@@ -380,7 +389,11 @@ object Customers extends LazyLogging {
     *
     * @see https://stripe.github.io/stripe-ios/docs/Protocols/STPBackendAPIAdapter.html
     */
-  def getCustomerJson(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[JsValue]] = {
+  def getCustomerJson(id: String)(implicit apiKey: ApiKey,
+                                  endpoint: Endpoint,
+                                  client: HttpExt,
+                                  materializer: Materializer,
+                                  executionContext: ExecutionContext): Future[Try[JsValue]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
     createRequestGET[JsValue](finalUrl, logger)
@@ -388,7 +401,10 @@ object Customers extends LazyLogging {
 
   def update(id: String, customerUpdate: CustomerUpdate)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Customer]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Customer]] = {
 
     val finalUrl   = endpoint.url + s"/v1/customers/$id"
     val postParams = PostParams.toPostParams(customerUpdate)
@@ -397,7 +413,10 @@ object Customers extends LazyLogging {
 
   def delete(id: String)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
     createRequestDELETE(finalUrl, idempotencyKey, logger)
@@ -430,8 +449,12 @@ object Customers extends LazyLogging {
     implicit val customerWrites: Writes[CustomerList] = listWrites
   }
 
-  def list(customerListInput: CustomerListInput,
-           includeTotalCount: Boolean)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[CustomerList]] = {
+  def list(customerListInput: CustomerListInput, includeTotalCount: Boolean)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[CustomerList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =

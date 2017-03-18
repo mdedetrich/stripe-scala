@@ -31,10 +31,10 @@ Defaults.itSettings
 configs(IntegrationTest)
 
 val enumeratumVersion = "1.4.16"
-val akkaStreamJson    = "3.1.0"
+val akkaStreamJson    = "3.2.0"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"          %% "akka-http"            % "10.0.3",
+  "com.typesafe.akka"          %% "akka-http"            % "10.0.4",
   "de.knutwalker"              %% "akka-stream-json"     % akkaStreamJson,
   "de.knutwalker"              %% "akka-http-json"       % akkaStreamJson,
   "com.beachape"               %% "enumeratum"           % enumeratumVersion,

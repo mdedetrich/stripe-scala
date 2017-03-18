@@ -1,13 +1,16 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 /**
@@ -128,7 +131,10 @@ object TransferReversals extends LazyLogging {
 
   def create(transferReversalInput: TransferReversalInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[TransferReversal]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[TransferReversal]] = {
     val postFormParameters: Map[String, String] = {
       Map(
         "amount"                 -> transferReversalInput.amount.map(_.toString()),
@@ -147,7 +153,11 @@ object TransferReversals extends LazyLogging {
     createRequestPOST[TransferReversal](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String, transferId: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[TransferReversal]] = {
+  def get(id: String, transferId: String)(implicit apiKey: ApiKey,
+                                          endpoint: Endpoint,
+                                          client: HttpExt,
+                                          materializer: Materializer,
+                                          executionContext: ExecutionContext): Future[Try[TransferReversal]] = {
     val finalUrl = endpoint.url + s"/v1/transfers/$id/reversals/$transferId"
 
     createRequestGET[TransferReversal](finalUrl, logger)
@@ -204,7 +214,10 @@ object TransferReversals extends LazyLogging {
 
   def list(transferReversalListInput: TransferReversalListInput, includeTotalCount: Boolean)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[TransferReversalList]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[TransferReversalList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =

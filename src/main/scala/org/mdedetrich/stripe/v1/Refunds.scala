@@ -2,15 +2,17 @@ package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
 
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import org.mdedetrich.playjson.Utils._
 import enumeratum._
+import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.PostParams.{flatten, toPostParams}
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 /**
@@ -176,7 +178,10 @@ object Refunds extends LazyLogging {
 
   def create(refundInput: RefundInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Refund]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Refund]] = {
 
     val postFormParameters = toPostParams(refundInput)
     logger.debug(s"Generated POST form parameters is $postFormParameters")
@@ -186,7 +191,11 @@ object Refunds extends LazyLogging {
     createRequestPOST[Refund](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Refund]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[Refund]] = {
     val finalUrl = endpoint.url + s"/v1/refunds/$id"
 
     createRequestGET[Refund](finalUrl, logger)
@@ -244,8 +253,12 @@ object Refunds extends LazyLogging {
     implicit val refundListWrites: Writes[RefundList] = listWrites
   }
 
-  def list(refundListInput: RefundListInput,
-           includeTotalCount: Boolean)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[RefundList]] = {
+  def list(refundListInput: RefundListInput, includeTotalCount: Boolean)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[RefundList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =

@@ -4,6 +4,8 @@ import java.time.format.TextStyle
 import java.time.{DayOfWeek, LocalDate, OffsetDateTime}
 import java.util.Locale
 
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum.{Enum, EnumEntry, EnumFormats, PlayJsonEnum}
 import org.mdedetrich.stripe.PostParams.flatten
@@ -14,7 +16,7 @@ import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object Accounts extends LazyLogging {
@@ -282,7 +284,10 @@ object Accounts extends LazyLogging {
 
   def create(accountInput: AccountInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Account]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Account]] = {
 
     val postParams: Map[String, String] = PostParams.toPostParams(accountInput)
 
@@ -295,7 +300,10 @@ object Accounts extends LazyLogging {
 
   def update(id: String, update: AccountUpdate)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Account]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Account]] = {
     val finalUrl = endpoint.url + s"/v1/accounts/$id"
 
     val params = PostParams.toPostParams(update)
@@ -303,7 +311,11 @@ object Accounts extends LazyLogging {
     createRequestPOST[Account](finalUrl, params, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Account]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[Account]] = {
     val finalUrl = endpoint.url + s"/v1/accounts/$id"
 
     createRequestGET[Account](finalUrl, logger)
@@ -311,7 +323,10 @@ object Accounts extends LazyLogging {
 
   def delete(id: String)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/accounts/$id"
 
     createRequestDELETE(finalUrl, idempotencyKey, logger)

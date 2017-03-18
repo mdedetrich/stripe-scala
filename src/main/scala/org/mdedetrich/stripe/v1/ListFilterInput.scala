@@ -1,9 +1,10 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
 import play.api.data.validation.ValidationError
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
 /**
   * Common data model for list requests that accept a created input

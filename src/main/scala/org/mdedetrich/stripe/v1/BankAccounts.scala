@@ -1,5 +1,7 @@
 package org.mdedetrich.stripe.v1
 
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.mdedetrich.playjson.Utils._
@@ -8,7 +10,7 @@ import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object BankAccounts extends LazyLogging {
@@ -300,7 +302,10 @@ object BankAccounts extends LazyLogging {
 
   def create(customerId: String, bankAccountInput: BankAccountInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[BankAccount]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[BankAccount]] = {
     val postFormParameters: Map[String, String] = {
       Map(
         "default_for_currency" -> bankAccountInput.defaultForCurrency.map(_.toString)
@@ -348,7 +353,10 @@ object BankAccounts extends LazyLogging {
   }
 
   def get(customerId: String, bankAccountId: String)(implicit apiKey: ApiKey,
-                                                     endpoint: Endpoint): Future[Try[BankAccount]] = {
+                                                     endpoint: Endpoint,
+                                                     client: HttpExt,
+                                                     materializer: Materializer,
+                                                     executionContext: ExecutionContext): Future[Try[BankAccount]] = {
     val finalUrl =
       endpoint.url + s"/v1/customers/$customerId/sources/$bankAccountId"
 
@@ -357,7 +365,10 @@ object BankAccounts extends LazyLogging {
 
   def delete(customerId: String, bankAccountId: String)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
     val finalUrl =
       endpoint.url + s"/v1/customers/$customerId/sources/$bankAccountId"
 
@@ -403,7 +414,10 @@ object BankAccounts extends LazyLogging {
 
   def list(customerId: String, bankAccountListInput: BankAccountListInput, includeTotalCount: Boolean)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[BankAccountList]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[BankAccountList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =

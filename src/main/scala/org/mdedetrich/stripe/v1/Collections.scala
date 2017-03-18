@@ -1,7 +1,7 @@
 package org.mdedetrich.stripe.v1
 
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
 object Collections {
 

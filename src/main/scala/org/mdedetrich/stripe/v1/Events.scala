@@ -1,6 +1,7 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
 import enumeratum._
 
 object Events {

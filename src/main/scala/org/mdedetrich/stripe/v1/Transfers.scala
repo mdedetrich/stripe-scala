@@ -1,16 +1,19 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
-import enumeratum._
-import org.mdedetrich.stripe.v1.TransferReversals._
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
-import BankAccounts._
-import com.typesafe.scalalogging.LazyLogging
-import org.mdedetrich.playjson.Utils._
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 
-import scala.concurrent.Future
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
+import com.typesafe.scalalogging.LazyLogging
+import enumeratum._
+import org.mdedetrich.playjson.Utils._
+import org.mdedetrich.stripe.v1.BankAccounts._
+import org.mdedetrich.stripe.v1.TransferReversals._
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object Transfers extends LazyLogging {
@@ -348,7 +351,10 @@ object Transfers extends LazyLogging {
 
   def create(transferInput: TransferInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Transfer]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Transfer]] = {
     val postFormParameters: Map[String, String] = {
       Map(
         "amount"               -> Option(transferInput.amount.toString()),
@@ -374,7 +380,11 @@ object Transfers extends LazyLogging {
                                 stripeAccount = transferInput.stripeAccount)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Transfer]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[Transfer]] = {
     val finalUrl = endpoint.url + s"/v1/transfers/$id"
 
     createRequestGET[Transfer](finalUrl, logger)
@@ -420,8 +430,12 @@ object Transfers extends LazyLogging {
     implicit val transferListWrites: Writes[TransferList] = listWrites
   }
 
-  def list(transferListInput: TransferListInput,
-           includeTotalCount: Boolean)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[TransferList]] = {
+  def list(transferListInput: TransferListInput, includeTotalCount: Boolean)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[TransferList]] = {
 
     val finalUrl = {
       import com.netaporter.uri.dsl._

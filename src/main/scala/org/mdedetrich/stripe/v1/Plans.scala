@@ -1,6 +1,9 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.mdedetrich.playjson.Utils._
@@ -9,7 +12,7 @@ import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object Plans extends LazyLogging {
@@ -251,7 +254,10 @@ object Plans extends LazyLogging {
 
   def create(planInput: PlanInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Plan]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Plan]] = {
     val postFormParameters: Map[String, String] = {
       Map(
         "id"                   -> Option(planInput.id.toString),
@@ -274,7 +280,11 @@ object Plans extends LazyLogging {
     createRequestPOST[Plan](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Plan]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[Plan]] = {
     val finalUrl = endpoint.url + s"/v1/plans/$id"
 
     createRequestGET[Plan](finalUrl, logger)
@@ -282,7 +292,10 @@ object Plans extends LazyLogging {
 
   def delete(id: String)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/plans/$id"
 
     createRequestDELETE(finalUrl, idempotencyKey, logger)
@@ -336,8 +349,12 @@ object Plans extends LazyLogging {
     implicit val customerWrites: Writes[PlanList] = listWrites
   }
 
-  def list(planListInput: PlanListInput, includeTotalCount: Boolean)(implicit apiKey: ApiKey,
-                                                                     endpoint: Endpoint): Future[Try[PlanList]] = {
+  def list(planListInput: PlanListInput, includeTotalCount: Boolean)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[PlanList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =

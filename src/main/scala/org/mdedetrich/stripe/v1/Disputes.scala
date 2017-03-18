@@ -1,6 +1,9 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.mdedetrich.stripe.v1.Balances._
@@ -9,7 +12,7 @@ import play.api.libs.functional.syntax._
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object Disputes extends LazyLogging {
@@ -304,14 +307,22 @@ object Disputes extends LazyLogging {
         "status"               -> dispute.status
     ))
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Dispute]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[Dispute]] = {
     val finalUrl = endpoint.url + s"/v1/disputes/$id"
 
     createRequestGET[Dispute](finalUrl, logger)
   }
 
-  def close(id: String)(idempotencyKey: Option[IdempotencyKey] = None)(implicit apiKey: ApiKey,
-                                                                       endpoint: Endpoint): Future[Try[Dispute]] = {
+  def close(id: String)(idempotencyKey: Option[IdempotencyKey] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Dispute]] = {
     val finalUrl = endpoint.url + s"/v1/disputes/$id/close"
 
     createRequestPOST[Dispute](finalUrl, Map.empty, idempotencyKey, logger)
@@ -344,8 +355,12 @@ object Disputes extends LazyLogging {
     implicit val disputeWrites: Writes[DisputeList] = listWrites
   }
 
-  def list(disputeListInput: DisputeListInput,
-           includeTotalCount: Boolean)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[DisputeList]] = {
+  def list(disputeListInput: DisputeListInput, includeTotalCount: Boolean)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[DisputeList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =
