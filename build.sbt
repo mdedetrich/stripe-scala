@@ -58,3 +58,5 @@ developers := List(
 licenses += ("BSD 3 Clause", url("https://opensource.org/licenses/BSD-3-Clause"))
 
 pomIncludeRepository := (_ => false)
+
+parallelExecution in IntegrationTest := false
