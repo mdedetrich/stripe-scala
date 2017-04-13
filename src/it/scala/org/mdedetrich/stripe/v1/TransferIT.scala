@@ -6,7 +6,7 @@ import org.mdedetrich.stripe.v1.Charges.Source.Customer
 import org.mdedetrich.stripe.v1.Transfers.TransferInput
 import org.scalatest.ParallelTestExecution
 
-class TransferIT extends IntegrationTest with ParallelTestExecution {
+class TransferIT extends IntegrationTest {
 
   "Transfer" should {
     "transfer money from credit card to bank account" in {
@@ -25,7 +25,7 @@ class TransferIT extends IntegrationTest with ParallelTestExecution {
 
       f.map {
         case (transfer, managedAccount) =>
-          transfer.id should startWith("tr")
+          transfer.id should startWith("po")
           transfer.amount should be(1400)
           val bankAccount = managedAccount.externalAccounts.data.collect({ case b: BankAccount => b }).head
           transfer.destination should be(bankAccount.id)
