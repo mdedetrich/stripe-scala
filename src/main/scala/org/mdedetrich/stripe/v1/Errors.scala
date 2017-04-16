@@ -67,6 +67,8 @@ object Errors {
     case object Missing extends Code("missing")
 
     case object ProcessingError extends Code("processing_error")
+
+    case object TransferNotAllowed extends Code("transfers_not_allowed")
   }
 
   implicit val codeFormats = EnumFormats.formats(Code, insensitive = true)
