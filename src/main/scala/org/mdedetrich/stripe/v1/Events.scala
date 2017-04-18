@@ -1,15 +1,23 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
-import enumeratum._
 
-object Events {
+import com.typesafe.scalalogging.LazyLogging
+import enumeratum._
+import org.mdedetrich.stripe.{ApiKey, Endpoint}
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+
+import scala.concurrent.Future
+import scala.util.Try
+
+object Events extends LazyLogging {
 
   sealed abstract class Type(val id: String) extends EnumEntry {
     override val entryName = id
   }
 
-  object Type extends Enum[Type] {
+  object Type extends Enum[Type] with PlayJsonEnum[Type] {
 
     val values = findValues
 
@@ -152,14 +160,32 @@ object Events {
 
   case class Data[A](`object`: A, previousAttributes: Option[A])
 
-  case class Event[A <: StripeObject](
+  implicit val eventReads: Reads[Event] = (
+    (__ \ "id").read[String] ~
+      (__ \ "api_version").read[String] ~
+      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
+      (__ \ "data").read[JsObject] ~
+      (__ \ "livemode").read[Boolean] ~
+      (__ \ "pending_webhooks").read[Long] ~
+      (__ \ "request").read[String] ~
+      (__ \ "type").read[Type]
+  ).tupled.map((Event.apply _).tupled)
+
+  implicit val eventWrites = Json.writes[Event]
+
+  case class Event(
       id: String,
       apiVersion: String,
       created: OffsetDateTime,
-      data: Data[A],
+      data: JsObject,
       livemode: Boolean,
       pendingWebhooks: Long,
       request: String,
       `type`: Type
   )
+
+  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Event]] = {
+    val finalUrl = endpoint.url + s"/v1/events/$id"
+    createRequestGET[Event](finalUrl, logger)
+  }
 }

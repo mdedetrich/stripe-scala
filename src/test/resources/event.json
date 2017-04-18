@@ -1,0 +1,47 @@
+{
+  "id": "evt_1A9re7J6y4jvjvHhEh0DfAAv",
+  "object": "event",
+  "api_version": "2016-07-06",
+  "created": 1492503911,
+  "data": {
+    "object": {
+      "id": "cus_AUrMDo0MNqoKI3",
+      "object": "customer",
+      "account_balance": 0,
+      "created": 1492503911,
+      "currency": null,
+      "default_source": null,
+      "delinquent": false,
+      "description": null,
+      "discount": null,
+      "email": null,
+      "livemode": false,
+      "metadata": {
+        "internalId": "ServerIT-1492503909291_154"
+      },
+      "shipping": null,
+      "sources": {
+        "object": "list",
+        "data": [
+
+        ],
+        "has_more": false,
+        "total_count": 0,
+        "url": "/v1/customers/cus_AUrMDo0MNqoKI3/sources"
+      },
+      "subscriptions": {
+        "object": "list",
+        "data": [
+
+        ],
+        "has_more": false,
+        "total_count": 0,
+        "url": "/v1/customers/cus_AUrMDo0MNqoKI3/subscriptions"
+      }
+    }
+  },
+  "livemode": false,
+  "pending_webhooks": 0,
+  "request": "req_AUrMTnwsBY2AJy",
+  "type": "customer.created"
+}
