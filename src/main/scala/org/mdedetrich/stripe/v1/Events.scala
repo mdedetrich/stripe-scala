@@ -85,7 +85,7 @@ object Events extends LazyLogging {
 
     case object CustomerDiscountUpdated extends Type("ustomer.discount.updated")
 
-    case object CustomerSourceCreated extends Type(" customer.source.created")
+    case object CustomerSourceCreated extends Type("customer.source.created")
 
     case object CustomerSourceDeleted extends Type("customer.source.deleted")
 
@@ -158,14 +158,17 @@ object Events extends LazyLogging {
     case object Ping extends Type("ping")
   }
 
-  case class Data[A](`object`: A, previousAttributes: Option[A])
-
-  private implicit val stripeObjectReads = new Reads[StripeObject] {
+  private implicit val stripeObjectReads = new Format[StripeObject] {
 
     private val error = JsError("error.expected.stripeObject")
 
-    private def parseStripeObject(name: String, json: JsLookupResult): JsResult[StripeObject] = name match {
-      case "customer" => json.validate[Customers.Customer]
+    private def parseStripeObject(name: String, json: JsObject): JsResult[StripeObject] = name match {
+      case "customer"        => json.validate[Customers.Customer]
+      case "card"            => json.validate[Cards.Card]
+      case "transfer"        => json.validate[Transfers.Transfer]
+      case "balance"         => json.validate[Balances.Balance]
+      case "charge"          => json.validate[Charges.Charge]
+      case "application_fee" => json.validate[ApplicationFees.ApplicationFee]
       case rest =>
         logger.error(s"Unknown Stripe object type '$rest'.")
         error
@@ -173,35 +176,56 @@ object Events extends LazyLogging {
 
     override def reads(json: JsValue): JsResult[StripeObject] = json match {
       case jsObject: JsObject =>
-        jsObject \ "object" \ "object" match {
-          case JsDefined(JsString(name)) => parseStripeObject(name, jsObject \ "object")
+        jsObject \ "object" match {
+          case JsDefined(JsString(name)) => parseStripeObject(name, jsObject)
           case _                         => error
         }
       case _ => error
     }
+
+    override def writes(o: StripeObject): JsValue = Json.obj()
   }
+
+  case class Data(`object`: StripeObject)
+
+  implicit val dataFormat = Json.format[Data]
 
   implicit val eventReads: Reads[Event] = (
     (__ \ "id").read[String] ~
       (__ \ "api_version").read[String] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "data").read[StripeObject] ~
+      (__ \ "data").read[Data] ~
       (__ \ "livemode").read[Boolean] ~
       (__ \ "pending_webhooks").read[Long] ~
       (__ \ "request").read[String] ~
       (__ \ "type").read[Type]
   ).tupled.map((Event.apply _).tupled)
 
+  implicit val eventWrites = Json.writes[Event]
+
   case class Event(
       id: String,
       apiVersion: String,
       created: OffsetDateTime,
-      data: StripeObject,
+      data: Data,
       livemode: Boolean,
       pendingWebhooks: Long,
       request: String,
       `type`: Type
   )
+
+  case class EventList(override val url: String,
+                       override val hasMore: Boolean,
+                       override val data: List[Event],
+                       override val totalCount: Option[Long])
+      extends Collections.List[Event](url, hasMore, data, totalCount)
+
+  object EventList extends Collections.ListJsonMappers[Event] {
+    implicit val couponListReads: Reads[EventList] =
+      listReads.tupled.map((EventList.apply _).tupled)
+
+    implicit val couponListWrites: Writes[EventList] = listWrites
+  }
 
   def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Event]] = {
     val finalUrl = endpoint.url + s"/v1/events/$id"

@@ -12,7 +12,7 @@
   "description": null,
   "destination": "acct_194UQXBbmuZ562SF",
   "dispute": null,
-  "failure_code": null,
+  "failure_code": "card_declined",
   "failure_message": null,
   "fraud_details": {},
   "invoice": null,

@@ -17,9 +17,18 @@ class EventsSpec extends WordSpec with Matchers {
       event.id should be("evt_1A9re7J6y4jvjvHhEh0DfAAv")
       event.`type` should be(Events.Type.CustomerCreated)
 
-      event.data shouldBe a[Customer]
-      val customer = event.data.asInstanceOf[Customer]
+      event.data.`object` shouldBe a[Customer]
+      val customer = event.data.`object`.asInstanceOf[Customer]
       customer.id should be("cus_AUrMDo0MNqoKI3")
+    }
+
+    "parse event list" in {
+      val in   = this.getClass.getResourceAsStream("/event-list.json")
+      val json = Json.parse(in)
+
+      val JsSuccess(eventList, _) = json.validate[EventList]
+
+      eventList.data.size should be(100)
     }
   }
 
