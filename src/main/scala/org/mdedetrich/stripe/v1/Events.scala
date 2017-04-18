@@ -160,24 +160,43 @@ object Events extends LazyLogging {
 
   case class Data[A](`object`: A, previousAttributes: Option[A])
 
+  private implicit val stripeObjectReads = new Reads[StripeObject] {
+
+    private val error = JsError("error.expected.stripeObject")
+
+    private def parseStripeObject(name: String, json: JsLookupResult): JsResult[StripeObject] = name match {
+      case "customer" => json.validate[Customers.Customer]
+      case rest =>
+        logger.error(s"Unknown Stripe object type '$rest'.")
+        error
+    }
+
+    override def reads(json: JsValue): JsResult[StripeObject] = json match {
+      case jsObject: JsObject =>
+        jsObject \ "object" \ "object" match {
+          case JsDefined(JsString(name)) => parseStripeObject(name, jsObject \ "object")
+          case _                         => error
+        }
+      case _ => error
+    }
+  }
+
   implicit val eventReads: Reads[Event] = (
     (__ \ "id").read[String] ~
       (__ \ "api_version").read[String] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "data").read[JsObject] ~
+      (__ \ "data").read[StripeObject] ~
       (__ \ "livemode").read[Boolean] ~
       (__ \ "pending_webhooks").read[Long] ~
       (__ \ "request").read[String] ~
       (__ \ "type").read[Type]
   ).tupled.map((Event.apply _).tupled)
 
-  implicit val eventWrites = Json.writes[Event]
-
   case class Event(
       id: String,
       apiVersion: String,
       created: OffsetDateTime,
-      data: JsObject,
+      data: StripeObject,
       livemode: Boolean,
       pendingWebhooks: Long,
       request: String,
