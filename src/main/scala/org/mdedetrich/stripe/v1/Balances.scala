@@ -167,12 +167,14 @@ object Balances extends LazyLogging {
         "type"              -> balanceTransaction.`type`
     ))
 
-  case class SourceTypes(card: BigDecimal, bankAccount: BigDecimal, bitcoinReceiver: BigDecimal)
+  case class SourceTypes(card: Option[BigDecimal],
+                         bankAccount: Option[BigDecimal],
+                         bitcoinReceiver: Option[BigDecimal])
 
   implicit val sourceTypesReads: Reads[SourceTypes] = (
-    (__ \ "card").read[BigDecimal] ~
-      (__ \ "bank_account").read[BigDecimal] ~
-      (__ \ "bitcoin_receiver").read[BigDecimal]
+    (__ \ "card").readNullable[BigDecimal] ~
+      (__ \ "bank_account").readNullable[BigDecimal] ~
+      (__ \ "bitcoin_receiver").readNullable[BigDecimal]
   ).tupled.map((SourceTypes.apply _).tupled)
 
   implicit val sourceTypesWrites: Writes[SourceTypes] = Writes(
@@ -207,7 +209,7 @@ object Balances extends LazyLogging {
     * @param pending   Funds that are not available in the balance yet, due to the 7-day rolling pay cycle.
     *                  The pending balance for each currency and payment type can be found in the sourceTypes property
     */
-  case class Balance(available: List[BalanceFund], livemode: Boolean, pending: List[BalanceFund])
+  case class Balance(available: List[BalanceFund], livemode: Boolean, pending: List[BalanceFund]) extends StripeObject
 
   implicit val balanceReads: Reads[Balance] = (
     (__ \ "available").read[List[BalanceFund]] ~

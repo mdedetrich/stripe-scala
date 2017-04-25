@@ -7,7 +7,6 @@ import enumeratum._
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.PostParams.flatten
 import org.mdedetrich.stripe.v1.Charges.FraudDetails.{StripeReport, UserReport}
-import org.mdedetrich.stripe.v1.Charges.Source.Card
 import org.mdedetrich.stripe.v1.Disputes._
 import org.mdedetrich.stripe.v1.Errors._
 import org.mdedetrich.stripe.v1.Refunds.RefundList
@@ -263,7 +262,7 @@ object Charges extends LazyLogging {
                     amount: BigDecimal,
                     amountRefunded: BigDecimal,
                     applicationFee: Option[String],
-                    balanceTransaction: String,
+                    balanceTransaction: Option[String],
                     captured: Boolean,
                     created: OffsetDateTime,
                     currency: Currency,
@@ -271,7 +270,7 @@ object Charges extends LazyLogging {
                     description: Option[String],
                     destination: Option[String],
                     dispute: Option[Dispute],
-                    failureCode: Option[Type],
+                    failureCode: Option[Code],
                     failureMessage: Option[String],
                     fraudDetails: Option[FraudDetails],
                     invoice: Option[String],
@@ -288,13 +287,14 @@ object Charges extends LazyLogging {
                     sourceTransfer: Option[String],
                     statementDescriptor: Option[String],
                     status: Status)
+      extends StripeObject
 
   private val chargeReadsOne = (
     (__ \ "id").read[String] ~
       (__ \ "amount").read[BigDecimal] ~
       (__ \ "amount_refunded").read[BigDecimal] ~
       (__ \ "application_fee").readNullable[String] ~
-      (__ \ "balance_transaction").read[String] ~
+      (__ \ "balance_transaction").readNullable[String] ~
       (__ \ "captured").read[Boolean] ~
       (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
       (__ \ "currency").read[Currency] ~
@@ -302,7 +302,7 @@ object Charges extends LazyLogging {
       (__ \ "description").readNullable[String] ~
       (__ \ "destination").readNullable[String] ~
       (__ \ "dispute").readNullable[Dispute] ~
-      (__ \ "failure_code").readNullable[Type] ~
+      (__ \ "failure_code").readNullable[Code] ~
       (__ \ "failure_message").readNullable[String] ~
       (__ \ "fraud_details").readNullableOrEmptyJsObject[FraudDetails] ~
       (__ \ "invoice").readNullable[String] ~
