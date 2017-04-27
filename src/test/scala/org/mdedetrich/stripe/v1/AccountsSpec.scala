@@ -41,6 +41,8 @@ class AccountsSpec extends WordSpec with Matchers {
       ba.last4 should be("3000")
 
       account.transferSchedule.interval.get should be(TransferInverval.Daily)
+
+      account.verification.fieldsNeeded should be(Seq("legal_entity.verification.document"))
     }
   }
 

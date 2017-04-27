@@ -19,6 +19,11 @@ import play.api.libs.json._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
+/**
+  * Reprensents a Stripe Connect Managed Account
+  *
+  * @see https://stripe.com/docs/api#account
+  */
 object Accounts extends LazyLogging {
 
   // TOS acceptance

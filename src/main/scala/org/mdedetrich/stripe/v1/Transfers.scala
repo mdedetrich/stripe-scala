@@ -155,6 +155,7 @@ object Transfers extends LazyLogging {
                       statementDescriptor: Option[String],
                       status: Status,
                       `type`: Type)
+      extends StripeObject
 
   // This is due to http://stackoverflow.com/questions/28167971/scala-case-having-22-fields-but-having-issue-with-play-json-in-scala-2-11-5
 
