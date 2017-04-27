@@ -4,11 +4,11 @@ import java.time.temporal.ChronoField
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 
 import akka.http.scaladsl.HttpExt
-import akka.http.scaladsl.model.Multipart.FormData
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.Materializer
+import akka.stream.scaladsl.Source
 import com.typesafe.scalalogging.Logger
 import de.knutwalker.akka.http.JsonSupport._
 import jawn.support.play.Parser._
@@ -16,6 +16,7 @@ import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.v1.Errors.{Error, StripeServerError, UnhandledServerError}
 import play.api.libs.json._
 
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
 
@@ -134,7 +135,10 @@ package object v1 {
                                                                              reads: Reads[M],
                                                                              apiKey: ApiKey): Future[Try[M]] = {
 
-    val formData = FormData(postFormParameters.mapValues(HttpEntity.apply)).toEntity()
+    val formData = Multipart.FormData(postFormParameters.map {
+      case (k, v) =>
+        Multipart.FormData.BodyPart(k, HttpEntity(v))
+    }.toSeq: _*)
 
     val req = {
 
@@ -154,7 +158,7 @@ package object v1 {
 
       }
 
-      HttpRequest(uri = finalUrl, entity = formData, method = HttpMethods.POST, headers = headers)
+      HttpRequest(uri = finalUrl, entity = formData.toEntity(), method = HttpMethods.POST, headers = headers)
     }
 
     for {
