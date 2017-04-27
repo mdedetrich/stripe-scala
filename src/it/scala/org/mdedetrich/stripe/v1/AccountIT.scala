@@ -41,7 +41,7 @@ class AccountIT extends IntegrationTest with ParallelTestExecution {
   }
 }
 
-object AccountIT extends DefaultExecutionContext {
+object AccountIT extends DefaultDependencies {
 
   val meta = Map("foo" -> "bar")
 
