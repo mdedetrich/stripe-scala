@@ -1,3 +1,5 @@
+import ReleaseTransformations._
+
 name := "stripe-scala"
 
 val currentScalaVersion = "2.11.8"
@@ -7,8 +9,6 @@ scalaVersion := currentScalaVersion
 crossScalaVersions := Seq(currentScalaVersion)
 
 organization := "org.mdedetrich"
-
-version := "0.1.2"
 
 scalacOptions ++= Seq(
   "-target:jvm-1.8",
@@ -58,5 +58,20 @@ developers := List(
 licenses += ("BSD 3 Clause", url("https://opensource.org/licenses/BSD-3-Clause"))
 
 pomIncludeRepository := (_ => false)
+
+releaseProcess := Seq[ReleaseStep](
+  checkSnapshotDependencies,
+  inquireVersions,
+  runClean,
+  runTest,
+  setReleaseVersion,
+  commitReleaseVersion,
+  tagRelease,
+  ReleaseStep(action = Command.process("publishSigned", _)),
+  setNextVersion,
+  commitNextVersion,
+  ReleaseStep(action = Command.process("sonatypeReleaseAll", _)),
+  pushChanges
+)
 
 parallelExecution in IntegrationTest := false
