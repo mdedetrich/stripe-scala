@@ -158,7 +158,14 @@ package object v1 {
 
       }
 
-      HttpRequest(uri = finalUrl, entity = formData.toEntity(), method = HttpMethods.POST, headers = headers)
+      HttpRequest(
+        uri = finalUrl,
+        entity = formData
+          .toEntity()
+          .withContentType(ContentType(MediaTypes.`application/x-www-form-urlencoded`, HttpCharsets.`UTF-8`)),
+        method = HttpMethods.POST,
+        headers = headers
+      )
     }
 
     for {
