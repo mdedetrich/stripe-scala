@@ -80,13 +80,11 @@ object FileUploads extends LazyLogging {
 
     val formData = Multipart
       .FormData(
-        Source.single(
-          Multipart.FormData.BodyPart(
-            "file",
-            HttpEntity(MediaTypes.`application/octet-stream`, data),
-            Map("purpose" -> purpose.entryName)
-          )
-        )
+        Multipart.FormData.BodyPart(
+          "file",
+          HttpEntity(MediaTypes.`application/octet-stream`, data)
+        ),
+        Multipart.FormData.BodyPart("purpose", purpose.entryName)
       )
       .toEntity()
 
