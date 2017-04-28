@@ -5,6 +5,7 @@ import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials}
 import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import com.typesafe.scalalogging.LazyLogging
@@ -89,7 +90,10 @@ object FileUploads extends LazyLogging {
       )
       .toEntity()
 
-    val req = HttpRequest(uri = finalUrl, entity = formData, method = HttpMethods.POST)
+    val req = HttpRequest(uri = finalUrl,
+                          entity = formData,
+                          method = HttpMethods.POST,
+                          headers = List(Authorization(BasicHttpCredentials(apiKey.apiKey, ""))))
 
     for {
       response <- client.singleRequest(req)
