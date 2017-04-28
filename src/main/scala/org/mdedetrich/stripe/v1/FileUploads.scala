@@ -76,7 +76,8 @@ object FileUploads extends LazyLogging {
         .FormData(
           Multipart.FormData.BodyPart(
             "file",
-            fileStream
+            fileStream,
+            Map("filename" -> fileName)
           ),
           Multipart.FormData.BodyPart("purpose", purpose.entryName)
         )
