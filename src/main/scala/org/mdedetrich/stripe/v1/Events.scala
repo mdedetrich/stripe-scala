@@ -230,8 +230,8 @@ object Events extends LazyLogging {
     implicit val couponListWrites: Writes[EventList] = listWrites
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Event]] = {
+  def get(id: String, stripeAccount: Option[String] = None)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Event]] = {
     val finalUrl = endpoint.url + s"/v1/events/$id"
-    createRequestGET[Event](finalUrl, logger)
+    createRequestGET[Event](finalUrl, logger, stripeAccount)
   }
 }
