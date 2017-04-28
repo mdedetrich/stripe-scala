@@ -7,13 +7,14 @@ import akka.http.scaladsl.HttpExt
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials}
 import akka.stream.Materializer
-import akka.stream.scaladsl.Source
+import akka.stream.scaladsl.StreamConverters
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum.{Enum, EnumEntry, EnumFormats, PlayJsonEnum}
 import org.mdedetrich.stripe.{ApiKey, FileUploadEndpoint, InvalidJsonModelException}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
+import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
@@ -63,37 +64,34 @@ object FileUploads extends LazyLogging {
       materializer: Materializer,
       apiKey: ApiKey,
       endpoint: FileUploadEndpoint,
-      ec: ExecutionContext): Future[Try[FileUpload]] = {
-
-    val data = Stream.continually(inputStream.read).takeWhile(_ != -1).map(_.toByte).toArray
-    upload(purpose, fileName, data)
-  }
-
-  def upload(purpose: Purpose, fileName: String, data: Array[Byte])(
-      implicit client: HttpExt,
-      materializer: Materializer,
-      apiKey: ApiKey,
-      endpoint: FileUploadEndpoint,
       executionContext: ExecutionContext): Future[Try[FileUpload]] = {
 
     val finalUrl = endpoint.url + s"/v1/files"
 
-    val formData = Multipart
-      .FormData(
-        Multipart.FormData.BodyPart(
-          "file",
-          HttpEntity(MediaTypes.`application/octet-stream`, data)
-        ),
-        Multipart.FormData.BodyPart("purpose", purpose.entryName)
-      )
-      .toEntity()
+    val eventualFormData = for {
+      fileStream <- HttpEntity(MediaTypes.`application/octet-stream`,
+                               StreamConverters.fromInputStream(() => inputStream)).toStrict(1 minute)
+    } yield
+      Multipart
+        .FormData(
+          Multipart.FormData.BodyPart(
+            "file",
+            fileStream
+          ),
+          Multipart.FormData.BodyPart("purpose", purpose.entryName)
+        )
+        .toEntity()
 
-    val req = HttpRequest(uri = finalUrl,
-                          entity = formData,
-                          method = HttpMethods.POST,
-                          headers = List(Authorization(BasicHttpCredentials(apiKey.apiKey, ""))))
+    val eventualReq = for {
+      formData <- eventualFormData
+    } yield
+      HttpRequest(uri = finalUrl,
+                  entity = formData,
+                  method = HttpMethods.POST,
+                  headers = List(Authorization(BasicHttpCredentials(apiKey.apiKey, ""))))
 
     for {
+      req      <- eventualReq
       response <- client.singleRequest(req)
       parsed   <- parseStripeServerError(response, finalUrl, None, None, logger)
       result = parsed match {
