@@ -13,9 +13,11 @@ class ChargesSpec extends WordSpec with Matchers {
       val json = Json.parse(in)
 
       val JsSuccess(charge, _) = json.validate[Charge]
+
       charge.id should be("ch_194UQpJ4y4jIjvHhJji6ElAp")
-      charge.source.expYear should be(2018)
       charge.applicationFee should be(Some("fee_9OKMRHcB2CcVPD"))
+      val source = charge.source.asInstanceOf[Charges.Source.MaskedCard]
+      source.expYear should be(2018)
     }
   }
 
@@ -24,7 +26,7 @@ class ChargesSpec extends WordSpec with Matchers {
     "put customer charge params" in {
       val customerId = "cus_9MwGfABXdXQKLD"
 
-      val customerSource = Charges.Source.Customer(customerId)
+      val customerSource = Charges.SourceInput.Customer(customerId)
 
       // must be here for the next line to not throw an NPE
       Currency.lowerCaseNamesToValuesMap

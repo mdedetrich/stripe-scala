@@ -99,6 +99,8 @@ object Events extends LazyLogging {
 
     case object CustomerSubscriptionUpdated extends Type("customer.subscription.updated")
 
+    case object PaymentCreated extends Type("payment.created")
+
     case object InvoiceCreated extends Type("invoice.created")
 
     case object InvoicePaymentFailed extends Type("invoice.payment_failed")
@@ -169,6 +171,7 @@ object Events extends LazyLogging {
       case "balance"         => json.validate[Balances.Balance]
       case "charge"          => json.validate[Charges.Charge]
       case "application_fee" => json.validate[ApplicationFees.ApplicationFee]
+      case "account"         => json.validate[Accounts.Account]
       case rest =>
         logger.error(s"Unknown Stripe object type '$rest'.")
         error
@@ -197,7 +200,7 @@ object Events extends LazyLogging {
       (__ \ "data").read[Data] ~
       (__ \ "livemode").read[Boolean] ~
       (__ \ "pending_webhooks").read[Long] ~
-      (__ \ "request").read[String] ~
+      (__ \ "request").readNullable[String] ~
       (__ \ "type").read[Type]
   ).tupled.map((Event.apply _).tupled)
 
@@ -210,7 +213,7 @@ object Events extends LazyLogging {
       data: Data,
       livemode: Boolean,
       pendingWebhooks: Long,
-      request: String,
+      request: Option[String],
       `type`: Type
   )
 

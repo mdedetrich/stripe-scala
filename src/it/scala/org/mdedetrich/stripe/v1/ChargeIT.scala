@@ -4,7 +4,7 @@ import java.time.LocalDate
 
 import org.mdedetrich.stripe.Config._
 import org.mdedetrich.stripe.v1.Charges.ChargeInput
-import org.mdedetrich.stripe.v1.Charges.Source.Customer
+import org.mdedetrich.stripe.v1.Charges.SourceInput.Customer
 
 class ChargeIT extends IntegrationTest {
 

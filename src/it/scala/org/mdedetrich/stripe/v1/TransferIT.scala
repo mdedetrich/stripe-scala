@@ -2,7 +2,7 @@ package org.mdedetrich.stripe.v1
 
 import org.mdedetrich.stripe.Config._
 import org.mdedetrich.stripe.v1.BankAccountsPaymentSource.BankAccount
-import org.mdedetrich.stripe.v1.Charges.Source.Customer
+import org.mdedetrich.stripe.v1.Charges.SourceInput.Customer
 import org.mdedetrich.stripe.v1.Transfers.TransferInput
 import org.scalatest.ParallelTestExecution
 

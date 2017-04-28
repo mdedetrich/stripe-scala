@@ -1,0 +1,66 @@
+{
+  "id": "evt_1AAfTVDUqe4uvjwo3A2vUsHf",
+  "object": "event",
+  "api_version": "2016-07-06",
+  "created": 1492695453,
+  "data": {
+    "object": {
+      "id": "py_1AAfTUDUqe4uvjwogjsSOAS0",
+      "object": "charge",
+      "amount": 21700,
+      "amount_refunded": 0,
+      "application": "ca_9F0n1kpkHxtagXKWjf4LixFEGhtMrt07",
+      "application_fee": "fee_1AAfTUDUqe4uvjwoxqo4Upnd",
+      "balance_transaction": "txn_1AAfTUDUqe4uvjwopWFgSZXb",
+      "captured": true,
+      "created": 1492695452,
+      "currency": "eur",
+      "customer": null,
+      "description": null,
+      "destination": null,
+      "dispute": null,
+      "failure_code": null,
+      "failure_message": null,
+      "fraud_details": {
+
+      },
+      "invoice": null,
+      "livemode": false,
+      "metadata": {
+
+      },
+      "on_behalf_of": null,
+      "order": null,
+      "outcome": null,
+      "paid": true,
+      "receipt_email": null,
+      "receipt_number": null,
+      "refunded": false,
+      "refunds": {
+        "object": "list",
+        "data": [
+
+        ],
+        "has_more": false,
+        "total_count": 0,
+        "url": "/v1/charges/py_1AAfTUDUqe4uvjwogjsSOAS0/refunds"
+      },
+      "review": null,
+      "shipping": null,
+      "source": {
+        "id": "acct_18wWTsJ6y4jvjvHh",
+        "object": "account",
+        "application_name": null
+      },
+      "source_transfer": "tr_1AAfTUJ6y4jvjvHhKqYEq6yK",
+      "statement_descriptor": null,
+      "status": "succeeded",
+      "transfer_group": null
+    }
+  },
+  "livemode": false,
+  "pending_webhooks": 1,
+  "request": "req_AVgr4Yq2EbdUWo",
+  "type": "payment.created",
+  "user_id": "acct_19sTrjDUqe4uvjwo"
+}
