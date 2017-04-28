@@ -12,7 +12,8 @@ case classes) and lets you create requests from typed case classes (rather than 
 ## Libraries Used
 - [play-json](https://www.playframework.com/documentation/2.4.x/ScalaJson) for JSON (play-json provides compile time macros for
 reading/writing JSON from/to scala case classes). It also provides a very powerful API for validating/querying JSON
-- [dispatch](https://github.com/dispatch/reboot) for making HTTP requests
+- [akka-http](http://doc.akka.io/docs/akka-http/current/scala.html) for making HTTP requests
+- [akka-stream-json](https://github.com/knutwalker/akka-stream-json) for streaming JSON
 - [ficus](https://github.com/iheartradio/ficus) for providing config (via [typesafe-config](https://github.com/typesafehub/config))
 - [enumeratum](https://github.com/lloydmeta/enumeratum) for providing typesafe enumerations on stripe enum models as well
 - [scala-uri](https://github.com/NET-A-PORTER/scala-uri) for providing a URI DSL to generate query parameters for list operations
