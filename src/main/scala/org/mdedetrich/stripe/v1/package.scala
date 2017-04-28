@@ -135,11 +135,6 @@ package object v1 {
                                                                              reads: Reads[M],
                                                                              apiKey: ApiKey): Future[Try[M]] = {
 
-    val formData = Multipart.FormData(postFormParameters.map {
-      case (k, v) =>
-        Multipart.FormData.BodyPart(k, HttpEntity(v))
-    }.toSeq: _*)
-
     val req = {
 
       val authorization = Authorization(BasicHttpCredentials(apiKey.apiKey, ""))
@@ -160,9 +155,7 @@ package object v1 {
 
       HttpRequest(
         uri = finalUrl,
-        entity = formData
-          .toEntity()
-          .withContentType(ContentType(MediaTypes.`application/x-www-form-urlencoded`, HttpCharsets.`UTF-8`)),
+        entity = FormData(postFormParameters).toEntity,
         method = HttpMethods.POST,
         headers = headers
       )
