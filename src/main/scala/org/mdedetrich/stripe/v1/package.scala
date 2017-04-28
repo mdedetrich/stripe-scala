@@ -8,7 +8,6 @@ import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.Materializer
-import akka.stream.scaladsl.Source
 import com.typesafe.scalalogging.Logger
 import de.knutwalker.akka.http.JsonSupport._
 import jawn.support.play.Parser._
@@ -16,7 +15,6 @@ import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.v1.Errors.{Error, StripeServerError, UnhandledServerError}
 import play.api.libs.json._
 
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
 

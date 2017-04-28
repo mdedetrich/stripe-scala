@@ -14,7 +14,6 @@ import org.mdedetrich.stripe.{ApiKey, FileUploadEndpoint, InvalidJsonModelExcept
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
@@ -63,14 +62,16 @@ object FileUploads extends LazyLogging {
       implicit client: HttpExt,
       materializer: Materializer,
       apiKey: ApiKey,
+      fileUploadChunkTimeout: FileUploadChunkTimeout,
       endpoint: FileUploadEndpoint,
       executionContext: ExecutionContext): Future[Try[FileUpload]] = {
 
     val finalUrl = endpoint.url + s"/v1/files"
 
     val eventualFormData = for {
-      fileStream <- HttpEntity(MediaTypes.`application/octet-stream`,
-                               StreamConverters.fromInputStream(() => inputStream)).toStrict(1 minute)
+      fileStream <- HttpEntity(
+        MediaTypes.`application/octet-stream`,
+        StreamConverters.fromInputStream(() => inputStream)).toStrict(fileUploadChunkTimeout.duration)
     } yield
       Multipart
         .FormData(
