@@ -9,7 +9,6 @@
   </appender>
 
 
-  <logger name="com.ning.http.client" level="error"/>
   <logger name="org.mdedetrich.stripe" level="error"/>
 
   <root level="info">

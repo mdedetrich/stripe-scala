@@ -2,6 +2,8 @@ package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
 
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.mdedetrich.playjson.Utils._
@@ -17,7 +19,7 @@ import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object Charges extends LazyLogging {
@@ -536,7 +538,10 @@ object Charges extends LazyLogging {
 
   def create(chargeInput: ChargeInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Charge]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Charge]] = {
 
     val postFormParameters = PostParams.toPostParams(chargeInput)
 

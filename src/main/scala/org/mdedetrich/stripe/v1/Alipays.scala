@@ -1,9 +1,10 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
+import org.mdedetrich.playjson.Utils._
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import org.mdedetrich.playjson.Utils._
 
 object Alipays {
 

@@ -2,6 +2,8 @@ package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
 
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.PostParams.{flatten, toPostParams}
@@ -9,7 +11,7 @@ import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 /**
@@ -56,7 +58,10 @@ object ApplicationFeeRefunds extends LazyLogging {
 
   def create(refundInput: ApplicationFeeRefundInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[ApplicationFeeRefund]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[ApplicationFeeRefund]] = {
 
     val postFormParameters = toPostParams(refundInput)
     logger.debug(s"Generated POST form parameters is $postFormParameters")
@@ -66,7 +71,11 @@ object ApplicationFeeRefunds extends LazyLogging {
     createRequestPOST[ApplicationFeeRefund](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[ApplicationFeeRefund]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[ApplicationFeeRefund]] = {
     val finalUrl = s"${endpoint.url}/v1/application_fees/$id/refunds"
 
     createRequestGET[ApplicationFeeRefund](finalUrl, logger)

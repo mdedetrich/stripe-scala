@@ -1,6 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import com.ning.http.client.Response
+import akka.http.scaladsl.model.HttpResponse
 import enumeratum._
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -173,15 +173,15 @@ object Errors {
   /**
     * This is thrown when you receive either a 500, 502, 503 or 504
     *
-    * @param response
+    * @param httpResponse
     */
-  case class StripeServerError(response: Response) extends Exception {
+  case class StripeServerError(httpResponse: HttpResponse) extends Exception {
     override def getMessage =
-      s"Stripe server error, status code is ${response.getStatusCode}"
+      s"Stripe server error, status code is ${httpResponse.status.intValue()}"
   }
 
-  case class UnhandledServerError(response: Response) extends Exception {
+  case class UnhandledServerError(httpResponse: HttpResponse) extends Exception {
     override def getMessage =
-      s"Unhandled server error, status code is ${response.getStatusCode}"
+      s"Unhandled server error, status code is ${httpResponse.status.intValue()}"
   }
 }

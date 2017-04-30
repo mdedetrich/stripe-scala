@@ -1,6 +1,9 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.mdedetrich.playjson.Utils._
@@ -14,7 +17,7 @@ import play.api.data.validation.ValidationError
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 /**
@@ -675,7 +678,10 @@ object Cards extends LazyLogging {
 
   def create(customerId: String, cardInput: CardInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Card]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Card]] = {
     val postFormParameters: Map[String, String] = {
       Map(
         "default_for_currency" -> cardInput.defaultForCurrency.map(_.toString)
@@ -736,7 +742,11 @@ object Cards extends LazyLogging {
     createRequestPOST[Card](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(customerId: String, cardId: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Card]] = {
+  def get(customerId: String, cardId: String)(implicit apiKey: ApiKey,
+                                              endpoint: Endpoint,
+                                              client: HttpExt,
+                                              materializer: Materializer,
+                                              executionContext: ExecutionContext): Future[Try[Card]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$cardId"
 
     createRequestGET[Card](finalUrl, logger)
@@ -744,7 +754,10 @@ object Cards extends LazyLogging {
 
   def delete(customerId: String, cardId: String)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
 
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$cardId"
 
@@ -791,7 +804,10 @@ object Cards extends LazyLogging {
 
   def list(customerId: String, cardListInput: CardListInput, includeTotalCount: Boolean)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[CardList]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[CardList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =
@@ -1119,7 +1135,10 @@ object BitcoinReceivers extends LazyLogging {
 
   def create(bitcoinReceiverInput: BitcoinReceiverInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[BitcoinReceiver]] = {
 
     val postFormParameters: Map[String, String] = {
       Map(
@@ -1140,7 +1159,11 @@ object BitcoinReceivers extends LazyLogging {
     createRequestPOST[BitcoinReceiver](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[BitcoinReceiver]] = {
     val finalUrl = endpoint.url + s"/v1/bitcoin/receivers/$id"
 
     createRequestGET[BitcoinReceiver](finalUrl, logger)
@@ -1199,7 +1222,10 @@ object BitcoinReceivers extends LazyLogging {
 
   def list(bitcoinReceiverListInput: BitcoinReceiverListInput, includeTotalCount: Boolean)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[BitcoinReceiverList]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[BitcoinReceiverList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =

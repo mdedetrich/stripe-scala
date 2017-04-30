@@ -2,13 +2,15 @@ package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
 
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.mdedetrich.stripe.{ApiKey, Endpoint}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object Events extends LazyLogging {
@@ -227,7 +229,11 @@ object Events extends LazyLogging {
     implicit val couponListWrites: Writes[EventList] = listWrites
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Event]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[Event]] = {
     val finalUrl = endpoint.url + s"/v1/events/$id"
     createRequestGET[Event](finalUrl, logger)
   }

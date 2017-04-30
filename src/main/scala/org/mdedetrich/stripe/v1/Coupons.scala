@@ -1,6 +1,9 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
 import org.mdedetrich.playjson.Utils._
@@ -9,7 +12,7 @@ import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object Coupons extends LazyLogging {
@@ -213,7 +216,10 @@ object Coupons extends LazyLogging {
 
   def create(couponInput: CouponInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Coupon]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Coupon]] = {
     val postFormParameters: Map[String, String] = {
       Map(
         "id"                 -> couponInput.id,
@@ -236,7 +242,11 @@ object Coupons extends LazyLogging {
     createRequestPOST[Coupon](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Coupon]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[Coupon]] = {
     val finalUrl = endpoint.url + s"/v1/coupons/$id"
 
     createRequestGET[Coupon](finalUrl, logger)
@@ -244,7 +254,10 @@ object Coupons extends LazyLogging {
 
   def delete(id: String)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/coupons/$id"
 
     createRequestDELETE(finalUrl, idempotencyKey, logger)
@@ -297,8 +310,12 @@ object Coupons extends LazyLogging {
     implicit val couponListWrites: Writes[CouponList] = listWrites
   }
 
-  def list(couponListInput: CouponListInput,
-           includeTotalCount: Boolean)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[CouponList]] = {
+  def list(couponListInput: CouponListInput, includeTotalCount: Boolean)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[CouponList]] = {
 
     val finalUrl = {
       import com.netaporter.uri.dsl._

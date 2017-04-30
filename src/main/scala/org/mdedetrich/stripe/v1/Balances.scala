@@ -1,14 +1,17 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import enumeratum._
-import org.mdedetrich.stripe.{ApiKey, Endpoint}
 import org.mdedetrich.stripe.v1.Transfers._
-import play.api.libs.json._
+import org.mdedetrich.stripe.{ApiKey, Endpoint}
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object Balances extends LazyLogging {
@@ -231,7 +234,11 @@ object Balances extends LazyLogging {
     * @param endpoint
     * @return
     */
-  def get(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Balance]] = {
+  def get(implicit apiKey: ApiKey,
+          endpoint: Endpoint,
+          client: HttpExt,
+          materializer: Materializer,
+          executionContext: ExecutionContext): Future[Try[Balance]] = {
     val finalUrl = endpoint.url + s"/v1/balance"
 
     createRequestGET[Balance](finalUrl, logger)
@@ -244,7 +251,11 @@ object Balances extends LazyLogging {
     * @param endpoint
     * @return
     */
-  def getBalanceTransaction(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[BalanceTransaction]] = {
+  def getBalanceTransaction(id: String)(implicit apiKey: ApiKey,
+                                        endpoint: Endpoint,
+                                        client: HttpExt,
+                                        materializer: Materializer,
+                                        executionContext: ExecutionContext): Future[Try[BalanceTransaction]] = {
     val finalUrl = endpoint.url + s"/v1/balance/history/$id"
 
     createRequestGET[BalanceTransaction](finalUrl, logger)
@@ -321,7 +332,10 @@ object Balances extends LazyLogging {
     */
   def listBalanceHistory(balanceHistoryListInput: BalanceHistoryListInput, includeTotalCount: Boolean)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[BalanceTransactionList]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[BalanceTransactionList]] = {
     val finalUrl = {
       import com.netaporter.uri.dsl._
       val totalCountUrl =
