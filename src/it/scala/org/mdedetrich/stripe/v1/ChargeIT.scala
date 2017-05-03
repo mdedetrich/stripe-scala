@@ -4,6 +4,7 @@ import java.time.LocalDate
 
 import org.mdedetrich.stripe.Config._
 import org.mdedetrich.stripe.v1.Charges.ChargeInput
+import org.mdedetrich.stripe.v1.Charges.Source.MaskedCard
 import org.mdedetrich.stripe.v1.Charges.SourceInput.Customer
 
 class ChargeIT extends IntegrationTest {
@@ -22,8 +23,9 @@ class ChargeIT extends IntegrationTest {
 
       chargeF.map { charge =>
         charge shouldBe a[Charges.Charge]
-        charge.source.expYear should be(LocalDate.now.plusYears(2).getYear)
-        charge.source.last4 should be(CustomerIT.defaultTestCard.takeRight(4))
+        val card = charge.source.asInstanceOf[MaskedCard]
+        card.expYear should be(LocalDate.now.plusYears(2).getYear)
+        card.last4 should be(CustomerIT.defaultTestCard.takeRight(4))
       }
 
     }
