@@ -325,7 +325,7 @@ package object v1 {
           val jsResult: JsResult[Error] = httpCode match {
             case 400 =>
               path.read[Error.BadRequest].reads(jsValue)
-            case 401 =>
+            case 401 | 403 =>
               path.read[Error.Unauthorized].reads(jsValue)
             case 402 =>
               path.read[Error.RequestFailed].reads(jsValue)
