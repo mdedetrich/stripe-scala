@@ -80,16 +80,22 @@ package object v1 {
     * @tparam M The model which this request should return
     * @return
     */
-  private[v1] def createRequestGET[M](finalUrl: String, logger: Logger, stripeAccount: Option[String] = None)(implicit client: HttpExt,
-                                                                        materializer: Materializer,
-                                                                        executionContext: ExecutionContext,
-                                                                        reads: Reads[M],
-                                                                        apiKey: ApiKey): Future[Try[M]] = {
-    val withoutAccountHeader = url(finalUrl).GET.as(apiKey.apiKey, "")
+  private[v1] def createRequestGET[M](finalUrl: String, logger: Logger, stripeAccount: Option[String] = None)(
+      implicit client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext,
+      reads: Reads[M],
+      apiKey: ApiKey): Future[Try[M]] = {
+    val baseHeaders = stripeAccount
+      .map { header =>
+        List(RawHeader(stripeAccountHeader, header))
+      }
+      .getOrElse(List.empty)
+
     val req =
       HttpRequest(uri = finalUrl,
                   method = HttpMethods.GET,
-                  headers = List(Authorization(BasicHttpCredentials(apiKey.apiKey, ""))))
+                  headers = List(Authorization(BasicHttpCredentials(apiKey.apiKey, ""))) ++ baseHeaders)
 
     for {
       response <- client.singleRequest(req)
