@@ -1,0 +1,132 @@
+{
+  "id": "evt_1AAfM2Czf2OYLbV9cxxnX2lG",
+  "object": "event",
+  "api_version": "2016-07-06",
+  "created": 1492694990,
+  "data": {
+    "object": {
+      "id": "acct_1AAfLzCzf2OYLbV9",
+      "object": "account",
+      "business_logo": null,
+      "business_name": null,
+      "business_url": null,
+      "charges_enabled": true,
+      "country": "DE",
+      "default_currency": "eur",
+      "details_submitted": false,
+      "display_name": null,
+      "email": null,
+      "managed": true,
+      "statement_descriptor": null,
+      "support_email": null,
+      "support_phone": null,
+      "timezone": "Etc/UTC",
+      "debit_negative_balances": false,
+      "decline_charge_on": {
+        "avs_failure": false,
+        "cvc_failure": false
+      },
+      "external_accounts": {
+        "object": "list",
+        "data": [
+          {
+            "id": "ba_1AAfM1Czf2OYLbV92jQCQRl8",
+            "object": "bank_account",
+            "account": "acct_1AAfLzCzf2OYLbV9",
+            "account_holder_name": null,
+            "account_holder_type": null,
+            "bank_name": "STRIPE TEST BANK",
+            "country": "DE",
+            "currency": "eur",
+            "default_for_currency": true,
+            "fingerprint": "FsevpiVYtguP2YfC",
+            "last4": "3000",
+            "metadata": {
+
+            },
+            "routing_number": "110000000",
+            "status": "new"
+          }
+        ],
+        "has_more": false,
+        "total_count": 1,
+        "url": "/v1/accounts/acct_1AAfLzCzf2OYLbV9/external_accounts"
+      },
+      "legal_entity": {
+        "additional_owners": null,
+        "address": {
+          "city": null,
+          "country": "DE",
+          "line1": null,
+          "line2": null,
+          "postal_code": null,
+          "state": null
+        },
+        "business_name": null,
+        "business_tax_id_provided": false,
+        "dob": {
+          "day": null,
+          "month": null,
+          "year": null
+        },
+        "first_name": "Julian",
+        "last_name": "Casablancas",
+        "personal_address": {
+          "city": null,
+          "country": "DE",
+          "line1": null,
+          "line2": null,
+          "postal_code": null,
+          "state": null
+        },
+        "type": "individual",
+        "verification": {
+          "details": null,
+          "details_code": null,
+          "document": null,
+          "status": "unverified"
+        }
+      },
+      "metadata": {
+        "internalId": "StripeAdapterIT-1492694986055_300"
+      },
+      "product_description": null,
+      "tos_acceptance": {
+        "date": 1492694986,
+        "ip": "127.0.0.1",
+        "user_agent": null
+      },
+      "transfer_schedule": {
+        "delay_days": 2,
+        "interval": "manual"
+      },
+      "transfer_statement_descriptor": null,
+      "transfers_enabled": true,
+      "verification": {
+        "disabled_reason": null,
+        "due_by": null,
+        "fields_needed": [
+          "legal_entity.dob.day",
+          "legal_entity.dob.month",
+          "legal_entity.dob.year"
+        ]
+      }
+    },
+    "previous_attributes": {
+      "transfers_enabled": false,
+      "verification": {
+        "fields_needed": [
+          "external_account",
+          "legal_entity.dob.day",
+          "legal_entity.dob.month",
+          "legal_entity.dob.year"
+        ]
+      }
+    }
+  },
+  "livemode": false,
+  "pending_webhooks": 1,
+  "request": "req_AVgjyQZfzvfUvD",
+  "type": "account.updated",
+  "user_id": "acct_1AAfLzCzf2OYLbV9"
+}

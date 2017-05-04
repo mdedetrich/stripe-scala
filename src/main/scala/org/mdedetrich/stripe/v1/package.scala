@@ -80,11 +80,12 @@ package object v1 {
     * @tparam M The model which this request should return
     * @return
     */
-  private[v1] def createRequestGET[M](finalUrl: String, logger: Logger)(implicit client: HttpExt,
+  private[v1] def createRequestGET[M](finalUrl: String, logger: Logger, stripeAccount: Option[String] = None)(implicit client: HttpExt,
                                                                         materializer: Materializer,
                                                                         executionContext: ExecutionContext,
                                                                         reads: Reads[M],
                                                                         apiKey: ApiKey): Future[Try[M]] = {
+    val withoutAccountHeader = url(finalUrl).GET.as(apiKey.apiKey, "")
     val req =
       HttpRequest(uri = finalUrl,
                   method = HttpMethods.GET,
@@ -375,7 +376,7 @@ package object v1 {
                     val jsResult: JsResult[Error] = httpCode match {
                       case 400 =>
                         path.read[Error.BadRequest].reads(jsValue)
-                      case 401 =>
+                      case 401 | 403 =>
                         path.read[Error.Unauthorized].reads(jsValue)
                       case 402 =>
                         path.read[Error.RequestFailed].reads(jsValue)
