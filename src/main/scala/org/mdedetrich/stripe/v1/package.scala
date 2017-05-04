@@ -72,12 +72,16 @@ package object v1 {
     * @tparam M The model which this request should return
     * @return
     */
-  private[v1] def createRequestGET[M](finalUrl: String, logger: Logger)(implicit reads: Reads[M],
+  private[v1] def createRequestGET[M](finalUrl: String, logger: Logger, stripeAccount: Option[String] = None)(implicit reads: Reads[M],
                                                                         apiKey: ApiKey): Future[Try[M]] = {
     import dispatch.Defaults._
     import dispatch._
 
-    val req = url(finalUrl).GET.as(apiKey.apiKey, "")
+    val withoutAccountHeader = url(finalUrl).GET.as(apiKey.apiKey, "")
+    val req = stripeAccount
+      .map(stripeAccount => withoutAccountHeader.addHeader(stripeAccountHeader, stripeAccount))
+      .getOrElse(withoutAccountHeader)
+
 
     Http(req).map { response =>
       parseStripeServerError(response, finalUrl, None, None)(logger) match {
@@ -321,7 +325,7 @@ package object v1 {
           val jsResult: JsResult[Error] = httpCode match {
             case 400 =>
               path.read[Error.BadRequest].reads(jsValue)
-            case 401 =>
+            case 401 | 403 =>
               path.read[Error.Unauthorized].reads(jsValue)
             case 402 =>
               path.read[Error.RequestFailed].reads(jsValue)

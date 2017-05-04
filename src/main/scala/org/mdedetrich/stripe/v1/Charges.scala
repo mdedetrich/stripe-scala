@@ -7,6 +7,7 @@ import enumeratum._
 import org.mdedetrich.playjson.Utils._
 import org.mdedetrich.stripe.PostParams.flatten
 import org.mdedetrich.stripe.v1.Charges.FraudDetails.{StripeReport, UserReport}
+import org.mdedetrich.stripe.v1.Charges.Source.{Account, MaskedCard}
 import org.mdedetrich.stripe.v1.Disputes._
 import org.mdedetrich.stripe.v1.Errors._
 import org.mdedetrich.stripe.v1.Refunds.RefundList
@@ -73,11 +74,11 @@ object Charges extends LazyLogging {
 
   // Source
 
-  sealed abstract class Source
+  sealed abstract class SourceInput
 
-  object Source {
+  object SourceInput {
 
-    case class Customer(id: String) extends Source
+    case class Customer(id: String) extends SourceInput
 
     case class Card(expMonth: Int,
                     expYear: Int,
@@ -90,11 +91,11 @@ object Charges extends LazyLogging {
                     name: Option[String],
                     addressState: Option[String],
                     addressZip: Option[String])
-        extends Source
+        extends SourceInput
         with NumberCardSource
   }
 
-  implicit val sourceReads: Reads[Source] = {
+  implicit val sourceInputReads: Reads[SourceInput] = {
     __.read[JsValue].flatMap {
       case jsObject: JsObject =>
         (
@@ -109,15 +110,15 @@ object Charges extends LazyLogging {
             (__ \ "name").readNullable[String] ~
             (__ \ "address_state").readNullable[String] ~
             (__ \ "address_zip").readNullable[String]
-        ).tupled.map((Source.Card.apply _).tupled)
+        ).tupled.map((SourceInput.Card.apply _).tupled)
       case jsString: JsString =>
-        Reads[Source](_ => JsSuccess(Source.Customer(jsString.value)))
+        Reads[SourceInput](_ => JsSuccess(SourceInput.Customer(jsString.value)))
       case _ =>
-        Reads[Source](_ => JsError(ValidationError("InvalidSource")))
+        Reads[SourceInput](_ => JsError(ValidationError("InvalidSource")))
     }
   }
 
-  implicit val cardPostParams = PostParams.params[Source.Card] { t =>
+  implicit val cardPostParams = PostParams.params[SourceInput.Card] { t =>
     val mandatory = Map(
       "exp_month" -> t.expMonth.toString,
       "exp_year"  -> t.expYear.toString,
@@ -136,21 +137,21 @@ object Charges extends LazyLogging {
     mandatory ++ flatten(optional)
   }
 
-  implicit val sourceWrites: Writes[Source] = Writes((source: Source) => {
+  implicit val sourceWrites: Writes[SourceInput] = Writes((source: SourceInput) => {
     source match {
-      case Source.Customer(id) =>
+      case SourceInput.Customer(id) =>
         JsString(id)
-      case Source.Card(expMonth,
-                       expYear,
-                       number,
-                       cvc,
-                       addressCity,
-                       addressCountry,
-                       addressLine1,
-                       addressLine2,
-                       name,
-                       addressState,
-                       addressZip) =>
+      case SourceInput.Card(expMonth,
+                            expYear,
+                            number,
+                            cvc,
+                            addressCity,
+                            addressCountry,
+                            addressLine1,
+                            addressLine2,
+                            name,
+                            addressState,
+                            addressZip) =>
         Json.obj(
           "exp_month"       -> expMonth,
           "exp_year"        -> expYear,
@@ -168,23 +169,31 @@ object Charges extends LazyLogging {
     }
   })
 
-  // Masked card
+  sealed abstract class Source
 
-  case class MaskedSource(
-      id: String,
-      last4: String,
-      expMonth: Int,
-      expYear: Int,
-      cvc: Option[String],
-      addressCountry: Option[String],
-      addressLine1: Option[String],
-      addressLine2: Option[String],
-      name: Option[String],
-      addressState: Option[String],
-      addressZip: Option[String]
-  ) extends MaskedCardSource
+  object Source {
 
-  implicit val maskedSourceReads: Reads[MaskedSource] = (
+    // Masked card
+    case class MaskedCard(
+        id: String,
+        last4: String,
+        expMonth: Int,
+        expYear: Int,
+        cvc: Option[String],
+        addressCountry: Option[String],
+        addressLine1: Option[String],
+        addressLine2: Option[String],
+        name: Option[String],
+        addressState: Option[String],
+        addressZip: Option[String]
+    ) extends Source
+        with MaskedCardSource
+
+    case class Account(id: String, applicationName: Option[String]) extends Source
+
+  }
+
+  implicit val maskedSourceReads: Reads[MaskedCard] = (
     (__ \ "id").read[String] ~
       (__ \ "last4").read[String] ~
       (__ \ "exp_month").read[Int] ~
@@ -196,7 +205,22 @@ object Charges extends LazyLogging {
       (__ \ "name").readNullable[String] ~
       (__ \ "address_state").readNullable[String] ~
       (__ \ "addressZip").readNullable[String]
-  ).tupled.map((MaskedSource.apply _).tupled)
+  ).tupled.map((MaskedCard.apply _).tupled)
+
+  implicit val accountSourceReads: Reads[Account] = (
+    (__ \ "id").read[String] ~
+      (__ \ "application_name").readNullable[String]
+  ).tupled.map((Account.apply _).tupled)
+
+  implicit val sourceReads = new Reads[Source] {
+    override def reads(json: JsValue): JsResult[Source] = json match {
+      case jsObject: JsObject if (jsObject \ "object").toOption.contains(JsString("card")) =>
+        jsObject.validate[Source.MaskedCard]
+      case jsObject: JsObject if (jsObject \ "object").toOption.contains(JsString("account")) =>
+        jsObject.validate[Source.Account]
+      case _ => JsError(ValidationError("error.expected.source"))
+    }
+  }
 
   /**
     * https://stripe.com/docs/api#charges
@@ -283,7 +307,7 @@ object Charges extends LazyLogging {
                     refunded: Boolean,
                     refunds: Option[RefundList],
                     shipping: Option[Shipping],
-                    source: MaskedSource,
+                    source: Source,
                     sourceTransfer: Option[String],
                     statementDescriptor: Option[String],
                     status: Status)
@@ -318,7 +342,7 @@ object Charges extends LazyLogging {
       (__ \ "refunded").read[Boolean] ~
       (__ \ "refunds").readNullable[RefundList] ~
       (__ \ "shipping").readNullable[Shipping] ~
-      (__ \ "source").read[MaskedSource] ~
+      (__ \ "source").read[Source] ~
       (__ \ "source_transfer").readNullable[String] ~
       (__ \ "statement_descriptor").readNullable[String] ~
       (__ \ "status").read[Status]
@@ -443,8 +467,8 @@ object Charges extends LazyLogging {
                          metadata: Map[String, String],
                          receiptEmail: Option[String],
                          shipping: Option[Shipping],
-                         customer: Option[Source.Customer],
-                         source: Option[Source.Card],
+                         customer: Option[SourceInput.Customer],
+                         source: Option[SourceInput.Card],
                          statementDescriptor: Option[String])
       extends StripeObject {
     statementDescriptor match {
@@ -465,7 +489,7 @@ object Charges extends LazyLogging {
   // ChargeInput
 
   object ChargeInput {
-    def default(amount: BigDecimal, currency: Currency, capture: Boolean, source: Source.Card): ChargeInput =
+    def default(amount: BigDecimal, currency: Currency, capture: Boolean, source: SourceInput.Card): ChargeInput =
       ChargeInput(
         amount,
         currency,
@@ -481,7 +505,10 @@ object Charges extends LazyLogging {
         None
       )
 
-    def default(amount: BigDecimal, currency: Currency, capture: Boolean, customer: Source.Customer): ChargeInput =
+    def default(amount: BigDecimal,
+                currency: Currency,
+                capture: Boolean,
+                customer: SourceInput.Customer): ChargeInput =
       ChargeInput(
         amount,
         currency,

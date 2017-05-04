@@ -1,0 +1,18 @@
+{
+  "id": "evt_1AAfMHEpgGMDHyV1S640xvOF",
+  "object": "event",
+  "api_version": null,
+  "created": 1492695005,
+  "data": {
+    "object": {
+      "id": "ca_9F0n1kpkHxtagXKWjf4LixFEGhtMrt07",
+      "object": "application",
+      "name": null
+    }
+  },
+  "livemode": false,
+  "pending_webhooks": 1,
+  "request": null,
+  "type": "account.application.deauthorized",
+  "user_id": "acct_1AAfMBEpgGMDHyV1"
+}
