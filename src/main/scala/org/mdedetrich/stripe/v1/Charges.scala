@@ -169,7 +169,7 @@ object Charges extends LazyLogging {
     }
   })
 
-  sealed trait Source
+  sealed abstract class Source
 
   object Source {
 
@@ -186,8 +186,8 @@ object Charges extends LazyLogging {
         name: Option[String],
         addressState: Option[String],
         addressZip: Option[String]
-    ) extends MaskedCardSource
-        with Source
+    ) extends Source
+        with MaskedCardSource
 
     case class Account(id: String, applicationName: Option[String]) extends Source
 
