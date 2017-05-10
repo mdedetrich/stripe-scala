@@ -218,19 +218,7 @@ object Coupons extends LazyLogging {
     "metadata",
     "percent_off",
     "redeem_by"
-  )(
-    x =>
-      (
-        x.id,
-        x.duration,
-        x.amountOff,
-        x.currency,
-        x.durationInMonths,
-        x.maxRedemptions,
-        x.metadata,
-        x.percentOff,
-        x.redeemBy
-    ))
+  )(x => CouponInput.unapply(x).get)
 
   def create(couponInput: CouponInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
