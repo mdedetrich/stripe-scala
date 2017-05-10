@@ -1,10 +1,13 @@
 package org.mdedetrich.stripe.v1
 
+import java.io.{BufferedReader, InputStreamReader}
+import java.util.stream.Collectors
+
+import cats.syntax.either._
+import io.circe.parser.parse
 import org.mdedetrich.stripe.v1.Customers.Customer
-import org.mdedetrich.stripe.v1.Events.Event
-import org.mdedetrich.stripe.v1.Events._
+import org.mdedetrich.stripe.v1.Events.{Event, _}
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsSuccess, Json}
 
 class EventsSpec extends WordSpec with Matchers {
   "Events" should {
@@ -12,9 +15,11 @@ class EventsSpec extends WordSpec with Matchers {
     "parse customer.create JSON correctly" in {
       val in = this.getClass.getResourceAsStream("/events/customer.created.json")
       in should not be null
-      val json = Json.parse(in)
 
-      val JsSuccess(event, _) = json.validate[Event]
+      val string = scala.io.Source.fromInputStream(in).mkString
+      val json  = parse(string).toOption
+      val event = json.flatMap(_.as[Event].toOption).get
+
       event.id should be("evt_1A9re7J6y4jvjvHhEh0DfAAv")
       event.`type` should be(Events.Type.CustomerCreated)
 
@@ -28,8 +33,10 @@ class EventsSpec extends WordSpec with Matchers {
       s"parse accounts.update from $filename" in {
         val in = this.getClass.getResourceAsStream(s"/events/$filename")
         in should not be null
-        val json                = Json.parse(in)
-        val JsSuccess(event, _) = json.validate[Event]
+
+        val string = scala.io.Source.fromInputStream(in).mkString
+        val json  = parse(string).toOption
+        val event = json.flatMap(_.as[Event].toOption).get
         event.`type` should be(Events.Type.AccountUpdated)
       }
     }
@@ -37,17 +44,23 @@ class EventsSpec extends WordSpec with Matchers {
     "parse payment.created JSON correctly" in {
       val in = this.getClass.getResourceAsStream("/events/payment.created.json")
       in should not be null
-      val json                = Json.parse(in)
-      val JsSuccess(event, _) = json.validate[Event]
+
+      val string = new BufferedReader(new InputStreamReader(in))
+        .lines()
+        .collect(Collectors.joining("\n"))
+      val json  = parse(string).toOption
+      val event = json.flatMap(_.as[Event].toOption).get
       event.`type` should be(Events.Type.PaymentCreated)
     }
 
     "parse event list" in {
-      val in   = this.getClass.getResourceAsStream("/events/event-list.json")
-      val json = Json.parse(in)
+      val in = this.getClass.getResourceAsStream("/events/event-list.json")
 
-      val JsSuccess(eventList, _) = json.validate[EventList]
-
+      val string = new BufferedReader(new InputStreamReader(in))
+        .lines()
+        .collect(Collectors.joining("\n"))
+      val json      = parse(string).toOption
+      val eventList = json.flatMap(_.as[EventList].toOption).get
       eventList.data.size should be(100)
     }
   }

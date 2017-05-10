@@ -5,10 +5,9 @@ import java.time.OffsetDateTime
 import akka.http.scaladsl.HttpExt
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
-import org.mdedetrich.playjson.Utils._
+import defaults._
+import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -40,28 +39,26 @@ object TransferReversals extends LazyLogging {
                               transfer: String)
       extends StripeObject
 
-  implicit val transferReversalReads: Reads[TransferReversal] = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "balance_transaction").read[String] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "transfer").read[String]
-  ).tupled.map((TransferReversal.apply _).tupled)
+  implicit val transferReversalDecoder: Decoder[TransferReversal] = Decoder.forProduct7(
+    "id",
+    "amount",
+    "balance_transaction",
+    "created",
+    "currency",
+    "metadata",
+    "transfer"
+  )(TransferReversal.apply)
 
-  implicit val transferReversalWrites: Writes[TransferReversal] = Writes(
-    (transferReversal: TransferReversal) =>
-      Json.obj(
-        "id"                  -> transferReversal.id,
-        "object"              -> "transfer_reversal",
-        "amount"              -> transferReversal.amount,
-        "balance_transaction" -> transferReversal.balanceTransaction,
-        "created"             -> Json.toJson(transferReversal.created)(stripeDateTimeWrites),
-        "currency"            -> transferReversal.currency,
-        "metadata"            -> transferReversal.metadata,
-        "transfer"            -> transferReversal.transfer
-    ))
+  implicit val transferReversalEncoder: Encoder[TransferReversal] = Encoder.forProduct8(
+    "id",
+    "object",
+    "amount",
+    "balance_transaction",
+    "created",
+    "currency",
+    "metadata",
+    "transfer"
+  )(x => (x.id, "transfer_reversal", x.amount, x.balanceTransaction, x.created, x.currency, x.metadata, x.transfer))
 
   /**
     * @see https://stripe.com/docs/api#create_transfer_reversal
@@ -110,24 +107,21 @@ object TransferReversals extends LazyLogging {
     )
   }
 
-  implicit val transferReversalInputReads: Reads[TransferReversalInput] = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount").readNullable[BigDecimal] ~
-      (__ \ "description").readNullable[String] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "refund_application_fee").readNullable[Boolean]
-  ).tupled.map((TransferReversalInput.apply _).tupled)
+  implicit val transferReversalInputDecoder: Decoder[TransferReversalInput] = Decoder.forProduct5(
+    "id",
+    "amount",
+    "description",
+    "metadata",
+    "refund_application_fee"
+  )(TransferReversalInput.apply)
 
-  implicit val transferReversalInputWrites: Writes[TransferReversalInput] =
-    Writes(
-      (transferReversalInput: TransferReversalInput) =>
-        Json.obj(
-          "id"                     -> transferReversalInput.id,
-          "amount"                 -> transferReversalInput.amount,
-          "description"            -> transferReversalInput.description,
-          "metadata"               -> transferReversalInput.metadata,
-          "refund_application_fee" -> transferReversalInput.refundApplicationFee
-      ))
+  implicit val transferReversalInputEncoder: Encoder[TransferReversalInput] = Encoder.forProduct5(
+    "id",
+    "amount",
+    "description",
+    "metadata",
+    "refund_application_fee"
+  )(x => TransferReversalInput.unapply(x).get)
 
   def create(transferReversalInput: TransferReversalInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
@@ -205,11 +199,11 @@ object TransferReversals extends LazyLogging {
       extends Collections.List[TransferReversal](url, hasMore, data, totalCount)
 
   object TransferReversalList extends Collections.ListJsonMappers[TransferReversal] {
-    implicit val transferReversalReads: Reads[TransferReversalList] =
-      listReads.tupled.map((TransferReversalList.apply _).tupled)
+    implicit val transferReversalDecoder: Decoder[TransferReversalList] =
+      listDecoder(implicitly)(TransferReversalList.apply)
 
-    implicit val transferReversalWrites: Writes[TransferReversalList] =
-      listWrites
+    implicit val transferReversalEncoder: Encoder[TransferReversalList] =
+      listEncoder[TransferReversalList]
   }
 
   def list(transferReversalListInput: TransferReversalListInput, includeTotalCount: Boolean)(

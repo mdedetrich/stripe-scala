@@ -5,12 +5,10 @@ import java.time.OffsetDateTime
 import akka.http.scaladsl.HttpExt
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
+import defaults._
 import enumeratum._
-import org.mdedetrich.playjson.Utils._
-import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
+import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -22,18 +20,15 @@ object Coupons extends LazyLogging {
   }
 
   object Duration extends Enum[Duration] {
-
     val values = findValues
 
-    case object Forever extends Duration("forever")
-
-    case object Once extends Duration("once")
-
+    case object Forever   extends Duration("forever")
+    case object Once      extends Duration("once")
     case object Repeating extends Duration("repeating")
-  }
 
-  implicit val durationFormats =
-    EnumFormats.formats(Duration, insensitive = true)
+    implicit val couponDurationDecoder: Decoder[Duration] = enumeratum.Circe.decoder(Duration)
+    implicit val couponDurationEncoder: Encoder[Duration] = enumeratum.Circe.encoder(Duration)
+  }
 
   /**
     * @see https://stripe.com/docs/api#coupons
@@ -98,40 +93,53 @@ object Coupons extends LazyLogging {
     )
   }
 
-  implicit val couponReads: Reads[Coupon] = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount_off").readNullable[Long] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").readNullable[Currency] ~
-      (__ \ "duration").read[Duration] ~
-      (__ \ "duration_in_months").readNullable[Long] ~
-      (__ \ "livemode").read[Boolean] ~
-      (__ \ "max_redemptions").readNullable[Long] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "percent_off").readNullable[BigDecimal] ~
-      (__ \ "redeem_by").readNullable[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "times_redeemed").read[Long] ~
-      (__ \ "valid").read[Boolean]
-  ).tupled.map((Coupon.apply _).tupled)
+  implicit val couponDecoder: Decoder[Coupon] = Decoder.forProduct13(
+    "id",
+    "amount_off",
+    "created",
+    "currency",
+    "duration",
+    "duration_in_months",
+    "livemode",
+    "max_redemptions",
+    "metadata",
+    "percent_off",
+    "redeem_by",
+    "times_redeemed",
+    "valid"
+  )(Coupon.apply)
 
-  implicit val couponWrites: Writes[Coupon] = Writes(
-    (coupon: Coupon) =>
-      Json.obj(
-        "id"                 -> coupon.id,
-        "object"             -> "coupon",
-        "amount_off"         -> coupon.amountOff,
-        "created"            -> Json.toJson(coupon.created)(stripeDateTimeWrites),
-        "currency"           -> coupon.amountOff,
-        "duration"           -> coupon.duration,
-        "duration_in_months" -> coupon.durationInMonths,
-        "livemode"           -> coupon.livemode,
-        "max_redemptions"    -> coupon.maxRedemptions,
-        "metadata"           -> coupon.metadata,
-        "percent_off"        -> coupon.percentOff,
-        "redeem_by"          -> coupon.redeemBy.map(x => Json.toJson(x)(stripeDateTimeWrites)),
-        "times_redeemed"     -> coupon.timesRedeemed,
-        "valid"              -> coupon.valid
-    ))
+  implicit val couponEncoder: Encoder[Coupon] = Encoder.forProduct14(
+    "id",
+    "object",
+    "amount_off",
+    "created",
+    "currency",
+    "duration",
+    "duration_in_months",
+    "livemode",
+    "max_redemptions",
+    "metadata",
+    "percent_off",
+    "redeem_by",
+    "times_redeemed",
+    "valid"
+  )(
+    x =>
+      (x.id,
+       "coupon",
+       x.amountOff,
+       x.created,
+       x.currency,
+       x.duration,
+       x.durationInMonths,
+       x.livemode,
+       x.maxRedemptions,
+       x.metadata,
+       x.percentOff,
+       x.redeemBy,
+       x.timesRedeemed,
+       x.valid))
 
   /**
     * @see https://stripe.com/docs/api#create_coupon
@@ -188,30 +196,40 @@ object Coupons extends LazyLogging {
     )
   }
 
-  implicit val couponInputReads: Reads[CouponInput] = (
-    (__ \ "id").readNullable[String] ~
-      (__ \ "duration").read[Duration] ~
-      (__ \ "amount_off").readNullable[Long] ~
-      (__ \ "currency").readNullable[Currency] ~
-      (__ \ "duration_in_months").readNullable[Long] ~
-      (__ \ "max_redemptions").readNullable[Long] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "percent_off").readNullable[BigDecimal] ~
-      (__ \ "redeemBy").readNullable[OffsetDateTime](stripeDateTimeReads)
-  ).tupled.map((CouponInput.apply _).tupled)
+  implicit val couponInputDecoder: Decoder[CouponInput] = Decoder.forProduct9(
+    "id",
+    "duration",
+    "amount_off",
+    "currency",
+    "duration_in_months",
+    "max_redemptions",
+    "metadata",
+    "percent_off",
+    "redeem_by"
+  )(CouponInput.apply)
 
-  implicit val couponInputWrites: Writes[CouponInput] = Writes(
-    (couponInput: CouponInput) =>
-      Json.obj(
-        "id"                 -> couponInput.id,
-        "duration"           -> couponInput.duration,
-        "amount_off"         -> couponInput.amountOff,
-        "currency"           -> couponInput.currency,
-        "duration_in_months" -> couponInput.durationInMonths,
-        "max_redemptions"    -> couponInput.maxRedemptions,
-        "metadata"           -> couponInput.metadata,
-        "percent_off"        -> couponInput.percentOff,
-        "redeemBy"           -> couponInput.redeemBy.map(x => Json.toJson(x)(stripeDateTimeWrites))
+  implicit val couponInputEncoder: Encoder[CouponInput] = Encoder.forProduct9(
+    "id",
+    "duration",
+    "amount_off",
+    "currency",
+    "duration_in_months",
+    "max_redemptions",
+    "metadata",
+    "percent_off",
+    "redeem_by"
+  )(
+    x =>
+      (
+        x.id,
+        x.duration,
+        x.amountOff,
+        x.currency,
+        x.durationInMonths,
+        x.maxRedemptions,
+        x.metadata,
+        x.percentOff,
+        x.redeemBy
     ))
 
   def create(couponInput: CouponInput)(idempotencyKey: Option[IdempotencyKey] = None)(
@@ -304,10 +322,11 @@ object Coupons extends LazyLogging {
       extends Collections.List[Coupon](url, hasMore, data, totalCount)
 
   object CouponList extends Collections.ListJsonMappers[Coupon] {
-    implicit val couponListReads: Reads[CouponList] =
-      listReads.tupled.map((CouponList.apply _).tupled)
+    implicit val couponListDecoder: Decoder[CouponList] =
+      listDecoder(implicitly)(CouponList.apply)
 
-    implicit val couponListWrites: Writes[CouponList] = listWrites
+    implicit val couponListEncoder: Encoder[CouponList] =
+      listEncoder[CouponList]
   }
 
   def list(couponListInput: CouponListInput, includeTotalCount: Boolean)(

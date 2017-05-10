@@ -4,21 +4,20 @@ import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
 import akka.stream.Materializer
+import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
+import defaults._
 import enumeratum._
-import org.mdedetrich.playjson.Utils._
+import io.circe._
+import io.circe.syntax._
 import org.mdedetrich.stripe.PostParams.flatten
 import org.mdedetrich.stripe.v1.Charges.FraudDetails.{StripeReport, UserReport}
-import org.mdedetrich.stripe.v1.Charges.Source.{Account, MaskedCard}
 import org.mdedetrich.stripe.v1.Disputes._
 import org.mdedetrich.stripe.v1.Errors._
 import org.mdedetrich.stripe.v1.Refunds.RefundList
 import org.mdedetrich.stripe.v1.Shippings.Shipping
 import org.mdedetrich.stripe.v1.Sources.{MaskedCardSource, NumberCardSource}
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
-import play.api.data.validation.ValidationError
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -36,43 +35,54 @@ object Charges extends LazyLogging {
       override val entryName = id
     }
 
-    object UserReport extends Enum[UserReport] with PlayJsonEnum[UserReport] {
+    object UserReport extends Enum[UserReport] {
       val values = findValues
+
       case object Safe       extends UserReport("safe")
       case object Fraudulent extends UserReport("fraudulent")
+
+      implicit val userReportDecoder: Decoder[UserReport] = enumeratum.Circe.decoder(UserReport)
+      implicit val userReportEncoder: Encoder[UserReport] = enumeratum.Circe.encoder(UserReport)
     }
 
     sealed abstract class StripeReport(val id: String) extends EnumEntry {
       override val entryName = id
     }
 
-    object StripeReport extends Enum[StripeReport] with PlayJsonEnum[StripeReport] {
+    object StripeReport extends Enum[StripeReport] {
       val values = findValues
+
       case object Fraudulent extends StripeReport("fraudulent")
+
+      implicit val stripeReportDecoder: Decoder[StripeReport] = enumeratum.Circe.decoder(StripeReport)
+      implicit val stripeReportEncoder: Encoder[StripeReport] = enumeratum.Circe.encoder(StripeReport)
     }
   }
 
-  implicit val fraudDetailsReads: Reads[FraudDetails] = (
-    (__ \ "user_report").readNullable[UserReport] ~
-      (__ \ "stripe_report").readNullable[StripeReport]
-  ).tupled.map((FraudDetails.apply _).tupled)
+  implicit val fraudDetailsDecoder: Decoder[FraudDetails] = Decoder.forProduct2(
+    "user_report",
+    "stripe_report"
+  )(FraudDetails.apply)
+
+  implicit val fraudDetailsEncoder: Encoder[FraudDetails] = Encoder.forProduct2(
+    "user_report",
+    "stripe_report"
+  )(x => FraudDetails.unapply(x).get)
 
   sealed abstract class Status(val id: String) extends EnumEntry {
     override val entryName = id
   }
 
   object Status extends Enum[Status] {
-
     val values = findValues
 
     case object Succeeded extends Status("succeeded")
+    case object Failed    extends Status("failed")
+    case object Pending   extends Status("pending")
 
-    case object Failed extends Status("failed")
-
-    case object Pending extends Status("pending")
+    implicit val chargeStatusDecoder: Decoder[Status] = enumeratum.Circe.decoder(Status)
+    implicit val chargeStatusEncoder: Encoder[Status] = enumeratum.Circe.encoder(Status)
   }
-
-  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   // Source
 
@@ -97,30 +107,74 @@ object Charges extends LazyLogging {
         with NumberCardSource
   }
 
-  implicit val sourceInputReads: Reads[SourceInput] = {
-    __.read[JsValue].flatMap {
-      case jsObject: JsObject =>
-        (
-          (__ \ "exp_month").read[Int] ~
-            (__ \ "exp_year").read[Int] ~
-            (__ \ "number").read[String] ~
-            (__ \ "cvc").readNullable[String] ~
-            (__ \ "address_city").readNullable[String] ~
-            (__ \ "address_country").readNullable[String] ~
-            (__ \ "address_line1").readNullable[String] ~
-            (__ \ "address_line2").readNullable[String] ~
-            (__ \ "name").readNullable[String] ~
-            (__ \ "address_state").readNullable[String] ~
-            (__ \ "address_zip").readNullable[String]
-        ).tupled.map((SourceInput.Card.apply _).tupled)
-      case jsString: JsString =>
-        Reads[SourceInput](_ => JsSuccess(SourceInput.Customer(jsString.value)))
-      case _ =>
-        Reads[SourceInput](_ => JsError(ValidationError("InvalidSource")))
-    }
+  implicit val sourceInputCustomerDecoder: Decoder[SourceInput.Customer] = Decoder[String].map(SourceInput.Customer)
+
+  implicit val sourceInputCardDecoder: Decoder[SourceInput.Card] = Decoder.forProduct11(
+    "exp_month",
+    "exp_year",
+    "number",
+    "cvc",
+    "address_city",
+    "address_country",
+    "address_line1",
+    "address_line2",
+    "name",
+    "address_state",
+    "address_zip"
+  )(SourceInput.Card.apply)
+
+  implicit val chargeSourceInputDecoder: Decoder[SourceInput] = Decoder.instance[SourceInput] { c =>
+    for {
+      json <- c.as[Json]
+      result <- {
+        if (json.isString) {
+          implicitly[Decoder[SourceInput.Customer]].apply(c)
+        } else if (json.isObject) {
+          implicitly[Decoder[SourceInput.Card]].apply(c)
+        } else {
+          Left(DecodingFailure("Invalid Charge Source Input", c.history))
+        }
+      }
+    } yield result
   }
 
-  implicit val cardPostParams = PostParams.params[SourceInput.Card] { t =>
+  implicit val chargeSourceInputCustomerEncoder: Encoder[SourceInput.Customer] =
+    Encoder.instance[SourceInput.Customer](_.id.asJson)
+
+  implicit val chargeSourceInputCustomerCard: Encoder[SourceInput.Card] = Encoder.forProduct12(
+    "exp_month",
+    "exp_year",
+    "number",
+    "object",
+    "cvc",
+    "address_city",
+    "address_country",
+    "address_line1",
+    "address_line2",
+    "name",
+    "address_state",
+    "address_zip"
+  )(
+    x =>
+      (x.expMonth,
+       x.expYear,
+       x.number,
+       "card",
+       x.cvc,
+       x.addressCity,
+       x.addressCountry,
+       x.addressLine1,
+       x.addressLine2,
+       x.name,
+       x.addressState,
+       x.addressCity))
+
+  implicit val chargeSourceInputEncoder: Encoder[SourceInput] = Encoder.instance[SourceInput] {
+    case s: SourceInput.Customer => implicitly[Encoder[SourceInput.Customer]].apply(s)
+    case s: SourceInput.Card     => implicitly[Encoder[SourceInput.Card]].apply(s)
+  }
+
+  implicit val cardPostParams: PostParams[SourceInput.Card] = PostParams.params[SourceInput.Card] { t =>
     val mandatory = Map(
       "exp_month" -> t.expMonth.toString,
       "exp_year"  -> t.expYear.toString,
@@ -138,38 +192,6 @@ object Charges extends LazyLogging {
     )
     mandatory ++ flatten(optional)
   }
-
-  implicit val sourceWrites: Writes[SourceInput] = Writes((source: SourceInput) => {
-    source match {
-      case SourceInput.Customer(id) =>
-        JsString(id)
-      case SourceInput.Card(expMonth,
-                            expYear,
-                            number,
-                            cvc,
-                            addressCity,
-                            addressCountry,
-                            addressLine1,
-                            addressLine2,
-                            name,
-                            addressState,
-                            addressZip) =>
-        Json.obj(
-          "exp_month"       -> expMonth,
-          "exp_year"        -> expYear,
-          "number"          -> number,
-          "object"          -> "card",
-          "cvc"             -> cvc,
-          "address_city"    -> addressCity,
-          "address_country" -> addressCountry,
-          "address_line1"   -> addressLine1,
-          "address_line2"   -> addressLine2,
-          "name"            -> name,
-          "address_state"   -> addressState,
-          "address_zip"     -> addressZip
-        )
-    }
-  })
 
   sealed abstract class Source
 
@@ -193,35 +215,89 @@ object Charges extends LazyLogging {
 
     case class Account(id: String, applicationName: Option[String]) extends Source
 
+    implicit val maskedCardSourceDecoder: Decoder[MaskedCard] = Decoder.forProduct11(
+      "id",
+      "last4",
+      "exp_month",
+      "exp_year",
+      "cvc",
+      "address_country",
+      "address_line1",
+      "address_line2",
+      "name",
+      "address_state",
+      "address_zip"
+    )(MaskedCard.apply)
+
+    implicit val accountSourceDecoder: Decoder[Account] = Decoder.forProduct2(
+      "id",
+      "application_name"
+    )(Account.apply)
+
+    implicit val maskedCardSourceEncoder: Encoder[MaskedCard] = Encoder.forProduct12(
+      "id",
+      "object",
+      "last4",
+      "exp_month",
+      "exp_year",
+      "cvc",
+      "address_country",
+      "address_line1",
+      "address_line2",
+      "name",
+      "address_state",
+      "address_zip"
+    )(
+      x =>
+        (
+          x.id,
+          "card",
+          x.last4,
+          x.expMonth,
+          x.expYear,
+          x.cvc,
+          x.addressCountry,
+          x.addressLine1,
+          x.addressLine2,
+          x.name,
+          x.addressState,
+          x.addressZip
+      ))
+
+    implicit val accountSourceEncoder: Encoder[Account] = Encoder.forProduct3(
+      "id",
+      "object",
+      "application_name"
+    )(
+      x =>
+        (
+          x.id,
+          "account",
+          x.applicationName
+      ))
+
   }
 
-  implicit val maskedSourceReads: Reads[MaskedCard] = (
-    (__ \ "id").read[String] ~
-      (__ \ "last4").read[String] ~
-      (__ \ "exp_month").read[Int] ~
-      (__ \ "exp_year").read[Int] ~
-      (__ \ "cvc").readNullable[String] ~
-      (__ \ "address_country").readNullable[String] ~
-      (__ \ "address_line1").readNullable[String] ~
-      (__ \ "address_line2").readNullable[String] ~
-      (__ \ "name").readNullable[String] ~
-      (__ \ "address_state").readNullable[String] ~
-      (__ \ "addressZip").readNullable[String]
-  ).tupled.map((MaskedCard.apply _).tupled)
+  implicit val sourceDecoder: Decoder[Source] = Decoder.instance[Source] { c =>
+    for {
+      obj <- c.as[JsonObject]
+      tpe <- obj.toMap("object").as[String]
+      source <- tpe match {
+        case "card" =>
+          val decoder: Decoder[Source.MaskedCard] = implicitly[Decoder[Source.MaskedCard]]
+          decoder.apply(c)
+        case "account" =>
+          val decoder: Decoder[Source.Account] = implicitly[Decoder[Source.Account]]
+          decoder.apply(c)
+        case _ =>
+          Left(DecodingFailure("Expected valid object type", c.history))
+      }
+    } yield source
+  }
 
-  implicit val accountSourceReads: Reads[Account] = (
-    (__ \ "id").read[String] ~
-      (__ \ "application_name").readNullable[String]
-  ).tupled.map((Account.apply _).tupled)
-
-  implicit val sourceReads = new Reads[Source] {
-    override def reads(json: JsValue): JsResult[Source] = json match {
-      case jsObject: JsObject if (jsObject \ "object").toOption.contains(JsString("card")) =>
-        jsObject.validate[Source.MaskedCard]
-      case jsObject: JsObject if (jsObject \ "object").toOption.contains(JsString("account")) =>
-        jsObject.validate[Source.Account]
-      case _ => JsError(ValidationError("error.expected.source"))
-    }
+  implicit val sourceEncoder: Encoder[Source] = Encoder.instance[Source] {
+    case s: Source.MaskedCard => implicitly[Encoder[Source.MaskedCard]].apply(s)
+    case s: Source.Account    => implicitly[Encoder[Source.Account]].apply(s)
   }
 
   /**
@@ -315,99 +391,210 @@ object Charges extends LazyLogging {
                     status: Status)
       extends StripeObject
 
-  private val chargeReadsOne = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "amount_refunded").read[BigDecimal] ~
-      (__ \ "application_fee").readNullable[String] ~
-      (__ \ "balance_transaction").readNullable[String] ~
-      (__ \ "captured").read[Boolean] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "customer").readNullable[String] ~
-      (__ \ "description").readNullable[String] ~
-      (__ \ "destination").readNullable[String] ~
-      (__ \ "dispute").readNullable[Dispute] ~
-      (__ \ "failure_code").readNullable[Code] ~
-      (__ \ "failure_message").readNullable[String] ~
-      (__ \ "fraud_details").readNullableOrEmptyJsObject[FraudDetails] ~
-      (__ \ "invoice").readNullable[String] ~
-      (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "order").readNullable[String] ~
-      (__ \ "paid").read[Boolean] ~
-      (__ \ "receipt_email").readNullable[String]
-  ).tupled
+  private val chargeDecoderOne = Decoder.forProduct22(
+    "id",
+    "amount",
+    "amount_refunded",
+    "application_fee",
+    "balance_transaction",
+    "captured",
+    "created",
+    "currency",
+    "customer",
+    "description",
+    "destination",
+    "dispute",
+    "failure_code",
+    "failure_message",
+    "fraud_details",
+    "invoice",
+    "livemode",
+    "metadata",
+    "order",
+    "paid",
+    "receipt_email",
+    "receipt_number"
+  )(
+    Tuple22.apply(
+      _: String,
+      _: BigDecimal,
+      _: BigDecimal,
+      _: Option[String],
+      _: Option[String],
+      _: Boolean,
+      _: OffsetDateTime,
+      _: Currency,
+      _: Option[String],
+      _: Option[String],
+      _: Option[String],
+      _: Option[Dispute],
+      _: Option[Code],
+      _: Option[String],
+      _: Option[FraudDetails],
+      _: Option[String],
+      _: Boolean,
+      _: Option[Map[String, String]],
+      _: Option[String],
+      _: Boolean,
+      _: Option[String],
+      _: Option[String]
+    ))
 
-  private val chargeReadsTwo = (
-    (__ \ "receipt_number").readNullable[String] ~
-      (__ \ "refunded").read[Boolean] ~
-      (__ \ "refunds").readNullable[RefundList] ~
-      (__ \ "shipping").readNullable[Shipping] ~
-      (__ \ "source").read[Source] ~
-      (__ \ "source_transfer").readNullable[String] ~
-      (__ \ "statement_descriptor").readNullable[String] ~
-      (__ \ "status").read[Status]
-  ).tupled
+  private val chargeDecoderTwo = Decoder.forProduct7(
+    "refunded",
+    "refunds",
+    "shipping",
+    "source",
+    "source_transfer",
+    "statement_descriptor",
+    "status"
+  )(
+    Tuple7.apply(
+      _: Boolean,
+      _: Option[RefundList],
+      _: Option[Shipping],
+      _: Source,
+      _: Option[String],
+      _: Option[String],
+      _: Status
+    ))
 
-  implicit val chargeReads: Reads[Charge] = (
-    chargeReadsOne ~ chargeReadsTwo
-  ) { (one, two) =>
-    val (id,
-         amount,
-         amountRefunded,
-         applicationFee,
-         balanceTransaction,
-         captured,
-         created,
-         currency,
-         customer,
-         description,
-         destination,
-         dispute,
-         failureCode,
-         failureMessage,
-         fraudDetails,
-         invoice,
-         livemode,
-         metadata,
-         order,
-         paid,
-         receiptEmail) = one
+  implicit val chargeDecoder: Decoder[Charge] = Decoder.instance[Charge] { c =>
+    for {
+      one <- chargeDecoderOne.apply(c)
+      two <- chargeDecoderTwo.apply(c)
+    } yield {
+      val (id,
+           amount,
+           amountRefunded,
+           applicationFee,
+           balanceTransaction,
+           captured,
+           created,
+           currency,
+           customer,
+           description,
+           destination,
+           dispute,
+           failureCode,
+           failureMessage,
+           fraudDetails,
+           invoice,
+           livemode,
+           metadata,
+           order,
+           paid,
+           receiptEmail,
+           receiptNumber)                                                                    = one
+      val (refunded, refunds, shipping, source, sourceTransfer, statementDescriptor, status) = two
+      Charge(
+        id,
+        amount,
+        amountRefunded,
+        applicationFee,
+        balanceTransaction,
+        captured,
+        created,
+        currency,
+        customer,
+        description,
+        destination,
+        dispute,
+        failureCode,
+        failureMessage,
+        fraudDetails,
+        invoice,
+        livemode,
+        metadata,
+        order,
+        paid,
+        receiptEmail,
+        receiptNumber,
+        refunded,
+        refunds,
+        shipping,
+        source,
+        sourceTransfer,
+        statementDescriptor,
+        status
+      )
+    }
+  }
 
-    val (receiptNumber, refunded, refunds, shipping, source, sourceTransfer, statementDescriptor, status) = two
+  private val chargeEncoderOne: Encoder[Charge] = Encoder.forProduct22(
+    "id",
+    "object",
+    "amount",
+    "amount_refunded",
+    "application_fee",
+    "balance_transaction",
+    "captured",
+    "created",
+    "currency",
+    "customer",
+    "description",
+    "destination",
+    "dispute",
+    "failure_code",
+    "failure_message",
+    "fraud_details",
+    "invoice",
+    "livemode",
+    "metadata",
+    "order",
+    "paid",
+    "receipt_email"
+  )(
+    x =>
+      (
+        x.id,
+        "charge",
+        x.amount,
+        x.amountRefunded,
+        x.applicationFee,
+        x.balanceTransaction,
+        x.captured,
+        x.created,
+        x.currency,
+        x.customer,
+        x.description,
+        x.destination,
+        x.dispute,
+        x.failureCode,
+        x.failureMessage,
+        x.fraudDetails,
+        x.invoice,
+        x.livemode,
+        x.metadata,
+        x.order,
+        x.paid,
+        x.receiptEmail
+    ))
 
-    Charge(
-      id,
-      amount,
-      amountRefunded,
-      applicationFee,
-      balanceTransaction,
-      captured,
-      created,
-      currency,
-      customer,
-      description,
-      destination,
-      dispute,
-      failureCode,
-      failureMessage,
-      fraudDetails,
-      invoice,
-      livemode,
-      metadata,
-      order,
-      paid,
-      receiptEmail,
-      receiptNumber,
-      refunded,
-      refunds,
-      shipping,
-      source,
-      sourceTransfer,
-      statementDescriptor,
-      status
-    )
+  private val chargeEncoderTwo: Encoder[Charge] = Encoder.forProduct8(
+    "receipt_number",
+    "refunded",
+    "refunds",
+    "shipping",
+    "source",
+    "source_transfer",
+    "statement_descriptor",
+    "status"
+  )(
+    x =>
+      (
+        x.receiptNumber,
+        x.refunded,
+        x.refunds,
+        x.shipping,
+        x.source,
+        x.sourceTransfer,
+        x.statementDescriptor,
+        x.status
+    ))
+
+  implicit val chargeEncoder: Encoder[Charge] = Encoder.instance[Charge] { x =>
+    chargeEncoderOne.apply(x).deepMerge(chargeEncoderTwo.apply(x))
   }
 
   /**
@@ -527,24 +714,22 @@ object Charges extends LazyLogging {
       )
   }
 
-  implicit val chargeInputWrites: Writes[ChargeInput] = Writes(
-    (chargeInput: ChargeInput) =>
-      Json.obj(
-        "amount"               -> chargeInput.amount,
-        "currency"             -> chargeInput.currency,
-        "application_fee"      -> chargeInput.applicationFee,
-        "capture"              -> chargeInput.capture,
-        "description"          -> chargeInput.description,
-        "destination"          -> chargeInput.destination,
-        "metadata"             -> chargeInput.metadata,
-        "receipt_email"        -> chargeInput.receiptEmail,
-        "shipping"             -> chargeInput.shipping,
-        "customer"             -> chargeInput.customer,
-        "source"               -> chargeInput.source,
-        "statement_descriptor" -> chargeInput.statementDescriptor
-    ))
+  implicit val chargeInputDecoder: Decoder[ChargeInput] = Decoder.forProduct12(
+    "amount",
+    "currency",
+    "application_fee",
+    "capture",
+    "description",
+    "destination",
+    "metadata",
+    "receipt_email",
+    "shipping",
+    "customer",
+    "source",
+    "statement_descriptor"
+  )(ChargeInput.apply)
 
-  implicit val chargeInputPostParams = PostParams.params[ChargeInput] { chargeInput =>
+  implicit val chargeInputPostParams: PostParams[ChargeInput] = PostParams.params[ChargeInput] { chargeInput =>
     flatten(
       Map(
         "amount"               -> Option(chargeInput.amount.toString),

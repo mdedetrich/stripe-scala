@@ -3,14 +3,8 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import com.typesafe.scalalogging.LazyLogging
-import org.mdedetrich.playjson.Utils._
-import org.mdedetrich.stripe.PostParams.{flatten, toPostParams}
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-
-import scala.concurrent.Future
-import scala.util.Try
+import defaults._
+import io.circe.{Decoder, Encoder}
 
 /**
   * @see https://stripe.com/docs/api#application_fees
@@ -25,15 +19,32 @@ object ApplicationFees extends LazyLogging {
                             originatingTransaction: String)
       extends StripeObject
 
-  implicit val applicationFeeReads: Reads[ApplicationFee] = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "application").read[String] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "originating_transaction").read[String]
-  ).tupled.map((ApplicationFee.apply _).tupled)
+  implicit val applicationFeeDecoder: Decoder[ApplicationFee] = Decoder.forProduct6(
+    "id",
+    "amount",
+    "application",
+    "created",
+    "currency",
+    "originating_transaction"
+  )(ApplicationFee.apply)
 
-  implicit val applicationFeeWrites: Writes[ApplicationFee] = Json.writes[ApplicationFee]
-
+  implicit val applicationFeeEncoder: Encoder[ApplicationFee] = Encoder.forProduct7(
+    "id",
+    "object",
+    "amount",
+    "application",
+    "created",
+    "currency",
+    "originating_transaction"
+  )(
+    x =>
+      (
+        x.id,
+        "application_fee",
+        x.amount,
+        x.application,
+        x.created,
+        x.currency,
+        x.originatingTransaction
+    ))
 }

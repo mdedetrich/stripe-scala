@@ -5,11 +5,11 @@ import java.time.OffsetDateTime
 import akka.http.scaladsl.HttpExt
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
+import defaults._
 import enumeratum._
+import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.Transfers._
 import org.mdedetrich.stripe.{ApiKey, Endpoint}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -25,14 +25,12 @@ object Balances extends LazyLogging {
     val values = findValues
 
     case object ApplicationFee extends FeeType("application_fee")
+    case object StripeFee      extends FeeType("stripe_fee")
+    case object Tax            extends FeeType("tax")
 
-    case object StripeFee extends FeeType("stripe_fee")
-
-    case object Tax extends FeeType("tax")
+    implicit val feeTypeDecoder: Decoder[FeeType] = enumeratum.Circe.decoder(FeeType)
+    implicit val feeTypeEncoder: Encoder[FeeType] = enumeratum.Circe.encoder(FeeType)
   }
-
-  implicit val feeTypeFormats =
-    EnumFormats.formats(FeeType, insensitive = true)
 
   case class FeeDetails(amount: BigDecimal,
                         application: String,
@@ -40,68 +38,56 @@ object Balances extends LazyLogging {
                         description: String,
                         `type`: FeeType)
 
-  implicit val feeDetailReads: Reads[FeeDetails] = (
-    (__ \ "amount").read[BigDecimal] ~
-      (__ \ "application").read[String] ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "description").read[String] ~
-      (__ \ "type").read[FeeType]
-  )((amount, application, currency, description, `type`) =>
-    FeeDetails(amount, application, currency, description, `type`))
+  implicit val feeDetailsDecoder: Decoder[FeeDetails] = Decoder.forProduct5(
+    "amount",
+    "application",
+    "currency",
+    "description",
+    "type"
+  )(FeeDetails.apply)
 
-  implicit val feeDetailWrites: Writes[FeeDetails] = Writes(
-    (feeDetails: FeeDetails) =>
-      Json.obj(
-        "amount"      -> feeDetails.amount,
-        "application" -> feeDetails.application,
-        "currency"    -> feeDetails.currency,
-        "description" -> feeDetails.description,
-        "type"        -> feeDetails.`type`
-    ))
+  implicit val feeDetailsEncoder: Encoder[FeeDetails] = Encoder.forProduct5(
+    "amount",
+    "application",
+    "currency",
+    "description",
+    "type"
+  )(x => FeeDetails.unapply(x).get)
 
   sealed abstract class Type(val id: String) extends EnumEntry {
     override val entryName = id
   }
 
   object Type extends Enum[Type] {
-
     val values = findValues
 
-    case object Charge extends Type("charge")
-
-    case object Refund extends Type("refund")
-
-    case object Adjustment extends Type("adjustment")
-
-    case object ApplicationFee extends Type("application_fee")
-
+    case object Charge               extends Type("charge")
+    case object Refund               extends Type("refund")
+    case object Adjustment           extends Type("adjustment")
+    case object ApplicationFee       extends Type("application_fee")
     case object ApplicationFeeRefund extends Type("application_fee_refund")
+    case object Transfer             extends Type("transfer")
+    case object TransferCancel       extends Type("transfer_cancel")
+    case object TransferRefund       extends Type("transfer_refund")
+    case object TransferFailure      extends Type("transfer_failure")
 
-    case object Transfer extends Type("transfer")
-
-    case object TransferCancel extends Type("transfer_cancel")
-
-    case object TransferRefund extends Type("transfer_refund")
-
-    case object TransferFailure extends Type("transfer_failure")
+    implicit val balanceTypeDecoder: Decoder[Type] = enumeratum.Circe.decoder(Type)
+    implicit val balanceTypeEncoder: Encoder[Type] = enumeratum.Circe.encoder(Type)
   }
-
-  implicit val typeFormats = EnumFormats.formats(Type, insensitive = true)
 
   sealed abstract class Status(val id: String) extends EnumEntry {
     override val entryName = id
   }
 
   object Status extends Enum[Status] {
-
     val values = findValues
 
     case object Available extends Status("available")
+    case object Pending   extends Status("pending")
 
-    case object Pending extends Status("pending")
+    implicit val balanceStatusDecoder: Decoder[Status] = enumeratum.Circe.decoder(Status)
+    implicit val balanceStatusEncoder: Encoder[Status] = enumeratum.Circe.encoder(Status)
   }
-
-  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   /**
     * @see https://stripe.com/docs/api#balance_transaction_object
@@ -135,74 +121,83 @@ object Balances extends LazyLogging {
                                 `type`: Type)
       extends StripeObject
 
-  implicit val balanceTransactionReads: Reads[BalanceTransaction] = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "available_on").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "description").read[String] ~
-      (__ \ "fee").read[BigDecimal] ~
-      (__ \ "fee_details").read[List[FeeDetails]] ~
-      (__ \ "net").read[BigDecimal] ~
-      (__ \ "source").read[String] ~
-      (__ \ "sourced_transfers").read[TransferList] ~
-      (__ \ "status").readNullable[Status] ~
-      (__ \ "type").read[Type]
-  ).tupled.map((BalanceTransaction.apply _).tupled)
+  implicit val balanceTransactionDecoder: Decoder[BalanceTransaction] = Decoder.forProduct13(
+    "id",
+    "amount",
+    "available_on",
+    "created",
+    "currency",
+    "description",
+    "fee",
+    "fee_details",
+    "net",
+    "source",
+    "sourced_transfers",
+    "status",
+    "type"
+  )(BalanceTransaction.apply)
 
-  implicit val balanceTransactionWrites: Writes[BalanceTransaction] = Writes(
-    (balanceTransaction: BalanceTransaction) =>
-      Json.obj(
-        "id"                -> balanceTransaction.id,
-        "object"            -> "balance_transaction",
-        "amount"            -> balanceTransaction.amount,
-        "currency"          -> balanceTransaction.currency,
-        "available_on"      -> Json.toJson(balanceTransaction.availableOn)(stripeDateTimeWrites),
-        "created"           -> Json.toJson(balanceTransaction.created)(stripeDateTimeWrites),
-        "description"       -> balanceTransaction.description,
-        "fee"               -> balanceTransaction.fee,
-        "fee_details"       -> balanceTransaction.feeDetails,
-        "net"               -> balanceTransaction.net,
-        "source"            -> balanceTransaction.source,
-        "sourced_transfers" -> balanceTransaction.sourcedTransfers,
-        "status"            -> balanceTransaction.status,
-        "type"              -> balanceTransaction.`type`
-    ))
+  implicit val balanceTransactionEncoder: Encoder[BalanceTransaction] = Encoder.forProduct14(
+    "id",
+    "object",
+    "amount",
+    "available_on",
+    "created",
+    "currency",
+    "description",
+    "fee",
+    "fee_details",
+    "net",
+    "source",
+    "sourced_transfers",
+    "status",
+    "type"
+  )(
+    x =>
+      (x.id,
+       "balance_transaction",
+       x.amount,
+       x.availableOn,
+       x.created,
+       x.currency,
+       x.description,
+       x.fee,
+       x.feeDetails,
+       x.net,
+       x.source,
+       x.sourcedTransfers,
+       x.status,
+       x.`type`))
 
   case class SourceTypes(card: Option[BigDecimal],
                          bankAccount: Option[BigDecimal],
                          bitcoinReceiver: Option[BigDecimal])
 
-  implicit val sourceTypesReads: Reads[SourceTypes] = (
-    (__ \ "card").readNullable[BigDecimal] ~
-      (__ \ "bank_account").readNullable[BigDecimal] ~
-      (__ \ "bitcoin_receiver").readNullable[BigDecimal]
-  ).tupled.map((SourceTypes.apply _).tupled)
+  implicit val sourceTypesDecoder: Decoder[SourceTypes] = Decoder.forProduct3(
+    "card",
+    "bank_account",
+    "bitcoin_receiver"
+  )(SourceTypes.apply)
 
-  implicit val sourceTypesWrites: Writes[SourceTypes] = Writes(
-    (sourceTypes: SourceTypes) =>
-      Json.obj(
-        "card"             -> sourceTypes.card,
-        "bank_account"     -> sourceTypes.bankAccount,
-        "bitcoin_receiver" -> sourceTypes.bitcoinReceiver
-    ))
+  implicit val sourceTypesEncoder: Encoder[SourceTypes] = Encoder.forProduct3(
+    "card",
+    "bank_account",
+    "bitcoin_receiver"
+  )(x => SourceTypes.unapply(x).get)
 
   case class BalanceFund(currency: Currency, amount: BigDecimal, sourceTypes: SourceTypes)
 
-  implicit val balanceFundReads: Reads[BalanceFund] = (
-    (__ \ "currency").read[Currency] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "source_types").read[SourceTypes]
-  ).tupled.map((BalanceFund.apply _).tupled)
+  implicit val balanceFundDecoder: Decoder[BalanceFund] = Decoder.forProduct3(
+    "currency",
+    "amount",
+    "source_types"
+  )(BalanceFund.apply)
 
-  implicit val balanceFundWrites: Writes[BalanceFund] = Writes(
-    (balanceFund: BalanceFund) =>
-      Json.obj(
-        "currency"     -> balanceFund.currency,
-        "amount"       -> balanceFund.amount,
-        "source_types" -> balanceFund.sourceTypes
-    ))
+  implicit val balanceFundEncoder: Encoder[BalanceFund] = Encoder.forProduct3(
+    "currency",
+    "amount",
+    "source_types"
+  )(x => BalanceFund.unapply(x).get)
 
   /**
     * @see https://stripe.com/docs/api#balance_object
@@ -214,19 +209,18 @@ object Balances extends LazyLogging {
     */
   case class Balance(available: List[BalanceFund], livemode: Boolean, pending: List[BalanceFund]) extends StripeObject
 
-  implicit val balanceReads: Reads[Balance] = (
-    (__ \ "available").read[List[BalanceFund]] ~
-      (__ \ "livemode").read[Boolean] ~
-      (__ \ "pending").read[List[BalanceFund]]
-  ).tupled.map((Balance.apply _).tupled)
+  implicit val balanceDecoder: Decoder[Balance] = Decoder.forProduct3(
+    "available",
+    "livemode",
+    "pending"
+  )(Balance.apply)
 
-  implicit val balanceWrites: Writes[Balance] = Writes(
-    (balance: Balance) =>
-      Json.obj(
-        "available" -> balance.available,
-        "livemode"  -> balance.livemode,
-        "pending"   -> balance.pending
-    ))
+  implicit val balanceEncoder: Encoder[Balance] = Encoder.forProduct4(
+    "object",
+    "available",
+    "livemode",
+    "pending"
+  )(x => ("balance", x.available, x.livemode, x.pending))
 
   /**
     * @see https://stripe.com/docs/api#retrieve_balance
@@ -320,11 +314,11 @@ object Balances extends LazyLogging {
       extends Collections.List[BalanceTransaction](url, hasMore, data, totalCount)
 
   object BalanceTransactionList extends Collections.ListJsonMappers[BalanceTransaction] {
-    implicit val balanceTransactionListReads: Reads[BalanceTransactionList] =
-      listReads.tupled.map((BalanceTransactionList.apply _).tupled)
+    implicit val balanceTransactionListDecoder: Decoder[BalanceTransactionList] =
+      listDecoder(implicitly)(BalanceTransactionList.apply)
 
-    implicit val balanceTransactionListWrites: Writes[BalanceTransactionList] =
-      listWrites
+    implicit val balanceTransactionListEncoder: Encoder[BalanceTransactionList] =
+      listEncoder[BalanceTransactionList]
   }
 
   /**

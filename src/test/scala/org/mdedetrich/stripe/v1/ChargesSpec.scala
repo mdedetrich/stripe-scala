@@ -1,18 +1,19 @@
 package org.mdedetrich.stripe.v1
 
+import cats.syntax.either._
+import io.circe.parser.parse
 import org.mdedetrich.stripe.PostParams
 import org.mdedetrich.stripe.v1.Charges.Charge
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsSuccess, Json}
 
 class ChargesSpec extends WordSpec with Matchers {
 
   "Charges" should {
     "parse JSON correctly" in {
-      val in   = getClass.getResourceAsStream("/charge.json")
-      val json = Json.parse(in)
-
-      val JsSuccess(charge, _) = json.validate[Charge]
+      val in     = this.getClass.getResourceAsStream("/charge.json")
+      val string = scala.io.Source.fromInputStream(in).mkString
+      val json   = parse(string).toOption
+      val charge = json.flatMap(_.as[Charge].toOption).get
 
       charge.id should be("ch_194UQpJ4y4jIjvHhJji6ElAp")
       charge.applicationFee should be(Some("fee_9OKMRHcB2CcVPD"))

@@ -5,10 +5,10 @@ import java.time.OffsetDateTime
 import akka.http.scaladsl.HttpExt
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
+import defaults._
 import enumeratum._
+import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -23,17 +23,15 @@ object Tokens extends LazyLogging {
   }
 
   object Type extends Enum[Type] {
-
     val values = findValues
 
-    case object Card extends Type("card")
-
+    case object Card        extends Type("card")
     case object BankAccount extends Type("bank_account")
+    case object Pii         extends Type("pii")
 
-    case object Pii extends Type("pii")
+    implicit val tokenTypeDecoder: Decoder[Type] = enumeratum.Circe.decoder(Type)
+    implicit val tokenTypeEncoder: Encoder[Type] = enumeratum.Circe.encoder(Type)
   }
-
-  implicit val typeFormats = EnumFormats.formats(Type, insensitive = true)
 
   /**
     * @see https://stripe.com/docs/api#retrieve_token
@@ -69,28 +67,39 @@ object Tokens extends LazyLogging {
     )
   }
 
-  implicit val tokenReads: Reads[Token] = (
-    (__ \ "id").read[String] ~
-      (__ \ "bank_account").readNullable[BankAccounts.BankAccount] ~
-      (__ \ "card").readNullable[Cards.Card] ~
-      (__ \ "client_ip").readNullable[String] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "livemode").read[Boolean] ~
-      (__ \ "type").read[Type] ~
-      (__ \ "used").read[Boolean]
-  ).tupled.map((Token.apply _).tupled)
+  implicit val tokenDecoder: Decoder[Token] = Decoder.forProduct8(
+    "id",
+    "bank_account",
+    "card",
+    "client_ip",
+    "created",
+    "livemode",
+    "type",
+    "used"
+  )(Token.apply)
 
-  implicit val tokenWrites: Writes[Token] = Writes(
-    (token: Token) =>
-      Json.obj(
-        "id"           -> token.id,
-        "bank_account" -> token.bankAccount,
-        "card"         -> token.card,
-        "client_ip"    -> token.clientIp,
-        "created"      -> Json.toJson(token.created)(stripeDateTimeWrites),
-        "livemode"     -> token.livemode,
-        "type"         -> token.`type`,
-        "used"         -> token.used
+  implicit val tokenEncoder: Encoder[Token] = Encoder.forProduct9(
+    "id",
+    "object",
+    "bank_account",
+    "card",
+    "client_ip",
+    "created",
+    "livemode",
+    "type",
+    "used"
+  )(
+    x =>
+      (
+        x.id,
+        "token",
+        x.bankAccount,
+        x.card,
+        x.clientIp,
+        x.created,
+        x.livemode,
+        x.`type`,
+        x.used
     ))
 
   sealed abstract class TokenData
@@ -159,36 +168,49 @@ object Tokens extends LazyLogging {
       )
     }
 
-    implicit val cardReads: Reads[Card] = (
-      (__ \ "exp_month").read[Int] ~
-        (__ \ "exp_year").read[Int] ~
-        (__ \ "number").read[String] ~
-        (__ \ "address_city").readNullable[String] ~
-        (__ \ "address_country").readNullable[String] ~
-        (__ \ "address_line1").readNullable[String] ~
-        (__ \ "address_line2").readNullable[String] ~
-        (__ \ "address_state").readNullable[String] ~
-        (__ \ "address_zip").readNullable[String] ~
-        (__ \ "currency").readNullable[Currency] ~
-        (__ \ "cvc").readNullable[String] ~
-        (__ \ "name").readNullable[String]
-    ).tupled.map((Card.apply _).tupled)
+    implicit val cardDecoder: Decoder[Card] = Decoder.forProduct12(
+      "exp_month",
+      "exp_year",
+      "number",
+      "address_city",
+      "address_country",
+      "address_line1",
+      "address_line2",
+      "address_state",
+      "address_zip",
+      "currency",
+      "cvc",
+      "name"
+    )(Card.apply)
 
-    implicit val cardWrites: Writes[Card] = Writes(
-      (card: Card) =>
-        Json.obj(
-          "exp_month"       -> card.expMonth,
-          "exp_year"        -> card.expYear,
-          "number"          -> card.number,
-          "address_city"    -> card.addressCity,
-          "address_country" -> card.addressCountry,
-          "address_line1"   -> card.addressLine1,
-          "address_line2"   -> card.addressLine2,
-          "address_state"   -> card.addressState,
-          "address_zip"     -> card.addressZip,
-          "currency"        -> card.currency,
-          "cvc"             -> card.cvc,
-          "name"            -> card.name
+    implicit val cardEncoder: Encoder[Card] = Encoder.forProduct12(
+      "exp_month",
+      "exp_year",
+      "number",
+      "address_city",
+      "address_country",
+      "address_line1",
+      "address_line2",
+      "address_state",
+      "address_zip",
+      "currency",
+      "cvc",
+      "name"
+    )(
+      x =>
+        (
+          x.expMonth,
+          x.expYear,
+          x.number,
+          x.addressCity,
+          x.addressCountry,
+          x.addressLine1,
+          x.addressLine2,
+          x.addressState,
+          x.addressZip,
+          x.currency,
+          x.cvc,
+          x.name
       ))
 
     /** Creates a single use token that wraps the details of a bank account.
@@ -237,25 +259,23 @@ object Tokens extends LazyLogging {
       )
     }
 
-    implicit val bankAccountReads: Reads[BankAccount] = (
-      (__ \ "account_number").read[String] ~
-        (__ \ "country").read[String] ~
-        (__ \ "currency").read[Currency] ~
-        (__ \ "routing_number").readNullable[String] ~
-        (__ \ "account_holder_name").readNullable[String] ~
-        (__ \ "account_holder_type").readNullable[BankAccounts.AccountHolderType]
-    ).tupled.map((BankAccount.apply _).tupled)
+    implicit val bankAccountDecoder: Decoder[BankAccount] = Decoder.forProduct6(
+      "account_number",
+      "country",
+      "currency",
+      "routing_number",
+      "account_holder_name",
+      "account_holder_type"
+    )(BankAccount.apply)
 
-    implicit val bankAccountWrites: Writes[BankAccount] = Writes(
-      (bankAccount: BankAccount) =>
-        Json.obj(
-          "account_number"      -> bankAccount.accountNumber,
-          "country"             -> bankAccount.country,
-          "currency"            -> bankAccount.currency,
-          "routing_number"      -> bankAccount.routingNumber,
-          "account_holder_name" -> bankAccount.accountHolderName,
-          "account_holder_type" -> bankAccount.accountHolderType
-      ))
+    implicit val bankAccountEncoder: Encoder[BankAccount] = Encoder.forProduct6(
+      "account_number",
+      "country",
+      "currency",
+      "routing_number",
+      "account_holder_name",
+      "account_holder_type"
+    )(x => (x.accountNumber, x.country, x.currency, x.routingNumber, x.accountHolderName, x.accountHolderType))
 
     /** Creates a single use token that wraps the details of personally
       * identifiable information (PII). This token can be used in place
@@ -276,17 +296,11 @@ object Tokens extends LazyLogging {
       )
     }
 
-    implicit val PIIReads: Reads[PII] = (
-      (__ \ "pii").readNullable[String] ~
-        (__ \ "personal_id_number").read[String]
-    ).tupled.map((PII.apply _).tupled)
+    implicit val PIIDecoder: Decoder[PII] =
+      Decoder.forProduct2("pii", "personal_id_number")(PII.apply)
 
-    implicit val PIIWrites: Writes[PII] = Writes(
-      (pii: PII) =>
-        Json.obj(
-          "pii"                -> pii.pii,
-          "personal_id_number" -> pii.personalIdNumber
-      ))
+    implicit val PIIEncoder: Encoder[PII] =
+      Encoder.forProduct2("pii", "personal_id_number")(x => (x.pii, x.personalIdNumber))
   }
 
   case class TokenInput(tokenData: TokenData, customer: Option[String])
