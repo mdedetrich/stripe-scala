@@ -120,7 +120,7 @@ object Accounts extends LazyLogging {
       firstName: Option[String],
       lastName: Option[String],
       dob: Option[LocalDate],
-      tosAgreement: Option[TosAcceptance]
+      tosAcceptance: Option[TosAcceptance]
   )
 
   object LegalEntity {
