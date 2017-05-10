@@ -61,7 +61,27 @@ object Accounts extends LazyLogging {
     implicit val legalEntityEncoder: Encoder[LegalEntityType] = enumeratum.Circe.encoder(LegalEntityType)
   }
 
-  implicit val stripeLocalDateDecoder: Decoder[Option[LocalDate]] = Decoder.instance[Option[LocalDate]] { c =>
+  /*
+    This is a special case Encoder/Decoder that only applies for this Account mode. Json of the form LocalDate
+    is always optional and in the form of
+
+    "dob": {
+      "day": null,
+      "month": null,
+      "year": null
+    }
+
+    If the value doesn't exist, else if the value exists its in the form
+
+    "dob": {
+      "day": 5,
+      "month": 2,
+      "year": 1979
+    }
+
+   */
+
+  private implicit val stripeLocalDateDecoder: Decoder[Option[LocalDate]] = Decoder.instance[Option[LocalDate]] { c =>
     val baseLocalDate = for {
       obj <- c.as[JsonObject]
       filtered = obj.toMap
@@ -77,12 +97,19 @@ object Accounts extends LazyLogging {
     baseLocalDate
   }
 
-  implicit val stripeLocalDateEncoder: Encoder[LocalDate] = Encoder.instance[LocalDate] { localDate =>
-    Json.obj(
-      "year"  -> localDate.getYear.asJson,
-      "month" -> localDate.getMonthValue.asJson,
-      "day"   -> localDate.getDayOfMonth.asJson
-    )
+  private implicit val stripeLocalDateEncoder: Encoder[Option[LocalDate]] = Encoder.instance[Option[LocalDate]] {
+    case Some(localDate) =>
+      Json.obj(
+        "year"  -> localDate.getYear.asJson,
+        "month" -> localDate.getMonthValue.asJson,
+        "day"   -> localDate.getDayOfMonth.asJson
+      )
+    case None =>
+      Json.obj(
+        "year"  -> Json.Null,
+        "month" -> Json.Null,
+        "day"   -> Json.Null
+      )
   }
 
   // Legal entity
