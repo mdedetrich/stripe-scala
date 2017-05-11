@@ -5,12 +5,11 @@ import java.time.OffsetDateTime
 import akka.http.scaladsl.HttpExt
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
+import defaults._
 import enumeratum._
-import org.mdedetrich.playjson.Utils._
+import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.PostParams.{flatten, toPostParams}
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -27,14 +26,13 @@ object Refunds extends LazyLogging {
   object Reason extends Enum[Reason] {
     val values = findValues
 
-    case object Duplicate extends Reason("duplicate")
-
-    case object Fraudulent extends Reason("fraudulent")
-
+    case object Duplicate           extends Reason("duplicate")
+    case object Fraudulent          extends Reason("fraudulent")
     case object RequestedByCustomer extends Reason("requested_by_customer")
-  }
 
-  implicit val reasonFormats = EnumFormats.formats(Reason, insensitive = true)
+    implicit val reasonDecoder: Decoder[Reason] = enumeratum.Circe.decoder(Reason)
+    implicit val reasonEncoder: Encoder[Reason] = enumeratum.Circe.encoder(Reason)
+  }
 
   /**
     * @see https://stripe.com/docs/api#refund_object
@@ -64,30 +62,42 @@ object Refunds extends LazyLogging {
                     reason: Reason,
                     receiptNumber: Option[String])
 
-  implicit val refundReads: Reads[Refund] = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "balance_transaction").read[String] ~
-      (__ \ "charge").read[String] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "reason").read[Reason] ~
-      (__ \ "receipt_number").readNullable[String]
-  ).tupled.map((Refund.apply _).tupled)
+  implicit val refundDecoder: Decoder[Refund] = Decoder.forProduct9(
+    "id",
+    "amount",
+    "balance_transaction",
+    "charge",
+    "created",
+    "currency",
+    "metadata",
+    "reason",
+    "receipt_number"
+  )(Refund.apply)
 
-  implicit val refundWrites: Writes[Refund] = Writes(
-    (refundData: Refund) =>
-      Json.obj(
-        "id"                 -> refundData.id,
-        "amount"             -> refundData.amount,
-        "balanceTransaction" -> refundData.balanceTransaction,
-        "charge"             -> refundData.charge,
-        "created"            -> Json.toJson(refundData.created)(stripeDateTimeWrites),
-        "currency"           -> refundData.currency,
-        "metadata"           -> refundData.metadata,
-        "reason"             -> refundData.reason,
-        "receipt_number"     -> refundData.receiptNumber
+  implicit val refundEncoder: Encoder[Refund] = Encoder.forProduct10(
+    "id",
+    "object",
+    "amount",
+    "balance_transaction",
+    "charge",
+    "created",
+    "currency",
+    "metadata",
+    "reason",
+    "receipt_number"
+  )(
+    x =>
+      (
+        x.id,
+        "refund",
+        x.amount,
+        x.balanceTransaction,
+        x.charge,
+        x.created,
+        x.currency,
+        x.metadata,
+        x.reason,
+        x.receiptNumber
     ))
 
   /**
@@ -143,27 +153,25 @@ object Refunds extends LazyLogging {
     )
   }
 
-  implicit val refundInputReads: Reads[RefundInput] = (
-    (__ \ "charge").read[String] ~
-      (__ \ "reason").read[Reason] ~
-      (__ \ "amount").readNullable[BigDecimal] ~
-      (__ \ "metadata").read[Map[String, String]] ~
-      (__ \ "refund_application_fee").readNullable[Boolean] ~
-      (__ \ "reverse_transfer").readNullable[Boolean]
-  ).tupled.map((RefundInput.apply _).tupled)
+  implicit val refundInputDecoder: Decoder[RefundInput] = Decoder.forProduct6(
+    "charge",
+    "reason",
+    "amount",
+    "metadata",
+    "refund_application_fee",
+    "reverse_transfer"
+  )(RefundInput.apply)
 
-  implicit val refundInputWrites: Writes[RefundInput] = Writes(
-    (refundInput: RefundInput) =>
-      Json.obj(
-        "charge"                 -> refundInput.charge,
-        "amount"                 -> refundInput.amount,
-        "metadata"               -> refundInput.metadata,
-        "reason"                 -> refundInput.reason,
-        "refund_application_fee" -> refundInput.refundApplicationFee,
-        "reverse_transfer"       -> refundInput.reverseTransfer
-    ))
+  implicit val refundInputEncoder: Encoder[RefundInput] = Encoder.forProduct6(
+    "charge",
+    "reason",
+    "amount",
+    "metadata",
+    "refund_application_fee",
+    "reverse_transfer"
+  )(x => (x.charge, x.reason, x.amount, x.metadata, x.refundApplicationFee, x.reverseTransfer))
 
-  implicit val refundInputPostParams = PostParams.params[RefundInput] { refundInput =>
+  implicit val refundInputPostParams: PostParams[RefundInput] = PostParams.params[RefundInput] { refundInput =>
     val optional = Map(
       "amount"                 -> refundInput.amount.map(_.toString()),
       "refund_application_fee" -> refundInput.refundApplicationFee.map(_.toString),
@@ -247,10 +255,11 @@ object Refunds extends LazyLogging {
       )
 
   object RefundList extends Collections.ListJsonMappers[Refund] {
-    implicit val refundListReads: Reads[RefundList] =
-      listReads.tupled.map((RefundList.apply _).tupled)
+    implicit val refundListDecoder: Decoder[RefundList] =
+      listDecoder(implicitly)(RefundList.apply)
 
-    implicit val refundListWrites: Writes[RefundList] = listWrites
+    implicit val refundListEncoder: Encoder[RefundList] =
+      listEncoder[RefundList]
   }
 
   def list(refundListInput: RefundListInput, includeTotalCount: Boolean)(

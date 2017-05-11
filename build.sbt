@@ -3,6 +3,7 @@ import ReleaseTransformations._
 name := "stripe-scala"
 
 val currentScalaVersion = "2.11.8"
+val circeVersion        = "0.7.1"
 
 scalaVersion := currentScalaVersion
 
@@ -30,22 +31,24 @@ Defaults.itSettings
 
 configs(IntegrationTest)
 
-val enumeratumVersion = "1.4.16"
-val akkaStreamJson    = "3.3.0"
+val enumeratumVersion      = "1.5.12"
+val enumeratumCirceVersion = "1.5.13"
+val akkaStreamJson         = "3.3.0"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"          %% "akka-http"            % "10.0.5",
-  "de.knutwalker"              %% "akka-stream-json"     % akkaStreamJson,
-  "de.knutwalker"              %% "akka-http-json"       % akkaStreamJson,
-  "com.beachape"               %% "enumeratum"           % enumeratumVersion,
-  "com.beachape"               %% "enumeratum-play-json" % enumeratumVersion,
-  "com.iheart"                 %% "ficus"                % "1.3.4",
-  "com.typesafe.scala-logging" %% "scala-logging"        % "3.4.0",
-  "com.netaporter"             %% "scala-uri"            % "0.4.13" exclude ("io.spray", "spray-json_2.11"),
-  "com.typesafe.play"          %% "play-json"            % "2.5.8",
-  "org.spire-math"             %% "jawn-play"            % "0.10.1",
-  "org.scalatest"              %% "scalatest"            % "3.0.0" % "test, it",
-  "ch.qos.logback"             % "logback-classic"       % "1.1.7" % "test, it"
+  "com.typesafe.akka"          %% "akka-http"         % "10.0.5",
+  "de.knutwalker"              %% "akka-stream-circe" % akkaStreamJson,
+  "de.knutwalker"              %% "akka-http-circe"   % akkaStreamJson,
+  "io.circe"                   %% "circe-core"        % circeVersion,
+  "io.circe"                   %% "circe-generic"     % circeVersion,
+  "io.circe"                   %% "circe-parser"      % circeVersion,
+  "com.beachape"               %% "enumeratum"        % enumeratumVersion,
+  "com.beachape"               %% "enumeratum-circe"  % enumeratumCirceVersion,
+  "com.iheart"                 %% "ficus"             % "1.3.4",
+  "com.typesafe.scala-logging" %% "scala-logging"     % "3.4.0",
+  "com.netaporter"             %% "scala-uri"         % "0.4.13" exclude ("io.spray", "spray-json_2.11"),
+  "org.scalatest"              %% "scalatest"         % "3.0.0" % "test, it",
+  "ch.qos.logback"             % "logback-classic"    % "1.1.7" % "test, it"
 )
 
 homepage := Some(url("https://github.com/mdedetrich/stripe-scala"))

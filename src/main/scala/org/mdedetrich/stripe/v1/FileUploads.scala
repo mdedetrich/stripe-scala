@@ -9,10 +9,10 @@ import akka.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials}
 import akka.stream.Materializer
 import akka.stream.scaladsl.StreamConverters
 import com.typesafe.scalalogging.LazyLogging
-import enumeratum.{Enum, EnumEntry, EnumFormats, PlayJsonEnum}
+import defaults._
+import enumeratum.{Enum, EnumEntry}
+import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.{ApiKey, FileUploadEndpoint, InvalidJsonModelException}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -24,7 +24,7 @@ object FileUploads extends LazyLogging {
     override val entryName = value
   }
 
-  object Purpose extends Enum[Purpose] with PlayJsonEnum[Purpose] {
+  object Purpose extends Enum[Purpose] {
     val values = findValues
 
     case object BusinessLogo            extends Purpose("business_logo")
@@ -35,7 +35,8 @@ object FileUploads extends LazyLogging {
     case object PaymentProviderTransfer extends Purpose("payment_provider_transfer")
     case object ProductFeed             extends Purpose("product_feed")
 
-    implicit val purposeFormats = EnumFormats.formats(Purpose)
+    implicit val purposeDecoder: Decoder[Purpose] = enumeratum.Circe.decoder(Purpose)
+    implicit val purposeEncoder: Encoder[Purpose] = enumeratum.Circe.encoder(Purpose)
   }
 
   // FileUpload
@@ -48,15 +49,21 @@ object FileUploads extends LazyLogging {
       url: Option[String]
   )
 
-  implicit val customerReads: Reads[FileUpload] = (
-    (__ \ "id").read[String] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "purpose").read[Purpose] ~
-      (__ \ "size").read[Long] ~
-      (__ \ "url").readNullable[String]
-  ).tupled.map((FileUpload.apply _).tupled)
+  implicit val fileUploadDecoder: Decoder[FileUpload] = Decoder.forProduct5(
+    "id",
+    "created",
+    "purpose",
+    "size",
+    "url"
+  )(FileUpload.apply)
 
-  implicit val fileUploadReadsWrites = Json.writes[FileUpload]
+  implicit val fileUploadEncoder: Encoder[FileUpload] = Encoder.forProduct5(
+    "id",
+    "created",
+    "purpose",
+    "size",
+    "url"
+  )(x => FileUpload.unapply(x).get)
 
   def upload(purpose: Purpose, fileName: String, inputStream: InputStream)(
       implicit client: HttpExt,
@@ -95,20 +102,12 @@ object FileUploads extends LazyLogging {
     for {
       req      <- eventualReq
       response <- client.singleRequest(req)
-      parsed   <- parseStripeServerError(response, finalUrl, None, None, logger)
+      parsed   <- parseStripeServerError[FileUpload](response, finalUrl, None, None, logger)
       result = parsed match {
         case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[FileUpload](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.status.intValue(), finalUrl, None, None, jsValue, errors)
-              },
-              model => model
-            )
-          }
+          util.Success(triedJsValue.get)
         case Left(error) =>
-          scala.util.Failure(error)
+          util.Failure(error)
       }
 
     } yield result

@@ -1,7 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import io.circe.{Decoder, Encoder}
 
 object Shippings {
 
@@ -25,24 +24,31 @@ object Shippings {
     def default: Address = Address(None, None, None, None, None, None)
   }
 
-  implicit val addressReads: Reads[Address] = (
-    (__ \ "city").readNullable[String] ~
-      (__ \ "country").readNullable[String] ~
-      (__ \ "line1").readNullable[String] ~
-      (__ \ "line2").readNullable[String] ~
-      (__ \ "postal_code").readNullable[String] ~
-      (__ \ "state").readNullable[String]
-  ).tupled.map((Address.apply _).tupled)
+  implicit val addressDecoder: Decoder[Address] = Decoder.forProduct6(
+    "city",
+    "country",
+    "line1",
+    "line2",
+    "postal_code",
+    "state"
+  )(Address.apply)
 
-  implicit val addressWrites: Writes[Address] = Writes(
-    (address: Address) =>
-      Json.obj(
-        "city"        -> address.city,
-        "country"     -> address.country,
-        "line1"       -> address.line1,
-        "line2"       -> address.line2,
-        "postal_code" -> address.postalCode,
-        "state"       -> address.state
+  implicit val addressEncoder: Encoder[Address] = Encoder.forProduct6(
+    "city",
+    "country",
+    "line1",
+    "line2",
+    "postal_code",
+    "state"
+  )(
+    x =>
+      (
+        x.city,
+        x.country,
+        x.line1,
+        x.line2,
+        x.postalCode,
+        x.state
     ))
 
   /**
@@ -64,19 +70,27 @@ object Shippings {
                       phone: Option[String],
                       trackingNumber: Option[String])
 
-  implicit val shippingReads: Reads[Shipping] = (
-    (__ \ "address").readNullable[Address] ~
-      (__ \ "carrier").readNullable[String] ~
-      (__ \ "name").readNullable[String] ~
-      (__ \ "phone").readNullable[String] ~
-      (__ \ "tracking_number").readNullable[String]
-  ).tupled.map((Shipping.apply _).tupled)
+  implicit val shippingDecoder: Decoder[Shipping] = Decoder.forProduct5(
+    "address",
+    "carrier",
+    "name",
+    "phone",
+    "tracking_number"
+  )(Shipping.apply)
 
-  implicit val shippingWrites: Writes[Shipping] = Writes(
-    (shipping: Shipping) =>
-      Json.obj(
-        "address" -> shipping.address,
-        "name"    -> shipping.name,
-        "phone"   -> shipping.phone
+  implicit val shippingEncoder: Encoder[Shipping] = Encoder.forProduct5(
+    "address",
+    "carrier",
+    "name",
+    "phone",
+    "tracking_number"
+  )(
+    x =>
+      (
+        x.address,
+        x.carrier,
+        x.name,
+        x.phone,
+        x.trackingNumber
     ))
 }

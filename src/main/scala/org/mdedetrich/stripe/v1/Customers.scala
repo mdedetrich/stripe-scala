@@ -4,19 +4,17 @@ import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
 import akka.stream.Materializer
+import cats.syntax.either._
+import defaults._
 import com.typesafe.scalalogging.LazyLogging
-import org.mdedetrich.playjson.Utils._
+import io.circe._
+import io.circe.syntax._
 import org.mdedetrich.stripe.v1.Customers.Source.Token
-import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
 import org.mdedetrich.stripe.v1.Discounts.Discount
-import org.mdedetrich.stripe.v1.PaymentSourceList._
 import org.mdedetrich.stripe.v1.Shippings.Shipping
 import org.mdedetrich.stripe.v1.Sources.NumberCardSource
-import org.mdedetrich.stripe.v1.Subscriptions.Subscription
+import org.mdedetrich.stripe.v1.Subscriptions.SubscriptionList
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
-import play.api.data.validation.ValidationError
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -34,9 +32,9 @@ object Customers extends LazyLogging {
                       email: Option[String],
                       livemode: Boolean,
                       metadata: Option[Map[String, String]],
-                      shipping: Shipping,
+                      shipping: Option[Shipping],
                       sources: PaymentSourceList,
-                      subscriptions: List[Subscription])
+                      subscriptions: SubscriptionList)
       extends StripeObject
 
   object Customer {
@@ -46,9 +44,8 @@ object Customers extends LazyLogging {
                 currency: Currency,
                 delinquent: Boolean,
                 livemode: Boolean,
-                shipping: Shipping,
                 sources: PaymentSourceList,
-                subscriptions: List[Subscription]): Customer = Customer(
+                subscriptions: SubscriptionList): Customer = Customer(
       id,
       accountBalance,
       created,
@@ -60,47 +57,63 @@ object Customers extends LazyLogging {
       None,
       livemode,
       None,
-      shipping,
+      None,
       sources,
       subscriptions
     )
   }
 
-  implicit val customerReads: Reads[Customer] = (
-    (__ \ "id").read[String] ~
-      (__ \ "account_balance").read[BigDecimal] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").readNullable[Currency] ~
-      (__ \ "default_source").readNullable[String] ~
-      (__ \ "delinquent").read[Boolean] ~
-      (__ \ "description").readNullable[String] ~
-      (__ \ "discount").readNullable[Discount] ~
-      (__ \ "email").readNullable[String] ~
-      (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "shipping").read[Shipping] ~
-      (__ \ "sources").read[PaymentSourceList] ~
-      (__ \ "subscriptions" \ "data").read[List[Subscription]]
-  ).tupled.map((Customer.apply _).tupled)
+  implicit val customerDecoder: Decoder[Customer] = Decoder.forProduct14(
+    "id",
+    "account_balance",
+    "created",
+    "currency",
+    "default_source",
+    "delinquent",
+    "description",
+    "discount",
+    "email",
+    "livemode",
+    "metadata",
+    "shipping",
+    "sources",
+    "subscriptions"
+  )(Customer.apply)
 
-  implicit val customerWrites: Writes[Customer] = Writes(
-    (customer: Customer) =>
-      Json.obj(
-        "id"              -> customer.id,
-        "object"          -> "customer",
-        "account_balance" -> customer.accountBalance,
-        "created"         -> Json.toJson(customer.created)(stripeDateTimeWrites),
-        "currency"        -> customer.currency,
-        "default_source"  -> customer.defaultSource,
-        "delinquent"      -> customer.delinquent,
-        "description"     -> customer.description,
-        "discount"        -> customer.discount,
-        "email"           -> customer.email,
-        "livemode"        -> customer.livemode,
-        "metadata"        -> customer.metadata,
-        "shipping"        -> customer.shipping,
-        "sources"         -> customer.sources,
-        "subscriptions"   -> customer.subscriptions
+  implicit val customerEncoder: Encoder[Customer] = Encoder.forProduct15(
+    "id",
+    "object",
+    "account_balance",
+    "created",
+    "currency",
+    "default_source",
+    "delinquent",
+    "description",
+    "discount",
+    "email",
+    "livemode",
+    "metadata",
+    "shipping",
+    "sources",
+    "subscriptions"
+  )(
+    x =>
+      (
+        x.id,
+        "customer",
+        x.accountBalance,
+        x.created,
+        x.currency,
+        x.defaultSource,
+        x.delinquent,
+        x.description,
+        x.discount,
+        x.email,
+        x.livemode,
+        x.metadata,
+        x.shipping,
+        x.sources,
+        x.subscriptions
     ))
 
   sealed abstract class Source
@@ -146,74 +159,51 @@ object Customers extends LazyLogging {
     }
   }
 
-  implicit val sourceReads: Reads[Source] = {
-    __.read[JsValue].flatMap {
-      case jsObject: JsObject =>
-        (
-          (__ \ "exp_month").read[Int] ~
-            (__ \ "exp_year").read[Int] ~
-            (__ \ "number").read[String] ~
-            (__ \ "address_city").readNullable[String] ~
-            (__ \ "address_country").readNullable[String] ~
-            (__ \ "address_line1").readNullable[String] ~
-            (__ \ "address_line2").readNullable[String] ~
-            (__ \ "address_state").readNullable[String] ~
-            (__ \ "address_zip").readNullable[String] ~
-            (__ \ "currency").readNullable[Currency] ~
-            (__ \ "cvc").readNullable[String] ~
-            (__ \ "default_for_currency").readNullable[Boolean] ~
-            (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-            (__ \ "name").readNullable[String]
-        ).tupled.map((Source.Card.apply _).tupled)
-      case jsString: JsString =>
-        __.read[String].map { tokenId =>
-          Source.Token(tokenId)
-        }
-      case _ =>
-        Reads[Source](_ => JsError(ValidationError("InvalidSource")))
+  implicit val sourceDecoder: Decoder[Source] = Decoder.instance[Source] { c =>
+    c.as[JsonObject] match {
+      case Left(_) =>
+        c.as[String].map(Source.Token.apply)
+      case Right(_) =>
+        val decoder: Decoder[Source.Card] = Decoder.forProduct14(
+          "exp_month",
+          "exp_year",
+          "number",
+          "address_city",
+          "address_country",
+          "address_line1",
+          "address_line2",
+          "address_state",
+          "address_zip",
+          "currency",
+          "cvc",
+          "default_for_currency",
+          "metadata",
+          "name"
+        )(Source.Card.apply)
+        decoder.apply(c)
     }
   }
 
-  implicit val sourceWrites: Writes[Source] = {
-    Writes((source: Source) => {
-      source match {
-        case Source.Token(id) =>
-          JsString(id)
-        case Source.Card(
-            expMonth,
-            expYear,
-            number,
-            addressCity,
-            addressCountry,
-            addressLine1,
-            addressLine2,
-            addressState,
-            addressZip,
-            currency,
-            cvc,
-            defaultForCurrency,
-            metadata,
-            name
-            ) =>
-          Json.obj(
-            "object"               -> "card",
-            "exp_month"            -> expMonth,
-            "exp_year"             -> expYear,
-            "number"               -> number,
-            "address_city"         -> addressCity,
-            "address_country"      -> addressCountry,
-            "address_line1"        -> addressLine1,
-            "address_line2"        -> addressLine2,
-            "address_state"        -> addressState,
-            "address_zip"          -> addressZip,
-            "currency"             -> currency,
-            "cvc"                  -> cvc,
-            "default_for_currency" -> defaultForCurrency,
-            "metadata"             -> metadata,
-            "name"                 -> name
-          )
-      }
-    })
+  implicit val sourceEncoder: Encoder[Source] = Encoder.instance[Source] {
+    case Source.Token(id) => id.asJson
+    case card: Source.Card =>
+      val encoder: Encoder[Source.Card] = Encoder.forProduct14(
+        "exp_month",
+        "exp_year",
+        "number",
+        "address_city",
+        "address_country",
+        "address_line1",
+        "address_line2",
+        "address_state",
+        "address_zip",
+        "currency",
+        "cvc",
+        "default_for_currency",
+        "metadata",
+        "name"
+      )(x => Source.Card.unapply(x).get)
+      encoder.apply(card)
   }
 
   case class CustomerInput(accountBalance: Option[BigDecimal],
@@ -244,35 +234,33 @@ object Customers extends LazyLogging {
     )
   }
 
-  implicit val customerInputReads: Reads[CustomerInput] = (
-    (__ \ "account_balance").readNullable[BigDecimal] ~
-      (__ \ "coupon").readNullable[String] ~
-      (__ \ "description").readNullable[String] ~
-      (__ \ "email").readNullable[String] ~
-      (__ \ "metadata").read[Map[String, String]] ~
-      (__ \ "plan").readNullable[String] ~
-      (__ \ "quantity").readNullable[Long] ~
-      (__ \ "shipping").readNullable[Shipping] ~
-      (__ \ "source").readNullable[Source] ~
-      (__ \ "tax_percent").readNullable[BigDecimal] ~
-      (__ \ "trial_end").readNullable[OffsetDateTime](stripeDateTimeReads)
-  ).tupled.map((CustomerInput.apply _).tupled)
+  implicit val customerInputDecoder: Decoder[CustomerInput] = Decoder.forProduct11(
+    "account_balance",
+    "coupon",
+    "description",
+    "email",
+    "metadata",
+    "plan",
+    "quantity",
+    "shipping",
+    "source",
+    "tax_percent",
+    "trial_end"
+  )(CustomerInput.apply)
 
-  implicit val customerInputWrites: Writes[CustomerInput] = Writes(
-    (customerInput: CustomerInput) =>
-      Json.obj(
-        "account_balance" -> customerInput.accountBalance,
-        "coupon"          -> customerInput.coupon,
-        "description"     -> customerInput.description,
-        "email"           -> customerInput.email,
-        "metadata"        -> customerInput.metadata,
-        "plan"            -> customerInput.plan,
-        "quantity"        -> customerInput.quantity,
-        "shipping"        -> customerInput.shipping,
-        "source"          -> customerInput.source,
-        "tax_percent"     -> customerInput.taxPercent,
-        "trial_end"       -> customerInput.trialEnd.map(x => Json.toJson(x)(stripeDateTimeWrites))
-    ))
+  implicit val customerInputEncoder: Encoder[CustomerInput] = Encoder.forProduct11(
+    "account_balance",
+    "coupon",
+    "description",
+    "email",
+    "metadata",
+    "plan",
+    "quantity",
+    "shipping",
+    "source",
+    "tax_percent",
+    "trial_end"
+  )(x => CustomerInput.unapply(x).get)
 
   case class CustomerUpdate(
       paymentSource: Option[Token],
@@ -283,7 +271,7 @@ object Customers extends LazyLogging {
     def default: CustomerUpdate = CustomerUpdate(None, None)
   }
 
-  implicit val customerUpdatePostParams = PostParams.params[CustomerUpdate] { t =>
+  implicit val customerUpdatePostParams: PostParams[CustomerUpdate] = PostParams.params[CustomerUpdate] { t =>
     val params = Map(
       "source"         -> t.paymentSource.map(_.id),
       "default_source" -> t.defaultSource
@@ -393,10 +381,10 @@ object Customers extends LazyLogging {
                                   endpoint: Endpoint,
                                   client: HttpExt,
                                   materializer: Materializer,
-                                  executionContext: ExecutionContext): Future[Try[JsValue]] = {
+                                  executionContext: ExecutionContext): Future[Try[Json]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
-    createRequestGET[JsValue](finalUrl, logger)
+    createRequestGET[Json](finalUrl, logger)
   }
 
   def update(id: String, customerUpdate: CustomerUpdate)(idempotencyKey: Option[IdempotencyKey] = None)(
@@ -443,10 +431,11 @@ object Customers extends LazyLogging {
       extends Collections.List[Customer](url, hasMore, data, totalCount)
 
   object CustomerList extends Collections.ListJsonMappers[Customer] {
-    implicit val customerListReads: Reads[CustomerList] =
-      listReads.tupled.map((CustomerList.apply _).tupled)
+    implicit val customerListDecoder: Decoder[CustomerList] =
+      listDecoder(implicitly)(CustomerList.apply)
 
-    implicit val customerWrites: Writes[CustomerList] = listWrites
+    implicit val customerListEncoder: Encoder[CustomerList] =
+      listEncoder[CustomerList]
   }
 
   def list(customerListInput: CustomerListInput, includeTotalCount: Boolean)(

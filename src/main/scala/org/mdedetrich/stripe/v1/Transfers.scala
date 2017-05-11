@@ -4,14 +4,14 @@ import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
 import akka.stream.Materializer
+import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
+import defaults._
 import enumeratum._
-import org.mdedetrich.playjson.Utils._
+import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.BankAccounts._
 import org.mdedetrich.stripe.v1.TransferReversals._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -30,11 +30,11 @@ object Transfers extends LazyLogging {
       )
 
   object TransferReversalList extends Collections.ListJsonMappers[TransferReversal] {
-    implicit val transferReversalListReads: Reads[TransferReversalList] =
-      listReads.tupled.map((TransferReversalList.apply _).tupled)
+    implicit val transferReversalListDecoder: Decoder[TransferReversalList] =
+      listDecoder(implicitly)(TransferReversalList.apply)
 
-    implicit val transferReversalWrites: Writes[TransferReversalList] =
-      listWrites
+    implicit val transferReversalListEncoder: Encoder[TransferReversalList] =
+      listEncoder[TransferReversalList]
   }
 
   sealed abstract class Type(val id: String) extends EnumEntry {
@@ -42,38 +42,32 @@ object Transfers extends LazyLogging {
   }
 
   object Type extends Enum[Type] {
-
     val values = findValues
 
-    case object Card extends Type("card")
-
-    case object BankAccount extends Type("bank_account")
-
+    case object Card          extends Type("card")
+    case object BankAccount   extends Type("bank_account")
     case object StripeAccount extends Type("stripe_account")
-  }
 
-  implicit val typeFormats = EnumFormats.formats(Type, insensitive = true)
+    implicit val transferTypeDecoder: Decoder[Type] = enumeratum.Circe.decoder(Type)
+    implicit val transferTypeEncoder: Encoder[Type] = enumeratum.Circe.encoder(Type)
+  }
 
   sealed abstract class Status(val id: String) extends EnumEntry {
     override val entryName = id
   }
 
   object Status extends Enum[Status] {
-
     val values = findValues
 
-    case object Paid extends Status("paid")
-
-    case object Pending extends Status("pending")
-
+    case object Paid      extends Status("paid")
+    case object Pending   extends Status("pending")
     case object InTransit extends Status("in_transit")
+    case object Canceled  extends Status("canceled")
+    case object Failed    extends Status("failed")
 
-    case object Canceled extends Status("canceled")
-
-    case object Failed extends Status("failed")
+    implicit val transferStatusDecoder: Decoder[Status] = enumeratum.Circe.decoder(Status)
+    implicit val transferStatusEncoder: Encoder[Status] = enumeratum.Circe.encoder(Status)
   }
-
-  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   /**
     * @see https://stripe.com/docs/api#transfer_failures
@@ -84,52 +78,39 @@ object Transfers extends LazyLogging {
   }
 
   object FailureCode extends Enum[FailureCode] {
-
     val values = findValues
 
-    case object InsufficientFunds extends FailureCode("insufficient_funds")
-
-    case object AccountClosed extends FailureCode("account_closed")
-
-    case object NoAccount extends FailureCode("no_account")
-
-    case object InvalidAccountNumber extends FailureCode("invalid_account_number")
-
-    case object DebitNotAuthorized extends FailureCode("debit_not_authorized")
-
-    case object BankOwnershipChanged extends FailureCode("bank_ownership_changed")
-
-    case object AccountFrozen extends FailureCode("account_frozen")
-
-    case object CouldNotProcess extends FailureCode("could_not_process")
-
+    case object InsufficientFunds     extends FailureCode("insufficient_funds")
+    case object AccountClosed         extends FailureCode("account_closed")
+    case object NoAccount             extends FailureCode("no_account")
+    case object InvalidAccountNumber  extends FailureCode("invalid_account_number")
+    case object DebitNotAuthorized    extends FailureCode("debit_not_authorized")
+    case object BankOwnershipChanged  extends FailureCode("bank_ownership_changed")
+    case object AccountFrozen         extends FailureCode("account_frozen")
+    case object CouldNotProcess       extends FailureCode("could_not_process")
     case object BankAccountRestricted extends FailureCode("bank_account_restricted")
+    case object InvalidCurrency       extends FailureCode("invalid_currency")
 
-    case object InvalidCurrency extends FailureCode("invalid_currency")
+    implicit val transferStatusFailureCodeDecoder: Decoder[FailureCode] = enumeratum.Circe.decoder(FailureCode)
+    implicit val transferStatusFailureCodeEncoder: Encoder[FailureCode] = enumeratum.Circe.encoder(FailureCode)
+
   }
-
-  implicit val failureCodeFormats =
-    EnumFormats.formats(FailureCode, insensitive = true)
 
   sealed abstract class SourceType(val id: String) extends EnumEntry {
     override val entryName = id
   }
 
   object SourceType extends Enum[SourceType] {
-
     val values = findValues
 
-    case object Card extends SourceType("card")
-
-    case object AlipayAccount extends SourceType("alipay_account")
-
+    case object Card            extends SourceType("card")
+    case object AlipayAccount   extends SourceType("alipay_account")
     case object BitcoinReceiver extends SourceType("bitcoin_receiver")
+    case object BankAccount     extends SourceType("bank_account")
 
-    case object BankAccount extends SourceType("bank_account")
+    implicit val sourceTypeDecoder: Decoder[SourceType] = enumeratum.Circe.decoder(SourceType)
+    implicit val sourceTypeEncoder: Encoder[SourceType] = enumeratum.Circe.encoder(SourceType)
   }
-
-  implicit val sourceTypeFormats =
-    EnumFormats.formats(SourceType, insensitive = true)
 
   case class Transfer(id: String,
                       amount: BigDecimal,
@@ -157,118 +138,175 @@ object Transfers extends LazyLogging {
                       `type`: Type)
       extends StripeObject
 
-  // This is due to http://stackoverflow.com/questions/28167971/scala-case-having-22-fields-but-having-issue-with-play-json-in-scala-2-11-5
+  private val transferDecoderOne = Decoder.forProduct22(
+    "id",
+    "amount",
+    "amount_reversed",
+    "application_fee",
+    "balance_transaction",
+    "bank_account",
+    "created",
+    "currency",
+    "date",
+    "description",
+    "destination",
+    "destination_payment",
+    "failure_code",
+    "failure_message",
+    "livemode",
+    "metadata",
+    "recipient",
+    "reversals",
+    "reversed",
+    "source_transaction",
+    "source_type",
+    "statement_descriptor"
+  )(
+    Tuple22.apply(
+      _: String,
+      _: BigDecimal,
+      _: BigDecimal,
+      _: Option[BigDecimal],
+      _: String,
+      _: Option[BankAccount],
+      _: OffsetDateTime,
+      _: Currency,
+      _: OffsetDateTime,
+      _: Option[String],
+      _: String,
+      _: Option[String],
+      _: Option[FailureCode],
+      _: Option[String],
+      _: Boolean,
+      _: Option[Map[String, String]],
+      _: Option[String],
+      _: TransferReversalList,
+      _: Boolean,
+      _: Option[String],
+      _: SourceType,
+      _: Option[String]
+    ))
 
-  private val transferReadsOne = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "amount_reversed").read[BigDecimal] ~
-      (__ \ "application_fee").readNullable[BigDecimal] ~
-      (__ \ "balance_transaction").read[String] ~
-      (__ \ "bank_account").readNullable[BankAccount] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "date").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "description").readNullable[String] ~
-      (__ \ "destination").read[String] ~
-      (__ \ "destination_payment").readNullable[String] ~
-      (__ \ "failure_code").readNullable[FailureCode] ~
-      (__ \ "failure_message").readNullable[String] ~
-      (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "recipient").readNullable[String] ~
-      (__ \ "reversals").read[TransferReversalList] ~
-      (__ \ "reversed").read[Boolean] ~
-      (__ \ "source_transaction").readNullable[String] ~
-      (__ \ "source_type").read[SourceType]
-  ).tupled
+  private val transferDecoderTwo = Decoder.forProduct2("status", "type")(
+    Tuple2.apply(
+      _: Status,
+      _: Type
+    ))
 
-  private val transferReadsTwo = (
-    (__ \ "statement_descriptor").readNullable[String] ~
-      (__ \ "status").read[Status] ~
-      (__ \ "type").read[Type]
-  ).tupled
-
-  implicit val transferReads: Reads[Transfer] = (
-    transferReadsOne ~ transferReadsTwo
-  ) { (one, two) =>
-    val (id,
-         amount,
-         amountReversed,
-         applicationFee,
-         balanceTransaction,
-         bankAccount,
-         created,
-         currency,
-         date,
-         description,
-         destination,
-         destinationPayment,
-         failureCode,
-         failureMessage,
-         livemode,
-         metadata,
-         recipient,
-         reversals,
-         reversed,
-         sourceTransaction,
-         sourceType)                         = one
-    val (statementDescriptor, status, type_) = two
-
-    Transfer(
-      id,
-      amount,
-      amountReversed,
-      applicationFee,
-      balanceTransaction,
-      bankAccount,
-      created,
-      currency,
-      date,
-      description,
-      destination,
-      destinationPayment,
-      failureCode,
-      failureMessage,
-      livemode,
-      metadata,
-      recipient,
-      reversals,
-      reversed,
-      sourceTransaction,
-      sourceType,
-      statementDescriptor,
-      status,
-      type_
-    )
+  implicit val transferDecoder: Decoder[Transfer] = Decoder.instance[Transfer] { c =>
+    for {
+      one <- transferDecoderOne.apply(c)
+      two <- transferDecoderTwo.apply(c)
+    } yield {
+      val (id,
+           amount,
+           amountReversed,
+           applicationFee,
+           balanceTransaction,
+           bankAccount,
+           created,
+           currency,
+           date,
+           description,
+           destination,
+           destinationPayment,
+           failureCode,
+           failureMessage,
+           livemode,
+           metadata,
+           recipient,
+           reversals,
+           reversed,
+           sourceTransaction,
+           sourceType,
+           statementDescriptor) = one
+      val (status, type_)       = two
+      Transfer(
+        id,
+        amount,
+        amountReversed,
+        applicationFee,
+        balanceTransaction,
+        bankAccount,
+        created,
+        currency,
+        date,
+        description,
+        destination,
+        destinationPayment,
+        failureCode,
+        failureMessage,
+        livemode,
+        metadata,
+        recipient,
+        reversals,
+        reversed,
+        sourceTransaction,
+        sourceType,
+        statementDescriptor,
+        status,
+        type_
+      )
+    }
   }
 
-  implicit val transferWrites: Writes[Transfer] = Writes(
-    (transfer: Transfer) =>
-      Json.obj(
-        "id"                  -> transfer.id,
-        "object"              -> "transfer",
-        "amount"              -> transfer.amount,
-        "amount_reversed"     -> transfer.amountReversed,
-        "application_fee"     -> transfer.applicationFee,
-        "balance_transaction" -> transfer.balanceTransaction,
-        "bank_account"        -> transfer.bankAccount,
-        "created"             -> Json.toJson(transfer.created)(stripeDateTimeWrites),
-        "currency"            -> transfer.currency,
-        "date"                -> Json.toJson(transfer.date)(stripeDateTimeWrites),
-        "description"         -> transfer.description,
-        "destination"         -> transfer.destination,
-        "destination_payment" -> transfer.destinationPayment,
-        "failure_code"        -> transfer.failureCode,
-        "failure_message"     -> transfer.failureMessage,
-        "livemode"            -> transfer.livemode,
-        "metadata"            -> transfer.metadata,
-        "recipient"           -> transfer.recipient,
-        "reversals"           -> transfer.reversals,
-        "reversed"            -> transfer.reversed,
-        "source_transaction"  -> transfer.sourceTransaction,
-        "source_type"         -> transfer.sourceType
-    ))
+  private val transferEncoderOne: Encoder[Transfer] = Encoder.forProduct22(
+    "id",
+    "object",
+    "amount",
+    "amount_reversed",
+    "application_fee",
+    "balance_transaction",
+    "bank_account",
+    "created",
+    "currency",
+    "date",
+    "description",
+    "destination",
+    "destination_payment",
+    "failure_code",
+    "failure_message",
+    "livemode",
+    "metadata",
+    "recipient",
+    "reversals",
+    "reversed",
+    "source_transaction",
+    "source_type"
+  )(
+    x =>
+      (x.id,
+       "transfer",
+       x.amount,
+       x.amountReversed,
+       x.applicationFee,
+       x.balanceTransaction,
+       x.bankAccount,
+       x.created,
+       x.currency,
+       x.date,
+       x.description,
+       x.destination,
+       x.destinationPayment,
+       x.failureCode,
+       x.failureMessage,
+       x.livemode,
+       x.metadata,
+       x.recipient,
+       x.reversals,
+       x.reversed,
+       x.sourceTransaction,
+       x.sourceType))
+
+  private val transferEncoderTwo: Encoder[Transfer] = Encoder.forProduct3(
+    "statement_descriptor",
+    "status",
+    "type"
+  )(x => (x.statementDescriptor, x.status, x.`type`))
+
+  implicit val transferEncoder: Encoder[Transfer] = Encoder.instance[Transfer] { t =>
+    transferEncoderOne.apply(t).deepMerge(transferEncoderTwo.apply(t))
+  }
 
   /**
     * @see https://stripe.com/docs/api#create_transfer
@@ -425,10 +463,11 @@ object Transfers extends LazyLogging {
       )
 
   object TransferList extends Collections.ListJsonMappers[Transfer] {
-    implicit val transferListReads: Reads[TransferList] =
-      listReads.tupled.map((TransferList.apply _).tupled)
+    implicit val transferListDecoder: Decoder[TransferList] =
+      listDecoder(implicitly)(TransferList.apply)
 
-    implicit val transferListWrites: Writes[TransferList] = listWrites
+    implicit val transferListEncoder: Encoder[TransferList] =
+      listEncoder[TransferList]
   }
 
   def list(transferListInput: TransferListInput, includeTotalCount: Boolean)(

@@ -4,7 +4,7 @@ import java.time.{LocalDate, OffsetDateTime}
 
 import org.mdedetrich.stripe.Config._
 import org.mdedetrich.stripe.v1.Accounts.LegalEntityType.Individual
-import org.mdedetrich.stripe.v1.Accounts.{Account, LegalEntity, TosAcceptance, TransferInverval, TransferSchedule}
+import org.mdedetrich.stripe.v1.Accounts.{Account, LegalEntity, TosAcceptance, TransferInterval, TransferSchedule}
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
 import org.scalatest.ParallelTestExecution
 
@@ -52,7 +52,7 @@ object AccountIT extends DefaultDependencies {
       LegalEntity.default
         .copy(`type` = Some(Individual), firstName = Some("Horst"), lastName = Some("Kasuppke"), dob = Some(dob)))
 
-    val transferSchedule = Some(TransferSchedule(Some(TransferInverval.Manual), None, None))
+    val transferSchedule = Some(TransferSchedule(Some(TransferInterval.Manual), None, None))
 
     // weirdly, this needs to be here in order for the following line not to throw a NullPointerException
     Currency.lowerCaseNamesToValuesMap

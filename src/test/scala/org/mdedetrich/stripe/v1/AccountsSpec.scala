@@ -1,7 +1,12 @@
 package org.mdedetrich.stripe.v1
 
+import java.io.{BufferedReader, InputStreamReader}
 import java.time.{DayOfWeek, LocalDate, OffsetDateTime}
+import java.util.stream.Collectors
 
+import cats.syntax.either._
+import io.circe.Json
+import io.circe.parser._
 import org.mdedetrich.stripe.PostParams
 import org.mdedetrich.stripe.v1.Accounts.{
   Account,
@@ -9,14 +14,13 @@ import org.mdedetrich.stripe.v1.Accounts.{
   AccountUpdate,
   LegalEntity,
   TosAcceptance,
-  TransferInverval,
+  TransferInterval,
   TransferSchedule
 }
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
 import org.mdedetrich.stripe.v1.BankAccountsPaymentSource.BankAccount
 import org.mdedetrich.stripe.v1.Shippings.Address
 import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsString, JsSuccess, Json}
 
 class AccountsSpec extends WordSpec with Matchers {
   val address = Address.default.copy(
@@ -29,10 +33,11 @@ class AccountsSpec extends WordSpec with Matchers {
 
   "Accounts" should {
     "parse JSON correctly" in {
-      val in   = this.getClass.getResourceAsStream("/account.json")
-      val json = Json.parse(in)
+      val in     = this.getClass.getResourceAsStream("/account.json")
+      val string = scala.io.Source.fromInputStream(in).mkString
+      val json   = parse(string).toOption
 
-      val JsSuccess(account, _) = json.validate[Account]
+      val account = json.flatMap(_.as[Account].toOption).get
       account.id should be("acct_191dzJG5YhaiJXJY")
       account.legalEntity.address.country should be(Some("DE"))
 
@@ -40,7 +45,7 @@ class AccountsSpec extends WordSpec with Matchers {
       ba.id should be("ba_191dzLG5YhaiJXJYeWv9KHmR")
       ba.last4 should be("3000")
 
-      account.transferSchedule.interval.get should be(TransferInverval.Daily)
+      account.transferSchedule.interval.get should be(TransferInterval.Daily)
 
       account.verification.fieldsNeeded should be(Seq("legal_entity.verification.document"))
     }
@@ -71,7 +76,7 @@ class AccountsSpec extends WordSpec with Matchers {
 
     "convert transfer schedule" in {
       val input = AccountInput.default.copy(
-        transferSchedule = Some(TransferSchedule(Some(TransferInverval.Manual), None, Some(DayOfWeek.SUNDAY))))
+        transferSchedule = Some(TransferSchedule(Some(TransferInterval.Manual), None, Some(DayOfWeek.SUNDAY))))
       val map = PostParams.toPostParams(input)
       map("transfer_schedule[interval]") should be("manual")
       map("transfer_schedule[weekly_anchor]") should be("sunday")
@@ -149,7 +154,7 @@ class AccountsSpec extends WordSpec with Matchers {
 
   "Day of week" should {
     "parse correctly" in {
-      Accounts.dayOfWeekReads.reads(JsString("monday")).get should be(DayOfWeek.MONDAY)
+      Accounts.dayOfWeekDecoder(Json.fromString("monday").hcursor).right.get should be(DayOfWeek.MONDAY)
     }
   }
 }

@@ -4,16 +4,16 @@ import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
 import akka.stream.Materializer
+import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
+import defaults._
 import enumeratum._
-import org.mdedetrich.playjson.Utils._
+import io.circe._
+import io.circe.syntax._
 import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.Plans.Plan
 import org.mdedetrich.stripe.v1.Sources.NumberCardSource
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
-import play.api.data.validation.ValidationError
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -28,21 +28,17 @@ object Subscriptions extends LazyLogging {
   }
 
   object Status extends Enum[Status] {
-
     val values = findValues
 
     case object Trialing extends Status("trialing")
-
-    case object Active extends Status("active")
-
-    case object PastDue extends Status("past_due")
-
+    case object Active   extends Status("active")
+    case object PastDue  extends Status("past_due")
     case object Canceled extends Status("canceled")
+    case object Unpaid   extends Status("unpaid")
 
-    case object Unpaid extends Status("unpaid")
+    implicit val subscriptionStatusDecoder: Decoder[Status] = enumeratum.Circe.decoder(Status)
+    implicit val subscriptionStatusEncoder: Encoder[Status] = enumeratum.Circe.encoder(Status)
   }
-
-  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   /**
     * @see https://stripe.com/docs/api#subscription_object
@@ -159,48 +155,65 @@ object Subscriptions extends LazyLogging {
     )
   }
 
-  implicit val subscriptionReads: Reads[Subscription] = (
-    (__ \ "id").read[String] ~
-      (__ \ "application_fee_percent").readNullable[BigDecimal] ~
-      (__ \ "cancel_at_period_end").read[Boolean] ~
-      (__ \ "canceled_at").readNullable[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "current_period_end").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "current_period_start").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "customer").read[String] ~
-      (__ \ "discount").readNullable[Discount] ~
-      (__ \ "ended_at").readNullable[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "plan").read[Plan] ~
-      (__ \ "quantity").read[Long] ~
-      (__ \ "start").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "status").read[Status] ~
-      (__ \ "tax_percent").readNullable[BigDecimal] ~
-      (__ \ "trial_end").readNullable[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "trial_start").readNullable[OffsetDateTime](stripeDateTimeReads)
-  ).tupled.map((Subscription.apply _).tupled)
+  implicit val subscriptionDecoder: Decoder[Subscription] = Decoder.forProduct17(
+    "id",
+    "application_fee_percent",
+    "cancel_at_period_end",
+    "canceled_at",
+    "current_period_end",
+    "current_period_start",
+    "customer",
+    "discount",
+    "ended_at",
+    "metadata",
+    "plan",
+    "quantity",
+    "start",
+    "status",
+    "tax_percent",
+    "trial_end",
+    "trial_start"
+  )(Subscription.apply)
 
-  implicit val subscriptionWrites: Writes[Subscription] = Writes(
-    (subscription: Subscription) =>
-      Json.obj(
-        "id"                      -> subscription.id,
-        "object"                  -> "subscription",
-        "application_fee_percent" -> subscription.applicationFeePercent,
-        "cancel_at_period_end"    -> subscription.cancelAtPeriodEnd,
-        "canceled_at"             -> subscription.canceledAt.map(x => Json.toJson(x)(stripeDateTimeWrites)),
-        "current_period_end"      -> Json.toJson(subscription.currentPeriodEnd)(stripeDateTimeWrites),
-        "current_period_start"    -> Json.toJson(subscription.currentPeriodStart)(stripeDateTimeWrites),
-        "customer"                -> subscription.customer,
-        "discount"                -> subscription.discount,
-        "ended_at"                -> subscription.endedAt.map(x => Json.toJson(x)(stripeDateTimeWrites)),
-        "metadata"                -> subscription.metadata,
-        "plan"                    -> subscription.plan,
-        "quantity"                -> subscription.quantity,
-        "start"                   -> Json.toJson(subscription.start)(stripeDateTimeWrites),
-        "status"                  -> subscription.status,
-        "tax_percent"             -> subscription.taxPercent,
-        "trial_end"               -> subscription.trialEnd.map(x => Json.toJson(x)(stripeDateTimeWrites)),
-        "trial_start"             -> subscription.trialStart.map(x => Json.toJson(x)(stripeDateTimeWrites))
-    ))
+  implicit val subscriptionEncoder: Encoder[Subscription] = Encoder.forProduct18(
+    "id",
+    "object",
+    "application_fee_percent",
+    "cancel_at_period_end",
+    "canceled_at",
+    "current_period_end",
+    "current_period_start",
+    "customer",
+    "discount",
+    "ended_at",
+    "metadata",
+    "plan",
+    "quantity",
+    "start",
+    "status",
+    "tax_percent",
+    "trial_end",
+    "trial_start"
+  )(
+    x =>
+      (x.id,
+       "subscription",
+       x.applicationFeePercent,
+       x.cancelAtPeriodEnd,
+       x.canceledAt,
+       x.currentPeriodEnd,
+       x.currentPeriodStart,
+       x.customer,
+       x.discount,
+       x.endedAt,
+       x.metadata,
+       x.plan,
+       x.quantity,
+       x.start,
+       x.status,
+       x.taxPercent,
+       x.trialEnd,
+       x.trialEnd))
 
   sealed abstract class Source
 
@@ -242,60 +255,51 @@ object Subscriptions extends LazyLogging {
         with NumberCardSource
   }
 
-  implicit val sourceReads: Reads[Source] = {
-    __.read[JsValue].flatMap {
-      case jsObject: JsObject =>
-        (
-          (__ \ "exp_month").read[Int] ~
-            (__ \ "exp_year").read[Int] ~
-            (__ \ "number").read[String] ~
-            (__ \ "address_country").readNullable[String] ~
-            (__ \ "address_line1").readNullable[String] ~
-            (__ \ "address_line2").readNullable[String] ~
-            (__ \ "address_state").readNullable[String] ~
-            (__ \ "address_zip").readNullable[String] ~
-            (__ \ "cvc").readNullable[String] ~
-            (__ \ "name").readNullable[String]
-        ).tupled.map((Source.Card.apply _).tupled)
-      case jsString: JsString =>
-        __.read[String].map { tokenId =>
-          Source.Token(tokenId)
+  implicit val subscriptionSourceDecoder: Decoder[Source] = Decoder.instance[Source] { c =>
+    for {
+      json <- c.as[Json]
+      result <- {
+        if (json.isObject) {
+          val decoder: Decoder[Source.Card] = Decoder.forProduct10(
+            "exp_month",
+            "exp_year",
+            "number",
+            "address_country",
+            "address_line1",
+            "address_line2",
+            "address_state",
+            "address_zip",
+            "cvc",
+            "name"
+          )(Source.Card.apply)
+          decoder.apply(c)
+        } else if (json.isString) {
+          c.as[String].map(Source.Token.apply)
+        } else {
+          Left(DecodingFailure("InvalidSource", c.history))
         }
-      case _ =>
-        Reads[Source](_ => JsError(ValidationError("InvalidSource")))
-    }
+      }
+    } yield result
   }
 
-  implicit val sourceWrites: Writes[Source] = Writes((source: Source) =>
-    source match {
-      case Source.Token(id) =>
-        JsString(id)
-      case Source.Card(
-          expMonth,
-          expYear,
-          number,
-          addressCountry,
-          addressLine1,
-          addressLine2,
-          addressState,
-          addressZip,
-          cvc,
-          name
-          ) =>
-        Json.obj(
-          "object"          -> "card",
-          "exp_month"       -> expMonth,
-          "exp_year"        -> expYear,
-          "number"          -> number,
-          "address_country" -> addressCountry,
-          "address_line1"   -> addressLine1,
-          "address_line2"   -> addressLine2,
-          "address_state"   -> addressState,
-          "address_zip"     -> addressZip,
-          "cvc"             -> cvc,
-          "name"            -> name
-        )
-  })
+  implicit val sourceEncoder: Encoder[Source] = Encoder.instance[Source] {
+    case Source.Token(id) =>
+      id.asJson
+    case card: Source.Card =>
+      val encoder: Encoder[Source.Card] = Encoder.forProduct10(
+        "exp_month",
+        "exp_year",
+        "number",
+        "address_country",
+        "address_line1",
+        "address_line2",
+        "address_state",
+        "address_zip",
+        "cvc",
+        "name"
+      )(x => Source.Card.unapply(x).get)
+      encoder.apply(card)
+  }
 
   /**
     * @see https://stripe.com/docs/api#create_subscription-source
@@ -393,6 +397,20 @@ object Subscriptions extends LazyLogging {
       None,
       None
     )
+  }
+
+  case class SubscriptionList(override val url: String,
+                              override val hasMore: Boolean,
+                              override val data: List[Subscription],
+                              override val totalCount: Option[Long])
+      extends Collections.List[Subscription](url, hasMore, data, totalCount)
+
+  object SubscriptionList extends Collections.ListJsonMappers[Subscription] {
+    implicit val couponListDecoder: Decoder[SubscriptionList] =
+      listDecoder(implicitly)(SubscriptionList.apply)
+
+    implicit val couponListEncoder: Encoder[SubscriptionList] =
+      listEncoder[SubscriptionList]
   }
 
   def create(customerId: String, subscriptionInput: SubscriptionInput)(idempotencyKey: Option[IdempotencyKey] = None)(

@@ -3,12 +3,11 @@ package org.mdedetrich.stripe.v1
 import akka.http.scaladsl.HttpExt
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
+import defaults._
 import enumeratum._
-import org.mdedetrich.playjson.Utils._
-import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
+import io.circe._
+import io.circe.syntax._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -20,37 +19,33 @@ object BankAccounts extends LazyLogging {
   }
 
   object AccountHolderType extends Enum[AccountHolderType] {
-
     val values = findValues
 
     case object Individual extends AccountHolderType("individual")
+    case object Company    extends AccountHolderType("company")
 
-    case object Company extends AccountHolderType("company")
+    implicit val accountHolderTypeDecoder: Decoder[AccountHolderType] =
+      enumeratum.Circe.decoder(AccountHolderType)
+    implicit val accountHolderTypeEncoder: Encoder[AccountHolderType] =
+      enumeratum.Circe.encoder(AccountHolderType)
   }
-
-  implicit val accountHolderTypeFormats =
-    EnumFormats.formats(AccountHolderType, insensitive = true)
 
   sealed abstract class Status(val id: String) extends EnumEntry {
     override val entryName = id
   }
 
   object Status extends Enum[Status] {
-
     val values = findValues
 
-    case object New extends Status("new")
-
-    case object Validated extends Status("validated")
-
-    case object Verified extends Status("verified")
-
+    case object New                extends Status("new")
+    case object Validated          extends Status("validated")
+    case object Verified           extends Status("verified")
     case object VerificationFailed extends Status("verification_failed")
+    case object Errored            extends Status("errored")
 
-    case object Errored extends Status("errored")
+    implicit val statusDecoder: Decoder[Status] = enumeratum.Circe.decoder(Status)
+    implicit val statusEncoder: Encoder[Status] = enumeratum.Circe.encoder(Status)
   }
-
-  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   /**
     *
@@ -92,41 +87,57 @@ object BankAccounts extends LazyLogging {
                          status: Status)
       extends StripeObject
 
-  implicit val bankAccountReads: Reads[BankAccount] = (
-    (__ \ "id").read[String] ~
-      (__ \ "account").readNullable[String] ~
-      (__ \ "account_holder_name").readNullable[String] ~
-      (__ \ "account_holder_type").readNullable[AccountHolderType] ~
-      (__ \ "bank_name").read[String] ~
-      (__ \ "country").read[String] ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "default_for_currency").readNullable[Boolean] ~
-      (__ \ "fingerprint").read[String] ~
-      (__ \ "last4").read[String] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "name").readNullable[String] ~
-      (__ \ "routing_number").read[String] ~
-      (__ \ "status").read[Status]
-  ).tupled.map((BankAccount.apply _).tupled)
+  implicit val bankAccountDecoder: Decoder[BankAccount] = Decoder.forProduct14(
+    "id",
+    "account",
+    "account_holder_name",
+    "account_holder_type",
+    "bank_name",
+    "country",
+    "currency",
+    "default_for_currency",
+    "fingerprint",
+    "last4",
+    "metadata",
+    "name",
+    "routing_number",
+    "status"
+  )(BankAccount.apply)
 
-  implicit val bankAccountWrites: Writes[BankAccount] = Writes(
-    (bankAccount: BankAccount) =>
-      Json.obj(
-        "id"                   -> bankAccount.id,
-        "object"               -> "bank_account",
-        "account"              -> bankAccount.account,
-        "account_holder_name"  -> bankAccount.accountHolderName,
-        "account_holder_type"  -> bankAccount.accountHolderType,
-        "bank_name"            -> bankAccount.bankName,
-        "country"              -> bankAccount.country,
-        "currency"             -> bankAccount.currency,
-        "default_for_currency" -> bankAccount.defaultForCurrency,
-        "fingerprint"          -> bankAccount.fingerprint,
-        "last4"                -> bankAccount.last4,
-        "metadata"             -> bankAccount.metadata,
-        "name"                 -> bankAccount.name,
-        "routing_number"       -> bankAccount.routingNumber,
-        "status"               -> bankAccount.status
+  implicit val bankAccountEncoder: Encoder[BankAccount] = Encoder.forProduct15(
+    "id",
+    "object",
+    "account",
+    "account_holder_name",
+    "account_holder_type",
+    "bank_name",
+    "country",
+    "currency",
+    "default_for_currency",
+    "fingerprint",
+    "last4",
+    "metadata",
+    "name",
+    "routing_number",
+    "status"
+  )(
+    x =>
+      (
+        x.id,
+        "bank_account",
+        x.account,
+        x.accountHolderName,
+        x.accountHolderType,
+        x.bankName,
+        x.country,
+        x.currency,
+        x.defaultForCurrency,
+        x.fingerprint,
+        x.last4,
+        x.metadata,
+        x.name,
+        x.routingNumber,
+        x.status
     ))
 
   /**
@@ -171,27 +182,25 @@ object BankAccounts extends LazyLogging {
         )
       }
 
-      implicit val sourceObjectReads: Reads[Object] = (
-        (__ \ "account_number").read[String] ~
-          (__ \ "country").read[String] ~
-          (__ \ "currency").read[Currency] ~
-          (__ \ "account_holder_name").readNullable[String] ~
-          (__ \ "account_holder_type").readNullable[AccountHolderType] ~
-          (__ \ "routing_number").readNullable[String]
-      ).tupled.map((Object.apply _).tupled)
+      implicit val sourceObjectDecoder: Decoder[Object] = Decoder.forProduct6(
+        "account_number",
+        "country",
+        "currency",
+        "account_holder_name",
+        "account_holder_type",
+        "routing_number"
+      )(Object.apply)
 
-      implicit val sourceObjectWrites: Writes[Object] = Writes(
-        (`object`: Object) =>
-          Json.obj(
-            "account_number"      -> `object`.accountNumber,
-            "country"             -> `object`.country,
-            "currency"            -> `object`.currency,
-            "account_holder_name" -> `object`.accountHolderName,
-            "account_holder_type" -> `object`.accountHolderType,
-            "routing_number"      -> `object`.routingNumber
-        ))
+      implicit val sourceObjectEncoder: Encoder[Object] = Encoder.forProduct6(
+        "account_number",
+        "country",
+        "currency",
+        "account_holder_name",
+        "account_holder_type",
+        "routing_number"
+      )(x => Object.unapply(x).get)
 
-      implicit val sourceObjectParams = PostParams.params[Object] { externalAccount =>
+      implicit val sourceObjectParams: PostParams[Object] = PostParams.params[Object] { externalAccount =>
         Map(
           "object"         -> "bank_account",
           "account_number" -> externalAccount.accountNumber,
@@ -202,9 +211,8 @@ object BankAccounts extends LazyLogging {
 
       case class Token(id: String) extends Source
 
-      implicit val sourceTokenReads: Reads[Token] = Reads.of[String].map(Token)
-
-      implicit val sourceTokenWrites: Writes[Token] = Writes((token: Token) => JsString(token.id))
+      implicit val sourceTokenDecoder: Decoder[Token] = Decoder[String].map(Token)
+      implicit val sourceTokenEncoder: Encoder[Token] = Encoder.instance[Token](_.id.asJson)
     }
 
     sealed abstract class ExternalAccount extends BankAccountData
@@ -241,46 +249,36 @@ object BankAccounts extends LazyLogging {
         )
       }
 
-      implicit val externalAccountObjectReads: Reads[Object] = (
-        (__ \ "account_number").read[String] ~
-          (__ \ "country").read[String] ~
-          (__ \ "currency").read[Currency] ~
-          (__ \ "account_holder_name").readNullable[String] ~
-          (__ \ "account_holder_type").readNullable[AccountHolderType] ~
-          (__ \ "routing_number").readNullable[String]
-      ).tupled.map((Object.apply _).tupled)
+      implicit val externalAccountObjectDecoder: Decoder[Object] = Decoder.forProduct6(
+        "account_number",
+        "country",
+        "currency",
+        "account_holder_name",
+        "account_holder_type",
+        "routing_number"
+      )(Object.apply)
 
-      implicit val externalAccountObject: Writes[Object] = Writes(
-        (`object`: Object) =>
-          Json.obj(
-            "account_number"      -> `object`.accountNumber,
-            "country"             -> `object`.country,
-            "currency"            -> `object`.currency,
-            "account_holder_name" -> `object`.accountHolderName,
-            "account_holder_type" -> `object`.accountHolderType,
-            "routing_number"      -> `object`.routingNumber
-        ))
+      implicit val externalAccountObjectEncoder: Encoder[Object] = Encoder.forProduct6(
+        "account_number",
+        "country",
+        "currency",
+        "account_holder_name",
+        "account_holder_type",
+        "routing_number"
+      )(x => Object.unapply(x).get)
 
       case class Token(id: String) extends ExternalAccount
 
-      implicit val externalAccountTokenReads: Reads[Token] =
-        Reads.of[String].map(Token)
-
-      implicit val externalAccountTokenWrites: Writes[Token] = Writes((token: Token) => JsString(token.id))
+      implicit val externalAccountTokenDecoder: Decoder[Token] = Decoder[String].map(Token)
+      implicit val externalAccountTokenEncoder: Encoder[Token] = Encoder.instance[Token](_.id.asJson)
     }
   }
 
-  implicit val bankAccountDataWrites: Writes[BankAccountData] = Writes { (bankAccountData: BankAccountData) =>
-    bankAccountData match {
-      case bankAccountData: BankAccountData.Source.Object =>
-        Json.toJson(bankAccountData)
-      case bankAccountData: BankAccountData.ExternalAccount.Object =>
-        Json.toJson(bankAccountData)
-      case bankAccountData: BankAccountData.Source.Token =>
-        Json.toJson(bankAccountData)
-      case bankAccountData: BankAccountData.ExternalAccount.Token =>
-        Json.toJson(bankAccountData)
-    }
+  implicit val bankAccountDataEncoder: Encoder[BankAccountData] = Encoder.instance[BankAccountData] {
+    case bankAccountData: BankAccountData.Source.Object          => bankAccountData.asJson
+    case bankAccountData: BankAccountData.ExternalAccount.Object => bankAccountData.asJson
+    case bankAccountData: BankAccountData.Source.Token           => bankAccountData.asJson
+    case bankAccountData: BankAccountData.ExternalAccount.Token  => bankAccountData.asJson
   }
 
   /**
@@ -406,10 +404,10 @@ object BankAccounts extends LazyLogging {
       extends Collections.List[BankAccount](url, hasMore, data, totalCount)
 
   object BankAccountList extends Collections.ListJsonMappers[BankAccount] {
-    implicit val bankAccountListReads: Reads[BankAccountList] =
-      listReads.tupled.map((BankAccountList.apply _).tupled)
-
-    implicit val bankAccountListWrites: Writes[BankAccountList] = listWrites
+    implicit val bankAccountListDecoder: Decoder[BankAccountList] =
+      listDecoder(implicitly)(BankAccountList.apply)
+    implicit val bankAccountListEncoder: Encoder[BankAccountList] =
+      listEncoder[BankAccountList]
   }
 
   def list(customerId: String, bankAccountListInput: BankAccountListInput, includeTotalCount: Boolean)(

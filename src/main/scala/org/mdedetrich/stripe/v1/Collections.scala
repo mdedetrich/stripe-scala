@@ -1,7 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import io.circe.{Decoder, Encoder, ObjectEncoder}
 
 object Collections {
 
@@ -14,24 +13,19 @@ object Collections {
     *
     * @tparam A
     */
-  abstract class List[A](val url: String, val hasMore: Boolean, val data: scala.List[A], val totalCount: Option[Long]) {}
+  abstract class List[A](val url: String, val hasMore: Boolean, val data: scala.List[A], val totalCount: Option[Long])
 
   trait ListJsonMappers[A] {
-    protected def listReads(implicit readsEvidence: Reads[A]) =
-      (__ \ "url").read[String] ~
-        (__ \ "has_more").read[Boolean] ~
-        (__ \ "data").read[scala.List[A]] ~
-        (__ \ "total_count").readNullable[Long]
+    protected def listDecoder[B <: List[A]](
+        implicit decoder: Decoder[A]): ((String, Boolean, scala.List[A], Option[Long]) => B) => Decoder[B] =
+      Decoder.forProduct4[String, Boolean, scala.List[A], Option[Long], B]("url", "has_more", "data", "total_count")
 
-    protected def listWrites(implicit writesEvidence: Writes[A]) =
-      Writes(
-        (list: List[A]) =>
-          Json.obj(
-            "object"      -> "list",
-            "url"         -> list.url,
-            "has_more"    -> list.hasMore,
-            "data"        -> Json.toJson(list.data),
-            "total_count" -> list.totalCount
-        ))
+    protected def listEncoder[B <: List[A]](implicit encoder: Encoder[A]): ObjectEncoder[B] =
+      Encoder.forProduct5[String, String, Boolean, scala.List[A], Option[Long], B]("object",
+                                                                                   "url",
+                                                                                   "has_more",
+                                                                                   "data",
+                                                                                   "total_count")(x =>
+        ("list", x.url, x.hasMore, x.data, x.totalCount))
   }
 }

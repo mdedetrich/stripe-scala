@@ -10,7 +10,7 @@ stripe-scala is a wrapper over the [Stripe](https://stripe.com/) [REST api](http
 case classes) and lets you create requests from typed case classes (rather than just using Java `Map<String,Object>`)
 
 ## Libraries Used
-- [play-json](https://www.playframework.com/documentation/2.4.x/ScalaJson) for JSON (play-json provides compile time macros for
+- [circe](https://circe.github.io/circe/) for JSON (circe provides compile time macros for
 reading/writing JSON from/to scala case classes). It also provides a very powerful API for validating/querying JSON
 - [akka-http](http://doc.akka.io/docs/akka-http/current/scala.html) for making HTTP requests
 - [akka-stream-json](https://github.com/knutwalker/akka-stream-json) for streaming JSON
@@ -124,13 +124,13 @@ that have no `Optional` fields do not have a `.default` method.
 
 Stripe provides a metadata field which is available as an input field to most of the stripe objects. The metadata in stripe-scala
 has a type of `Option[Map[String,String]]`. As you can see, the metadata is wrapped in an `Option`. This is to make working
-with metadata easier. If the map for the metadata happens to empty, the metadata will be `None`.
+with metadata easier.
 
 ### Timestamps
 
 Stripe represents all of its timestamps as unix timestamp numbers (https://support.stripe.com/questions/what-timezone-does-the-dashboard-and-api-use)
 however stripe-scala models store these timestamps as an `OffsetDateTime`. stripe-scala handles converting the unix timestamp
-to `OffsetDateTime` and vice versa by using custom play-json writers/readers for JSON (`stripeDateTimeReads`/`stripeDateTimeWrites`) and
+to `OffsetDateTime` and vice versa by using custom circe encoders/decoders for JSON (`defaults.stripeDateTimeDecoder`/`defaults.stripeDateTimeEncoder`) and
 `stripeDateTimeParamWrites` for form parameters.
 
 These functions are exposed publicly via the [package object](https://github.com/mdedetrich/stripe-scala/blob/master/src/main/scala/org/mdedetrich/stripe/v1/package.scala).
