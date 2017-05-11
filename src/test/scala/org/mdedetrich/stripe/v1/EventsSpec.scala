@@ -17,8 +17,8 @@ class EventsSpec extends WordSpec with Matchers {
       in should not be null
 
       val string = scala.io.Source.fromInputStream(in).mkString
-      val json  = parse(string).toOption
-      val event = json.flatMap(_.as[Event].toOption).get
+      val json   = parse(string).toOption
+      val event  = json.flatMap(_.as[Event].toOption).get
 
       event.id should be("evt_1A9re7J6y4jvjvHhEh0DfAAv")
       event.`type` should be(Events.Type.CustomerCreated)
@@ -35,8 +35,8 @@ class EventsSpec extends WordSpec with Matchers {
         in should not be null
 
         val string = scala.io.Source.fromInputStream(in).mkString
-        val json  = parse(string).toOption
-        val event = json.flatMap(_.as[Event].toOption).get
+        val json   = parse(string).toOption
+        val event  = json.flatMap(_.as[Event].toOption).get
         event.`type` should be(Events.Type.AccountUpdated)
       }
     }

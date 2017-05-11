@@ -41,7 +41,7 @@ object Events extends LazyLogging {
     case object ChargeSucceeded                   extends Type("charge.succeeded")
     case object ChargeUpdated                     extends Type("charge.updated")
     case object ChargeDisputeClosed               extends Type("charge.dispute.closed")
-    case object ChargeDisputeCreated              extends Type("harge.dispute.created")
+    case object ChargeDisputeCreated              extends Type("charge.dispute.created")
     case object ChargeDisputeFundsReinstated      extends Type("charge.dispute.funds_reinstated")
     case object ChargeDisputeFundsWithdrawn       extends Type("charge.dispute.funds_withdrawn")
     case object ChargeDisputeUpdated              extends Type("charge.dispute.updated")
