@@ -1,5 +1,6 @@
 package org.mdedetrich.stripe
 
+import akka.http.scaladsl.model.Uri
 import io.circe.{DecodingFailure, Json}
 
 /**
@@ -12,7 +13,7 @@ import io.circe.{DecodingFailure, Json}
   * @param error          The error as reported from circe
   */
 case class InvalidJsonModelException(httpStatusCode: Long,
-                                     url: String,
+                                     url: Uri,
                                      postParameters: Option[Map[String, String]],
                                      postJson: Option[Json],
                                      jsonResponse: Json,

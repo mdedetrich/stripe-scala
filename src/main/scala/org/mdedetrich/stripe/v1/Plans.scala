@@ -3,11 +3,13 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import enumeratum._
 import io.circe.{Decoder, Encoder}
+import org.mdedetrich.stripe.v1.defaults._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -356,7 +358,6 @@ object Plans extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[PlanList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -365,16 +366,20 @@ object Plans extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/customers$totalCountUrl"
 
-      val created: com.netaporter.uri.Uri = planListInput.created match {
+      val created: Uri = planListInput.created match {
         case Some(createdInput) =>
           listFilterInputToUri(createdInput, baseUrl, "created")
         case None => baseUrl
       }
 
-      (created ?
-        ("ending_before"  -> planListInput.endingBefore) ?
-        ("limit"          -> planListInput.limit.map(_.toString)) ?
-        ("starting_after" -> planListInput.startingAfter)).toString()
+      val queries = List(
+        "ending_before"  -> planListInput.endingBefore,
+        "limit"          -> planListInput.limit.map(_.toString),
+        "starting_after" -> planListInput.startingAfter
+      ).collect { case (k, Some(v)) => (k, v) }
+
+      val query = queries.foldLeft(created.query())((a, b) => b +: a)
+      created.withQuery(query)
     }
 
     createRequestGET[PlanList](finalUrl, logger)

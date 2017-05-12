@@ -3,6 +3,7 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
 import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
@@ -11,6 +12,7 @@ import enumeratum._
 import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.BankAccounts._
 import org.mdedetrich.stripe.v1.TransferReversals._
+import org.mdedetrich.stripe.v1.defaults._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -478,7 +480,6 @@ object Transfers extends LazyLogging {
       executionContext: ExecutionContext): Future[Try[TransferList]] = {
 
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -487,7 +488,7 @@ object Transfers extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/transfers$totalCountUrl"
 
-      val created: com.netaporter.uri.Uri =
+      val created: Uri =
         (transferListInput.created, transferListInput.date) match {
           case (Some(createdInput), Some(dateInput)) =>
             listFilterInputToUri(dateInput, listFilterInputToUri(createdInput, baseUrl, "created"), "date")
@@ -498,13 +499,17 @@ object Transfers extends LazyLogging {
           case (None, None) => baseUrl
         }
 
-      (created ?
-        ("destination"    -> transferListInput.destination) ?
-        ("ending_before"  -> transferListInput.endingBefore) ?
-        ("limit"          -> transferListInput.limit.map(_.toString)) ?
-        ("recipient"      -> transferListInput.recipient) ?
-        ("starting_after" -> transferListInput.startingAfter) ?
-        ("status"         -> transferListInput.status.map(_.id))).toString()
+      val queries = List(
+        "destination"    -> transferListInput.destination,
+        "ending_before"  -> transferListInput.endingBefore,
+        "limit"          -> transferListInput.limit.map(_.toString),
+        "recipient"      -> transferListInput.recipient,
+        "starting_after" -> transferListInput.startingAfter,
+        "status"         -> transferListInput.status.map(_.id)
+      ).collect { case (k, Some(v)) => (k, v) }
+
+      val query = queries.foldLeft(created.query())((a, b) => b +: a)
+      created.withQuery(query)
     }
 
     createRequestGET[TransferList](finalUrl, logger)

@@ -1,6 +1,8 @@
 package org.mdedetrich.stripe.v1
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.model.Uri.Query
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import defaults._
@@ -417,7 +419,6 @@ object BankAccounts extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[BankAccountList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -427,11 +428,14 @@ object BankAccounts extends LazyLogging {
       val baseUrl =
         endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
 
-      (baseUrl ?
-        ("object"         -> "bank_account") ?
-        ("ending_before"  -> bankAccountListInput.endingBefore) ?
-        ("limit"          -> bankAccountListInput.limit.map(_.toString)) ?
-        ("starting_after" -> bankAccountListInput.startingAfter)).toString()
+      val queries = Map(
+        "object"         -> Option("bank_account"),
+        "ending_before"  -> bankAccountListInput.endingBefore,
+        "limit"          -> bankAccountListInput.limit.map(_.toString),
+        "starting_after" -> bankAccountListInput.startingAfter
+      ).collect { case (a, Some(b)) => (a, b) }
+
+      Uri(baseUrl).withQuery(Query(queries))
     }
 
     createRequestGET[BankAccountList](finalUrl, logger)

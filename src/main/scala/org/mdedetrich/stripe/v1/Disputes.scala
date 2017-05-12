@@ -3,13 +3,14 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
 import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
-import defaults._
 import enumeratum._
 import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.Balances._
+import org.mdedetrich.stripe.v1.defaults._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -417,7 +418,6 @@ object Disputes extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[DisputeList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -426,16 +426,21 @@ object Disputes extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/customers$totalCountUrl"
 
-      val created: com.netaporter.uri.Uri = disputeListInput.created match {
+      val created: Uri = disputeListInput.created match {
         case Some(createdInput) =>
           listFilterInputToUri(createdInput, baseUrl, "created")
         case None => baseUrl
       }
 
-      (created ?
-        ("ending_before"  -> disputeListInput.endingBefore) ?
-        ("limit"          -> disputeListInput.limit.map(_.toString)) ?
-        ("starting_after" -> disputeListInput.startingAfter)).toString()
+      val queries = List(
+        "ending_before"  -> disputeListInput.endingBefore,
+        "limit"          -> disputeListInput.limit.map(_.toString),
+        "starting_after" -> disputeListInput.startingAfter
+      ).collect { case (a, Some(b)) => (a, b) }
+
+      val query = queries.foldLeft(created.query())((a, b) => b +: a)
+      created.withQuery(query)
+
     }
 
     createRequestGET[DisputeList](finalUrl, logger)

@@ -47,7 +47,6 @@ libraryDependencies ++= Seq(
   "com.beachape"               %% "enumeratum-circe"  % enumeratumCirceVersion,
   "com.iheart"                 %% "ficus"             % "1.4.0",
   "com.typesafe.scala-logging" %% "scala-logging"     % "3.5.0",
-  "com.netaporter"             %% "scala-uri"         % "0.4.16" exclude ("io.spray", "spray-json_2.11"),
   "org.scalatest"              %% "scalatest"         % "3.0.0" % "test, it",
   "ch.qos.logback"             % "logback-classic"    % "1.1.7" % "test, it"
 )

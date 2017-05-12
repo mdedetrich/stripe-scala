@@ -3,12 +3,15 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.model.Uri.Query
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import enumeratum._
 import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.PostParams.{flatten, toPostParams}
+import org.mdedetrich.stripe.v1.defaults._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -269,7 +272,6 @@ object Refunds extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[RefundList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -278,11 +280,14 @@ object Refunds extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/refunds$totalCountUrl"
 
-      (baseUrl ?
-        ("charge"         -> refundListInput.charge) ?
-        ("ending_before"  -> refundListInput.endingBefore) ?
-        ("limit"          -> refundListInput.limit.map(_.toString)) ?
-        ("starting_after" -> refundListInput.startingAfter)).toString()
+      val query = Map(
+        "charge"         -> refundListInput.charge,
+        "ending_before"  -> refundListInput.endingBefore,
+        "limit"          -> refundListInput.limit.map(_.toString),
+        "starting_after" -> refundListInput.startingAfter
+      ).collect { case (k, Some(v)) => (k, v) }
+
+      Uri(baseUrl).withQuery(Query(query))
     }
 
     createRequestGET[RefundList](finalUrl, logger)

@@ -3,11 +3,13 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import enumeratum._
 import io.circe.{Decoder, Encoder}
+import org.mdedetrich.stripe.v1.defaults._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -325,7 +327,6 @@ object Coupons extends LazyLogging {
       executionContext: ExecutionContext): Future[Try[CouponList]] = {
 
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -334,16 +335,20 @@ object Coupons extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/coupons$totalCountUrl"
 
-      val created: com.netaporter.uri.Uri = couponListInput.created match {
+      val created: Uri = couponListInput.created match {
         case Some(createdInput) =>
           listFilterInputToUri(createdInput, baseUrl, "created")
         case None => baseUrl
       }
 
-      (created ?
-        ("ending_before"  -> couponListInput.endingBefore) ?
-        ("limit"          -> couponListInput.limit.map(_.toString)) ?
-        ("starting_after" -> couponListInput.startingAfter)).toString()
+      val queries = List(
+        "ending_before"  -> couponListInput.endingBefore,
+        "limit"          -> couponListInput.limit.map(_.toString),
+        "starting_after" -> couponListInput.startingAfter
+      ).collect { case (a, Some(b)) => (a, b) }
+
+      val query = queries.foldLeft(created.query())((a, b) => b +: a)
+      created.withQuery(query)
     }
 
     createRequestGET[CouponList](finalUrl, logger)

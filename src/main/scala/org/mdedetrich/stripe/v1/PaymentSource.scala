@@ -3,7 +3,10 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.model.Uri.Query
 import akka.stream.Materializer
+import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import enumeratum._
@@ -13,8 +16,8 @@ import org.mdedetrich.stripe.v1.BankAccountsPaymentSource.BankAccount
 import org.mdedetrich.stripe.v1.BitcoinReceivers.BitcoinReceiver
 import org.mdedetrich.stripe.v1.Cards.Card
 import org.mdedetrich.stripe.v1.Collections.ListJsonMappers
+import org.mdedetrich.stripe.v1.defaults._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
-import cats.syntax.either._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -907,7 +910,6 @@ object Cards extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[CardList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -917,11 +919,14 @@ object Cards extends LazyLogging {
       val baseUrl =
         endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
 
-      (baseUrl ?
-        ("object"         -> "card") ?
-        ("ending_before"  -> cardListInput.endingBefore) ?
-        ("limit"          -> cardListInput.limit.map(_.toString)) ?
-        ("starting_after" -> cardListInput.startingAfter)).toString()
+      val queries = Map(
+        "object"         -> Option("card"),
+        "ending_before"  -> cardListInput.endingBefore,
+        "limit"          -> cardListInput.limit.map(_.toString),
+        "starting_after" -> cardListInput.startingAfter
+      ).collect { case (a, Some(b)) => (a, b) }
+
+      Uri(baseUrl).withQuery(Query(queries))
     }
 
     createRequestGET[CardList](finalUrl, logger)
@@ -1353,7 +1358,6 @@ object BitcoinReceivers extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[BitcoinReceiverList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -1362,13 +1366,16 @@ object BitcoinReceivers extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/bitcoin/receivers$totalCountUrl"
 
-      (baseUrl ?
-        ("active"           -> bitcoinReceiverListInput.active) ?
-        ("ending_before"    -> bitcoinReceiverListInput.endingBefore) ?
-        ("filled"           -> bitcoinReceiverListInput.filled) ?
-        ("limit"            -> bitcoinReceiverListInput.limit.map(_.toString)) ?
-        ("starting_after"   -> bitcoinReceiverListInput.startingAfter) ?
-        ("uncaptured_funds" -> bitcoinReceiverListInput.uncapturedFunds)).toString()
+      val queries = Map(
+        "active"           -> bitcoinReceiverListInput.active.map(_.toString),
+        "ending_before"    -> bitcoinReceiverListInput.endingBefore,
+        "filled"           -> bitcoinReceiverListInput.filled.map(_.toString),
+        "limit"            -> bitcoinReceiverListInput.limit.map(_.toString),
+        "starting_after"   -> bitcoinReceiverListInput.startingAfter,
+        "uncaptured_funds" -> bitcoinReceiverListInput.uncapturedFunds.map(_.toString)
+      ).collect { case (k, Some(v)) => (k, v) }
+
+      Uri(baseUrl).withQuery(Query(queries))
     }
 
     createRequestGET[BitcoinReceiverList](finalUrl, logger)

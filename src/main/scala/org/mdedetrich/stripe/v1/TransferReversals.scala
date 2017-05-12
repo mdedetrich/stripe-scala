@@ -3,10 +3,13 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.model.Uri.Query
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import io.circe.{Decoder, Encoder}
+import org.mdedetrich.stripe.v1.defaults._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -213,7 +216,6 @@ object TransferReversals extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[TransferReversalList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -224,10 +226,13 @@ object TransferReversals extends LazyLogging {
         endpoint.url +
           s"/v1/transfers/${transferReversalListInput.id}/reversals$totalCountUrl"
 
-      (baseUrl ?
-        ("ending_before"  -> transferReversalListInput.endingBefore) ?
-        ("limit"          -> transferReversalListInput.limit.map(_.toString)) ?
-        ("starting_after" -> transferReversalListInput.startingAfter)).toString()
+      val queries = Map(
+        "ending_before"  -> transferReversalListInput.endingBefore,
+        "limit"          -> transferReversalListInput.limit.map(_.toString),
+        "starting_after" -> transferReversalListInput.startingAfter
+      ).collect { case (k, Some(v)) => (k, v) }
+
+      Uri(baseUrl).withQuery(Query(queries))
     }
 
     createRequestGET[TransferReversalList](finalUrl, logger)

@@ -3,6 +3,7 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
 import cats.syntax.either._
 import defaults._
@@ -14,6 +15,7 @@ import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.Shippings.Shipping
 import org.mdedetrich.stripe.v1.Sources.NumberCardSource
 import org.mdedetrich.stripe.v1.Subscriptions.SubscriptionList
+import org.mdedetrich.stripe.v1.defaults._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -445,7 +447,6 @@ object Customers extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[CustomerList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -454,16 +455,20 @@ object Customers extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/customers$totalCountUrl"
 
-      val created: com.netaporter.uri.Uri = customerListInput.created match {
+      val created: Uri = customerListInput.created match {
         case Some(createdInput) =>
           listFilterInputToUri(createdInput, baseUrl, "created")
         case None => baseUrl
       }
 
-      (created ?
-        ("ending_before"  -> customerListInput.endingBefore) ?
-        ("limit"          -> customerListInput.limit.map(_.toString)) ?
-        ("starting_after" -> customerListInput.startingAfter)).toString()
+      val queries = List(
+        "ending_before"  -> customerListInput.endingBefore,
+        "limit"          -> customerListInput.limit.map(_.toString),
+        "starting_after" -> customerListInput.startingAfter
+      ).collect { case (a, Some(b)) => (a, b) }
+
+      val query = queries.foldLeft(created.query())((a, b) => b +: a)
+      created.withQuery(query)
     }
 
     createRequestGET[CustomerList](finalUrl, logger)
