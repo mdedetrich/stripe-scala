@@ -312,6 +312,7 @@ object Disputes extends LazyLogging {
                      metadata: Option[Map[String, String]],
                      reason: Reason,
                      status: Status)
+      extends StripeObject
 
   implicit val disputeDecoder: Decoder[Dispute] = Decoder.forProduct13(
     "id",
