@@ -11,7 +11,7 @@ import enumeratum._
 import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.Balances._
 import org.mdedetrich.stripe.v1.defaults._
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -432,11 +432,12 @@ object Disputes extends LazyLogging {
         case None => baseUrl
       }
 
-      val queries = List(
-        "ending_before"  -> disputeListInput.endingBefore,
-        "limit"          -> disputeListInput.limit.map(_.toString),
-        "starting_after" -> disputeListInput.startingAfter
-      ).collect { case (a, Some(b)) => (a, b) }
+      val queries = PostParams.flatten(
+        List(
+          "ending_before"  -> disputeListInput.endingBefore,
+          "limit"          -> disputeListInput.limit.map(_.toString),
+          "starting_after" -> disputeListInput.startingAfter
+        ))
 
       val query = queries.foldLeft(created.query())((a, b) => b +: a)
       created.withQuery(query)

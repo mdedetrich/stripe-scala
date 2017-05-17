@@ -289,7 +289,7 @@ object Customers extends LazyLogging {
       client: HttpExt,
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[Customer]] = {
-    val postFormParameters: Map[String, String] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "account_balance" -> customerInput.accountBalance.map(_.toString()),
         "coupon"          -> customerInput.coupon,
@@ -299,10 +299,7 @@ object Customers extends LazyLogging {
         "quantity"        -> customerInput.quantity.map(_.toString),
         "tax_percent"     -> customerInput.taxPercent.map(_.toString()),
         "trial_end"       -> customerInput.trialEnd.map(stripeDateTimeParamWrites)
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ PostParams.toPostParams("metadata", customerInput.metadata) ++ {
+      )) ++ PostParams.toPostParams("metadata", customerInput.metadata) ++ {
       customerInput.source match {
         case Some(
             Source.Card(
@@ -327,24 +324,22 @@ object Customers extends LazyLogging {
             form parameters
            */
 
-          val map = Map(
-            "exp_month"            -> Option(expMonth.toString),
-            "exp_year"             -> Option(expYear.toString),
-            "number"               -> Option(number),
-            "address_city"         -> addressCity,
-            "address_country"      -> addressCountry,
-            "address_line1"        -> addressLine1,
-            "address_line2"        -> addressLine2,
-            "address_state"        -> addressState,
-            "address_zip"          -> addressZip,
-            "currency"             -> currency.map(_.iso.toLowerCase),
-            "cvc"                  -> cvc,
-            "default_for_currency" -> defaultForCurrency.map(_.toString),
-            "name"                 -> name
-          ).collect {
-            case (k, Some(v)) => (k, v)
-          }
-
+          val map = PostParams.flatten(
+            Map(
+              "exp_month"            -> Option(expMonth.toString),
+              "exp_year"             -> Option(expYear.toString),
+              "number"               -> Option(number),
+              "address_city"         -> addressCity,
+              "address_country"      -> addressCountry,
+              "address_line1"        -> addressLine1,
+              "address_line2"        -> addressLine2,
+              "address_state"        -> addressState,
+              "address_zip"          -> addressZip,
+              "currency"             -> currency.map(_.iso.toLowerCase),
+              "cvc"                  -> cvc,
+              "default_for_currency" -> defaultForCurrency.map(_.toString),
+              "name"                 -> name
+            ))
           mapToPostParams(Option(map), "card")
 
         case Some(Source.Token(id)) =>
@@ -461,11 +456,12 @@ object Customers extends LazyLogging {
         case None => baseUrl
       }
 
-      val queries = List(
-        "ending_before"  -> customerListInput.endingBefore,
-        "limit"          -> customerListInput.limit.map(_.toString),
-        "starting_after" -> customerListInput.startingAfter
-      ).collect { case (a, Some(b)) => (a, b) }
+      val queries = PostParams.flatten(
+        List(
+          "ending_before"  -> customerListInput.endingBefore,
+          "limit"          -> customerListInput.limit.map(_.toString),
+          "starting_after" -> customerListInput.startingAfter
+        ))
 
       val query = queries.foldLeft(created.query())((a, b) => b +: a)
       created.withQuery(query)

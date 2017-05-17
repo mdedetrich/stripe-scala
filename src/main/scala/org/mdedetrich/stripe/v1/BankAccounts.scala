@@ -306,44 +306,40 @@ object BankAccounts extends LazyLogging {
       client: HttpExt,
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[BankAccount]] = {
-    val postFormParameters: Map[String, String] = {
-      Map(
-        "default_for_currency" -> bankAccountInput.defaultForCurrency.map(_.toString)
-      )
-    }.collect {
-      case (k, Some(v)) => (k, v)
-    } ++ {
-      bankAccountInput.bankAccountData match {
-        case BankAccountData.ExternalAccount.Token(id) =>
-          Map("external_account" -> id)
-        case BankAccountData.Source.Token(id) =>
-          Map("source" -> id)
-        case externalAccount: BankAccountData.ExternalAccount.Object =>
-          val map = Map(
-            "account_number"      -> Option(externalAccount.accountNumber),
-            "country"             -> Option(externalAccount.country),
-            "currency"            -> Option(externalAccount.currency.iso.toLowerCase),
-            "account_holder_name" -> externalAccount.accountHolderName,
-            "account_holder_type" -> externalAccount.accountHolderType.map(_.id),
-            "routing_number"      -> externalAccount.routingNumber
-          ).collect {
-            case (k, Some(v)) => (k, v)
-          }
-          mapToPostParams(Option(map), "external_account")
-        case source: BankAccountData.Source.Object =>
-          val map = Map(
-            "account_number"      -> Option(source.accountNumber),
-            "country"             -> Option(source.country),
-            "currency"            -> Option(source.currency.iso.toLowerCase),
-            "account_holder_name" -> source.accountHolderName,
-            "account_holder_type" -> source.accountHolderType.map(_.id),
-            "routing_number"      -> source.routingNumber
-          ).collect {
-            case (k, Some(v)) => (k, v)
-          }
-          mapToPostParams(Option(map), "source")
-      }
-    } ++ mapToPostParams(bankAccountInput.metadata, "metadata")
+    val postFormParameters =
+      PostParams.flatten(
+        Map(
+          "default_for_currency" -> bankAccountInput.defaultForCurrency.map(_.toString)
+        )) ++ {
+        bankAccountInput.bankAccountData match {
+          case BankAccountData.ExternalAccount.Token(id) =>
+            Map("external_account" -> id)
+          case BankAccountData.Source.Token(id) =>
+            Map("source" -> id)
+          case externalAccount: BankAccountData.ExternalAccount.Object =>
+            val map = PostParams.flatten(
+              Map(
+                "account_number"      -> Option(externalAccount.accountNumber),
+                "country"             -> Option(externalAccount.country),
+                "currency"            -> Option(externalAccount.currency.iso.toLowerCase),
+                "account_holder_name" -> externalAccount.accountHolderName,
+                "account_holder_type" -> externalAccount.accountHolderType.map(_.id),
+                "routing_number"      -> externalAccount.routingNumber
+              ))
+            mapToPostParams(Option(map), "external_account")
+          case source: BankAccountData.Source.Object =>
+            val map = PostParams.flatten(
+              Map(
+                "account_number"      -> Option(source.accountNumber),
+                "country"             -> Option(source.country),
+                "currency"            -> Option(source.currency.iso.toLowerCase),
+                "account_holder_name" -> source.accountHolderName,
+                "account_holder_type" -> source.accountHolderType.map(_.id),
+                "routing_number"      -> source.routingNumber
+              ))
+            mapToPostParams(Option(map), "source")
+        }
+      } ++ mapToPostParams(bankAccountInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -428,12 +424,13 @@ object BankAccounts extends LazyLogging {
       val baseUrl =
         endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
 
-      val queries = Map(
-        "object"         -> Option("bank_account"),
-        "ending_before"  -> bankAccountListInput.endingBefore,
-        "limit"          -> bankAccountListInput.limit.map(_.toString),
-        "starting_after" -> bankAccountListInput.startingAfter
-      ).collect { case (a, Some(b)) => (a, b) }
+      val queries = PostParams.flatten(
+        Map(
+          "object"         -> Option("bank_account"),
+          "ending_before"  -> bankAccountListInput.endingBefore,
+          "limit"          -> bankAccountListInput.limit.map(_.toString),
+          "starting_after" -> bankAccountListInput.startingAfter
+        ))
 
       Uri(baseUrl).withQuery(Query(queries))
     }

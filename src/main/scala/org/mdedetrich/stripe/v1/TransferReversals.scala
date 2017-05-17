@@ -10,7 +10,7 @@ import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.defaults._
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -132,15 +132,12 @@ object TransferReversals extends LazyLogging {
       client: HttpExt,
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[TransferReversal]] = {
-    val postFormParameters: Map[String, String] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "amount"                 -> transferReversalInput.amount.map(_.toString()),
         "description"            -> transferReversalInput.description,
         "refund_application_fee" -> transferReversalInput.refundApplicationFee.map(_.toString)
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ mapToPostParams(transferReversalInput.metadata, "metadata")
+      )) ++ mapToPostParams(transferReversalInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -226,11 +223,12 @@ object TransferReversals extends LazyLogging {
         endpoint.url +
           s"/v1/transfers/${transferReversalListInput.id}/reversals$totalCountUrl"
 
-      val queries = Map(
-        "ending_before"  -> transferReversalListInput.endingBefore,
-        "limit"          -> transferReversalListInput.limit.map(_.toString),
-        "starting_after" -> transferReversalListInput.startingAfter
-      ).collect { case (k, Some(v)) => (k, v) }
+      val queries = PostParams.flatten(
+        Map(
+          "ending_before"  -> transferReversalListInput.endingBefore,
+          "limit"          -> transferReversalListInput.limit.map(_.toString),
+          "starting_after" -> transferReversalListInput.startingAfter
+        ))
 
       Uri(baseUrl).withQuery(Query(queries))
     }

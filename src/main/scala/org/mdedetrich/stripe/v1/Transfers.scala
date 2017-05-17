@@ -13,7 +13,7 @@ import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.BankAccounts._
 import org.mdedetrich.stripe.v1.TransferReversals._
 import org.mdedetrich.stripe.v1.defaults._
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -396,7 +396,7 @@ object Transfers extends LazyLogging {
       client: HttpExt,
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[Transfer]] = {
-    val postFormParameters: Map[String, String] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "amount"               -> Option(transferInput.amount.toString()),
         "currency"             -> Option(transferInput.currency.iso.toLowerCase()),
@@ -405,10 +405,7 @@ object Transfers extends LazyLogging {
         "source_transaction"   -> transferInput.sourceTransaction,
         "statement_descriptor" -> transferInput.statementDescriptor,
         "source_type"          -> transferInput.sourceType.map(_.id)
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ mapToPostParams(transferInput.metadata, "metadata")
+      )) ++ mapToPostParams(transferInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -499,14 +496,15 @@ object Transfers extends LazyLogging {
           case (None, None) => baseUrl
         }
 
-      val queries = List(
-        "destination"    -> transferListInput.destination,
-        "ending_before"  -> transferListInput.endingBefore,
-        "limit"          -> transferListInput.limit.map(_.toString),
-        "recipient"      -> transferListInput.recipient,
-        "starting_after" -> transferListInput.startingAfter,
-        "status"         -> transferListInput.status.map(_.id)
-      ).collect { case (k, Some(v)) => (k, v) }
+      val queries = PostParams.flatten(
+        List(
+          "destination"    -> transferListInput.destination,
+          "ending_before"  -> transferListInput.endingBefore,
+          "limit"          -> transferListInput.limit.map(_.toString),
+          "recipient"      -> transferListInput.recipient,
+          "starting_after" -> transferListInput.startingAfter,
+          "status"         -> transferListInput.status.map(_.id)
+        ))
 
       val query = queries.foldLeft(created.query())((a, b) => b +: a)
       created.withQuery(query)

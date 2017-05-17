@@ -280,12 +280,13 @@ object Refunds extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/refunds$totalCountUrl"
 
-      val query = Map(
-        "charge"         -> refundListInput.charge,
-        "ending_before"  -> refundListInput.endingBefore,
-        "limit"          -> refundListInput.limit.map(_.toString),
-        "starting_after" -> refundListInput.startingAfter
-      ).collect { case (k, Some(v)) => (k, v) }
+      val query = PostParams.flatten(
+        Map(
+          "charge"         -> refundListInput.charge,
+          "ending_before"  -> refundListInput.endingBefore,
+          "limit"          -> refundListInput.limit.map(_.toString),
+          "starting_after" -> refundListInput.startingAfter
+        ))
 
       Uri(baseUrl).withQuery(Query(query))
     }

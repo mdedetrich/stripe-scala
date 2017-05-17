@@ -179,12 +179,13 @@ package object v1 {
   private[v1] def listFilterInputToUri(createdInput: ListFilterInput, baseUrl: Uri, key: String): Uri = {
     createdInput match {
       case c: ListFilterInput.Object =>
-        val query = Map(
-          s"$key[gt]"  -> c.gt.map(stripeDateTimeParamWrites),
-          s"$key[gte]" -> c.gte.map(stripeDateTimeParamWrites),
-          s"$key[lt]"  -> c.lt.map(stripeDateTimeParamWrites),
-          s"$key[lte]" -> c.lte.map(stripeDateTimeParamWrites)
-        ).collect { case (k, Some(v)) => (k, v) }
+        val query = PostParams.flatten(
+          Map(
+            s"$key[gt]"  -> c.gt.map(stripeDateTimeParamWrites),
+            s"$key[gte]" -> c.gte.map(stripeDateTimeParamWrites),
+            s"$key[lt]"  -> c.lt.map(stripeDateTimeParamWrites),
+            s"$key[lte]" -> c.lte.map(stripeDateTimeParamWrites)
+          ))
 
         baseUrl.withQuery(Query(query))
       case c: ListFilterInput.Timestamp =>

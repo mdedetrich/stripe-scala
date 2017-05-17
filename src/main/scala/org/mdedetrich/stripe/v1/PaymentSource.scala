@@ -17,7 +17,7 @@ import org.mdedetrich.stripe.v1.BitcoinReceivers.BitcoinReceiver
 import org.mdedetrich.stripe.v1.Cards.Card
 import org.mdedetrich.stripe.v1.Collections.ListJsonMappers
 import org.mdedetrich.stripe.v1.defaults._
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -782,55 +782,50 @@ object Cards extends LazyLogging {
       client: HttpExt,
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[Card]] = {
-    val postFormParameters: Map[String, String] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "default_for_currency" -> cardInput.defaultForCurrency.map(_.toString)
-      )
-    }.collect {
-      case (k, Some(v)) => (k, v)
-    } ++ {
+      )) ++ {
       cardInput.cardData match {
         case CardData.ExternalAccount.Token(id) =>
           Map("external_account" -> id)
         case CardData.Source.Token(id) =>
           Map("source" -> id)
         case externalAccount: CardData.ExternalAccount.Object =>
-          val map = Map(
-            "object"               -> Option("card"),
-            "exp_month"            -> Option(externalAccount.expMonth.toString),
-            "exp_year"             -> Option(externalAccount.expYear.toString),
-            "number"               -> Option(externalAccount.number),
-            "address_city"         -> externalAccount.addressCity,
-            "address_country"      -> externalAccount.addressCountry,
-            "address_line1"        -> externalAccount.addressLine1,
-            "address_line2"        -> externalAccount.addressLine2,
-            "address_state"        -> externalAccount.addressState,
-            "address_zip"          -> externalAccount.addressState,
-            "currency"             -> externalAccount.currency.map(_.iso.toLowerCase),
-            "cvc"                  -> externalAccount.cvc,
-            "default_for_currency" -> externalAccount.defaultForCurrency.map(_.iso.toLowerCase),
-            "name"                 -> externalAccount.name
-          ).collect {
-            case (k, Some(v)) => (k, v)
-          }
+          val map = PostParams.flatten(
+            Map(
+              "object"               -> Option("card"),
+              "exp_month"            -> Option(externalAccount.expMonth.toString),
+              "exp_year"             -> Option(externalAccount.expYear.toString),
+              "number"               -> Option(externalAccount.number),
+              "address_city"         -> externalAccount.addressCity,
+              "address_country"      -> externalAccount.addressCountry,
+              "address_line1"        -> externalAccount.addressLine1,
+              "address_line2"        -> externalAccount.addressLine2,
+              "address_state"        -> externalAccount.addressState,
+              "address_zip"          -> externalAccount.addressState,
+              "currency"             -> externalAccount.currency.map(_.iso.toLowerCase),
+              "cvc"                  -> externalAccount.cvc,
+              "default_for_currency" -> externalAccount.defaultForCurrency.map(_.iso.toLowerCase),
+              "name"                 -> externalAccount.name
+            ))
           mapToPostParams(Option(map), "external_account")
         case source: CardData.Source.Object =>
-          val map = Map(
-            "object"          -> Option("card"),
-            "exp_month"       -> Option(source.expMonth.toString),
-            "exp_year"        -> Option(source.expYear.toString),
-            "number"          -> Option(source.number),
-            "address_city"    -> source.addressCity,
-            "address_country" -> source.addressCountry,
-            "address_line1"   -> source.addressLine1,
-            "address_line2"   -> source.addressLine2,
-            "address_state"   -> source.addressState,
-            "address_zip"     -> source.addressState,
-            "cvc"             -> source.cvc,
-            "name"            -> source.name
-          ).collect {
-            case (k, Some(v)) => (k, v)
-          }
+          val map = PostParams.flatten(
+            Map(
+              "object"          -> Option("card"),
+              "exp_month"       -> Option(source.expMonth.toString),
+              "exp_year"        -> Option(source.expYear.toString),
+              "number"          -> Option(source.number),
+              "address_city"    -> source.addressCity,
+              "address_country" -> source.addressCountry,
+              "address_line1"   -> source.addressLine1,
+              "address_line2"   -> source.addressLine2,
+              "address_state"   -> source.addressState,
+              "address_zip"     -> source.addressState,
+              "cvc"             -> source.cvc,
+              "name"            -> source.name
+            ))
           mapToPostParams(Option(map), "source")
       }
     } ++ mapToPostParams(cardInput.metadata, "metadata")
@@ -919,12 +914,13 @@ object Cards extends LazyLogging {
       val baseUrl =
         endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
 
-      val queries = Map(
-        "object"         -> Option("card"),
-        "ending_before"  -> cardListInput.endingBefore,
-        "limit"          -> cardListInput.limit.map(_.toString),
-        "starting_after" -> cardListInput.startingAfter
-      ).collect { case (a, Some(b)) => (a, b) }
+      val queries = PostParams.flatten(
+        Map(
+          "object"         -> Option("card"),
+          "ending_before"  -> cardListInput.endingBefore,
+          "limit"          -> cardListInput.limit.map(_.toString),
+          "starting_after" -> cardListInput.startingAfter
+        ))
 
       Uri(baseUrl).withQuery(Query(queries))
     }
@@ -1270,17 +1266,14 @@ object BitcoinReceivers extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[BitcoinReceiver]] = {
 
-    val postFormParameters: Map[String, String] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "amount"             -> Option(bitcoinReceiverInput.amount.toString()),
         "currency"           -> Option(bitcoinReceiverInput.currency.iso.toLowerCase()),
         "email"              -> Option(bitcoinReceiverInput.email),
         "description"        -> bitcoinReceiverInput.description,
         "refund_mispayments" -> Option(bitcoinReceiverInput.refundMispayments.toString)
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ mapToPostParams(bitcoinReceiverInput.metadata, "metadata")
+      )) ++ mapToPostParams(bitcoinReceiverInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -1366,14 +1359,15 @@ object BitcoinReceivers extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/bitcoin/receivers$totalCountUrl"
 
-      val queries = Map(
-        "active"           -> bitcoinReceiverListInput.active.map(_.toString),
-        "ending_before"    -> bitcoinReceiverListInput.endingBefore,
-        "filled"           -> bitcoinReceiverListInput.filled.map(_.toString),
-        "limit"            -> bitcoinReceiverListInput.limit.map(_.toString),
-        "starting_after"   -> bitcoinReceiverListInput.startingAfter,
-        "uncaptured_funds" -> bitcoinReceiverListInput.uncapturedFunds.map(_.toString)
-      ).collect { case (k, Some(v)) => (k, v) }
+      val queries = PostParams.flatten(
+        Map(
+          "active"           -> bitcoinReceiverListInput.active.map(_.toString),
+          "ending_before"    -> bitcoinReceiverListInput.endingBefore,
+          "filled"           -> bitcoinReceiverListInput.filled.map(_.toString),
+          "limit"            -> bitcoinReceiverListInput.limit.map(_.toString),
+          "starting_after"   -> bitcoinReceiverListInput.startingAfter,
+          "uncaptured_funds" -> bitcoinReceiverListInput.uncapturedFunds.map(_.toString)
+        ))
 
       Uri(baseUrl).withQuery(Query(queries))
     }

@@ -10,7 +10,7 @@ import defaults._
 import enumeratum._
 import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.defaults._
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -259,7 +259,7 @@ object Plans extends LazyLogging {
       client: HttpExt,
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[Plan]] = {
-    val postFormParameters: Map[String, String] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "id"                   -> Option(planInput.id.toString),
         "amount"               -> Option(planInput.amount.toString()),
@@ -269,10 +269,7 @@ object Plans extends LazyLogging {
         "interval_count"       -> planInput.intervalCount.map(_.toString),
         "statement_descriptor" -> planInput.statementDescriptor,
         "trial_period_days"    -> planInput.trialPeriodDays.map(_.toString)
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ mapToPostParams(planInput.metadata, "metadata")
+      )) ++ mapToPostParams(planInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -372,11 +369,12 @@ object Plans extends LazyLogging {
         case None => baseUrl
       }
 
-      val queries = List(
-        "ending_before"  -> planListInput.endingBefore,
-        "limit"          -> planListInput.limit.map(_.toString),
-        "starting_after" -> planListInput.startingAfter
-      ).collect { case (k, Some(v)) => (k, v) }
+      val queries = PostParams.flatten(
+        List(
+          "ending_before"  -> planListInput.endingBefore,
+          "limit"          -> planListInput.limit.map(_.toString),
+          "starting_after" -> planListInput.startingAfter
+        ))
 
       val query = queries.foldLeft(created.query())((a, b) => b +: a)
       created.withQuery(query)

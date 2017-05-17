@@ -11,7 +11,7 @@ import enumeratum._
 import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.Transfers._
 import org.mdedetrich.stripe.v1.defaults._
-import org.mdedetrich.stripe.{ApiKey, Endpoint}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -354,15 +354,16 @@ object Balances extends LazyLogging {
           case _ => baseUrl
         }
 
-      val queries = List(
-        "currency"       -> balanceHistoryListInput.currency.map(_.iso.toLowerCase),
-        "ending_before"  -> balanceHistoryListInput.endingBefore,
-        "limit"          -> balanceHistoryListInput.limit.map(_.toString),
-        "source"         -> balanceHistoryListInput.source,
-        "starting_after" -> balanceHistoryListInput.startingAfter,
-        "transfer"       -> balanceHistoryListInput.transfer.map(_.toString),
-        "type"           -> balanceHistoryListInput.`type`.map(_.id)
-      ).collect { case (a, Some(b)) => (a, b) }
+      val queries = PostParams.flatten(
+        List(
+          "currency"       -> balanceHistoryListInput.currency.map(_.iso.toLowerCase),
+          "ending_before"  -> balanceHistoryListInput.endingBefore,
+          "limit"          -> balanceHistoryListInput.limit.map(_.toString),
+          "source"         -> balanceHistoryListInput.source,
+          "starting_after" -> balanceHistoryListInput.startingAfter,
+          "transfer"       -> balanceHistoryListInput.transfer.map(_.toString),
+          "type"           -> balanceHistoryListInput.`type`.map(_.id)
+        ))
 
       val query = queries.foldLeft(created.query())((a, b) => b +: a)
       created.withQuery(query)

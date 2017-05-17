@@ -13,7 +13,7 @@ import io.circe.syntax._
 import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.Plans.Plan
 import org.mdedetrich.stripe.v1.Sources.NumberCardSource
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -420,7 +420,7 @@ object Subscriptions extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[Subscription]] = {
 
-    val postFormParameters: Map[String, String] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "application_fee_percent" -> subscriptionInput.applicationFeePercent.map(_.toString()),
         "coupon"                  -> subscriptionInput.coupon,
@@ -428,10 +428,7 @@ object Subscriptions extends LazyLogging {
         "quantity"                -> subscriptionInput.quantity.map(_.toString),
         "tax_percent"             -> subscriptionInput.taxPercent.map(_.toString()),
         "trial_end"               -> subscriptionInput.trialEnd.map(stripeDateTimeParamWrites)
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ mapToPostParams(subscriptionInput.metadata, "metadata") ++ {
+      )) ++ mapToPostParams(subscriptionInput.metadata, "metadata") ++ {
       subscriptionInput.source match {
         case Some(
             Source.Card(
@@ -446,21 +443,19 @@ object Subscriptions extends LazyLogging {
               cvc,
               name
             )) =>
-          val map = Map(
-            "exp_month"       -> Option(expMonth.toString),
-            "exp_year"        -> Option(expYear.toString),
-            "number"          -> Option(number),
-            "address_country" -> addressCountry,
-            "address_line1"   -> addressLine1,
-            "address_line2"   -> addressLine2,
-            "address_state"   -> addressState,
-            "address_zip"     -> addressZip,
-            "cvc"             -> cvc,
-            "name"            -> name
-          ).collect {
-            case (k, Some(v)) => (k, v)
-          }
-
+          val map = PostParams.flatten(
+            Map(
+              "exp_month"       -> Option(expMonth.toString),
+              "exp_year"        -> Option(expYear.toString),
+              "number"          -> Option(number),
+              "address_country" -> addressCountry,
+              "address_line1"   -> addressLine1,
+              "address_line2"   -> addressLine2,
+              "address_state"   -> addressState,
+              "address_zip"     -> addressZip,
+              "cvc"             -> cvc,
+              "name"            -> name
+            ))
           mapToPostParams(Option(map), "card")
         case Some(Source.Token(id)) =>
           Map("source" -> id)
