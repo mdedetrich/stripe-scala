@@ -8,7 +8,7 @@ import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import enumeratum._
 import io.circe.{Decoder, Encoder}
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -319,49 +319,45 @@ object Tokens extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[Token]] = {
     val postFormParameters: Map[String, String] = {
-      Map(
-        "customer" -> tokenInput.customer
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      } ++ {
+      PostParams.flatten(
+        Map(
+          "customer" -> tokenInput.customer
+        )) ++ {
         tokenInput.tokenData match {
           case card: TokenData.Card =>
-            val map = Map(
-              "exp_month"       -> Option(card.expMonth.toString),
-              "exp_year"        -> Option(card.expYear.toString),
-              "number"          -> Option(card.number),
-              "address_city"    -> card.addressCity,
-              "address_country" -> card.addressCountry,
-              "address_line1"   -> card.addressLine1,
-              "address_line2"   -> card.addressLine2,
-              "address_state"   -> card.addressState,
-              "address_zip"     -> card.addressZip,
-              "currency"        -> card.currency.map(_.iso.toLowerCase),
-              "cvc"             -> card.cvc,
-              "name"            -> card.name
-            ).collect {
-              case (k, Some(v)) => (k, v)
-            }
+            val map = PostParams.flatten(
+              Map(
+                "exp_month"       -> Option(card.expMonth.toString),
+                "exp_year"        -> Option(card.expYear.toString),
+                "number"          -> Option(card.number),
+                "address_city"    -> card.addressCity,
+                "address_country" -> card.addressCountry,
+                "address_line1"   -> card.addressLine1,
+                "address_line2"   -> card.addressLine2,
+                "address_state"   -> card.addressState,
+                "address_zip"     -> card.addressZip,
+                "currency"        -> card.currency.map(_.iso.toLowerCase),
+                "cvc"             -> card.cvc,
+                "name"            -> card.name
+              ))
             mapToPostParams(Option(map), "card")
           case bankAccount: TokenData.BankAccount =>
-            val map = Map(
-              "account_number"      -> Option(bankAccount.accountNumber),
-              "country"             -> Option(bankAccount.country),
-              "currency"            -> Option(bankAccount.currency.iso.toLowerCase),
-              "routing_number"      -> bankAccount.routingNumber,
-              "account_holder_name" -> bankAccount.accountHolderName,
-              "account_holder_type" -> bankAccount.accountHolderType.map(_.id)
-            ).collect {
-              case (k, Some(v)) => (k, v)
-            }
+            val map = PostParams.flatten(
+              Map(
+                "account_number"      -> Option(bankAccount.accountNumber),
+                "country"             -> Option(bankAccount.country),
+                "currency"            -> Option(bankAccount.currency.iso.toLowerCase),
+                "routing_number"      -> bankAccount.routingNumber,
+                "account_holder_name" -> bankAccount.accountHolderName,
+                "account_holder_type" -> bankAccount.accountHolderType.map(_.id)
+              ))
             mapToPostParams(Option(map), "bank_account")
           case pii: TokenData.PII =>
-            val map = Map(
-              "pii"                -> pii.pii,
-              "personal_id_number" -> Option(pii.personalIdNumber)
-            ).collect {
-              case (k, Some(v)) => (k, v)
-            }
+            val map = PostParams.flatten(
+              Map(
+                "pii"                -> pii.pii,
+                "personal_id_number" -> Option(pii.personalIdNumber)
+              ))
             mapToPostParams(Option(map), "pii")
         }
       }

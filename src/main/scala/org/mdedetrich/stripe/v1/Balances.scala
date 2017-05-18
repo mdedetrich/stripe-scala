@@ -3,13 +3,15 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import enumeratum._
 import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.Transfers._
-import org.mdedetrich.stripe.{ApiKey, Endpoint}
+import org.mdedetrich.stripe.v1.defaults._
+import org.mdedetrich.stripe.{ApiKey, Endpoint, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -331,7 +333,6 @@ object Balances extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[BalanceTransactionList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -340,7 +341,7 @@ object Balances extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/balance/history$totalCountUrl"
 
-      val created: com.netaporter.uri.Uri =
+      val created: Uri =
         (balanceHistoryListInput.created, balanceHistoryListInput.availableOn) match {
           case (Some(createdInput), Some(availableOnInput)) =>
             listFilterInputToUri(availableOnInput,
@@ -353,14 +354,19 @@ object Balances extends LazyLogging {
           case _ => baseUrl
         }
 
-      (created ?
-        ("currency"       -> balanceHistoryListInput.currency.map(_.iso.toLowerCase)) ?
-        ("ending_before"  -> balanceHistoryListInput.endingBefore) ?
-        ("limit"          -> balanceHistoryListInput.limit.map(_.toString)) ?
-        ("source"         -> balanceHistoryListInput.source) ?
-        ("starting_after" -> balanceHistoryListInput.startingAfter) ?
-        ("transfer"       -> balanceHistoryListInput.transfer) ?
-        ("type"           -> balanceHistoryListInput.`type`.map(_.id))).toString()
+      val queries = PostParams.flatten(
+        List(
+          "currency"       -> balanceHistoryListInput.currency.map(_.iso.toLowerCase),
+          "ending_before"  -> balanceHistoryListInput.endingBefore,
+          "limit"          -> balanceHistoryListInput.limit.map(_.toString),
+          "source"         -> balanceHistoryListInput.source,
+          "starting_after" -> balanceHistoryListInput.startingAfter,
+          "transfer"       -> balanceHistoryListInput.transfer.map(_.toString),
+          "type"           -> balanceHistoryListInput.`type`.map(_.id)
+        ))
+
+      val query = queries.foldLeft(created.query())((a, b) => b +: a)
+      created.withQuery(query)
     }
 
     createRequestGET[BalanceTransactionList](finalUrl, logger)

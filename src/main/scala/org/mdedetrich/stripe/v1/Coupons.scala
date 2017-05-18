@@ -3,12 +3,14 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import enumeratum._
 import io.circe.{Decoder, Encoder}
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
+import org.mdedetrich.stripe.v1.defaults._
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -226,7 +228,7 @@ object Coupons extends LazyLogging {
       client: HttpExt,
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[Coupon]] = {
-    val postFormParameters: Map[String, String] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "id"                 -> couponInput.id,
         "duration"           -> Option(couponInput.duration.entryName),
@@ -236,10 +238,7 @@ object Coupons extends LazyLogging {
         "max_redemptions"    -> couponInput.maxRedemptions.map(_.toString),
         "percent_off"        -> couponInput.percentOff.map(_.toString()),
         "redeemBy"           -> couponInput.redeemBy.map(stripeDateTimeParamWrites)
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ mapToPostParams(couponInput.metadata, "metadata")
+      )) ++ mapToPostParams(couponInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -325,7 +324,6 @@ object Coupons extends LazyLogging {
       executionContext: ExecutionContext): Future[Try[CouponList]] = {
 
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -334,16 +332,21 @@ object Coupons extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/coupons$totalCountUrl"
 
-      val created: com.netaporter.uri.Uri = couponListInput.created match {
+      val created: Uri = couponListInput.created match {
         case Some(createdInput) =>
           listFilterInputToUri(createdInput, baseUrl, "created")
         case None => baseUrl
       }
 
-      (created ?
-        ("ending_before"  -> couponListInput.endingBefore) ?
-        ("limit"          -> couponListInput.limit.map(_.toString)) ?
-        ("starting_after" -> couponListInput.startingAfter)).toString()
+      val queries = PostParams.flatten(
+        List(
+          "ending_before"  -> couponListInput.endingBefore,
+          "limit"          -> couponListInput.limit.map(_.toString),
+          "starting_after" -> couponListInput.startingAfter
+        ))
+
+      val query = queries.foldLeft(created.query())((a, b) => b +: a)
+      created.withQuery(query)
     }
 
     createRequestGET[CouponList](finalUrl, logger)

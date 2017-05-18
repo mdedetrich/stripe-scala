@@ -5,6 +5,7 @@
 [![Maven Central Version](https://img.shields.io/maven-central/v/org.mdedetrich/stripe-scala_2.11.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mdedetrich%22%20AND%20a%3A%22stripe-scala_2.11%22)
 [![Join the chat at https://gitter.im/mdedetrich/stripe-scala](https://badges.gitter.im/mdedetrich/stripe-scala.svg)](https://gitter.im/mdedetrich/stripe-scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+
 stripe-scala is a wrapper over the [Stripe](https://stripe.com/) [REST api](https://stripe.com/docs/api/curl#intro). Unlike
 [stripe-java](https://github.com/stripe/stripe-java), stripe-scala binds JSON response to the stripe object models (using Scala
 case classes) and lets you create requests from typed case classes (rather than just using Java `Map<String,Object>`)
@@ -16,8 +17,6 @@ reading/writing JSON from/to scala case classes). It also provides a very powerf
 - [akka-stream-json](https://github.com/knutwalker/akka-stream-json) for streaming JSON
 - [ficus](https://github.com/iheartradio/ficus) for providing config (via [typesafe-config](https://github.com/typesafehub/config))
 - [enumeratum](https://github.com/lloydmeta/enumeratum) for providing typesafe enumerations on stripe enum models as well
-- [scala-uri](https://github.com/NET-A-PORTER/scala-uri) for providing a URI DSL to generate query parameters for list operations
-play-json formats for such models
 
 stripe-scala was intentionally designed to use bare minimum external dependencies so its easier to integrate with scala codebases
 
@@ -38,7 +37,7 @@ To get the latest version please check the [Maven repository search](http://sear
 ## TODO for release
 - [ ] Add all operations for all endpoints
 - [x] Add tests
-- [ ] Shade jawn/scala-uri/enumeratum if possible. These dependencies don't need to be exposed to users
+- [ ] Shade jawn/enumeratum if possible. These dependencies don't need to be exposed to users
 - [ ] Document Stripe API with ScalaDoc
 - [x] Figure out how to deal with list collections
 - [x] Figure out how to deal with error handling

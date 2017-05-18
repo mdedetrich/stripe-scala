@@ -43,5 +43,6 @@ object PostParams {
     override def toMap(t: T) = transformer(t)
   }
 
-  def flatten[K, V](input: Map[K, Option[V]]): Map[K, V] = input.collect({ case (k, Some(v)) => (k, v) })
+  def flatten[K, V](input: Map[K, Option[V]]): Map[K, V]       = input.collect({ case (k, Some(v)) => (k, v) })
+  def flatten[K, V](input: List[(K, Option[V])]): List[(K, V)] = input.collect({ case (k, Some(v)) => (k, v) })
 }

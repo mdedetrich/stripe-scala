@@ -3,6 +3,7 @@ package org.mdedetrich.stripe.v1
 import java.time.OffsetDateTime
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
 import cats.syntax.either._
 import defaults._
@@ -14,6 +15,7 @@ import org.mdedetrich.stripe.v1.Discounts.Discount
 import org.mdedetrich.stripe.v1.Shippings.Shipping
 import org.mdedetrich.stripe.v1.Sources.NumberCardSource
 import org.mdedetrich.stripe.v1.Subscriptions.SubscriptionList
+import org.mdedetrich.stripe.v1.defaults._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -287,7 +289,7 @@ object Customers extends LazyLogging {
       client: HttpExt,
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[Customer]] = {
-    val postFormParameters: Map[String, String] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "account_balance" -> customerInput.accountBalance.map(_.toString()),
         "coupon"          -> customerInput.coupon,
@@ -297,10 +299,7 @@ object Customers extends LazyLogging {
         "quantity"        -> customerInput.quantity.map(_.toString),
         "tax_percent"     -> customerInput.taxPercent.map(_.toString()),
         "trial_end"       -> customerInput.trialEnd.map(stripeDateTimeParamWrites)
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ PostParams.toPostParams("metadata", customerInput.metadata) ++ {
+      )) ++ PostParams.toPostParams("metadata", customerInput.metadata) ++ {
       customerInput.source match {
         case Some(
             Source.Card(
@@ -325,24 +324,22 @@ object Customers extends LazyLogging {
             form parameters
            */
 
-          val map = Map(
-            "exp_month"            -> Option(expMonth.toString),
-            "exp_year"             -> Option(expYear.toString),
-            "number"               -> Option(number),
-            "address_city"         -> addressCity,
-            "address_country"      -> addressCountry,
-            "address_line1"        -> addressLine1,
-            "address_line2"        -> addressLine2,
-            "address_state"        -> addressState,
-            "address_zip"          -> addressZip,
-            "currency"             -> currency.map(_.iso.toLowerCase),
-            "cvc"                  -> cvc,
-            "default_for_currency" -> defaultForCurrency.map(_.toString),
-            "name"                 -> name
-          ).collect {
-            case (k, Some(v)) => (k, v)
-          }
-
+          val map = PostParams.flatten(
+            Map(
+              "exp_month"            -> Option(expMonth.toString),
+              "exp_year"             -> Option(expYear.toString),
+              "number"               -> Option(number),
+              "address_city"         -> addressCity,
+              "address_country"      -> addressCountry,
+              "address_line1"        -> addressLine1,
+              "address_line2"        -> addressLine2,
+              "address_state"        -> addressState,
+              "address_zip"          -> addressZip,
+              "currency"             -> currency.map(_.iso.toLowerCase),
+              "cvc"                  -> cvc,
+              "default_for_currency" -> defaultForCurrency.map(_.toString),
+              "name"                 -> name
+            ))
           mapToPostParams(Option(map), "card")
 
         case Some(Source.Token(id)) =>
@@ -445,7 +442,6 @@ object Customers extends LazyLogging {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Try[CustomerList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -454,16 +450,21 @@ object Customers extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/customers$totalCountUrl"
 
-      val created: com.netaporter.uri.Uri = customerListInput.created match {
+      val created: Uri = customerListInput.created match {
         case Some(createdInput) =>
           listFilterInputToUri(createdInput, baseUrl, "created")
         case None => baseUrl
       }
 
-      (created ?
-        ("ending_before"  -> customerListInput.endingBefore) ?
-        ("limit"          -> customerListInput.limit.map(_.toString)) ?
-        ("starting_after" -> customerListInput.startingAfter)).toString()
+      val queries = PostParams.flatten(
+        List(
+          "ending_before"  -> customerListInput.endingBefore,
+          "limit"          -> customerListInput.limit.map(_.toString),
+          "starting_after" -> customerListInput.startingAfter
+        ))
+
+      val query = queries.foldLeft(created.query())((a, b) => b +: a)
+      created.withQuery(query)
     }
 
     createRequestGET[CustomerList](finalUrl, logger)

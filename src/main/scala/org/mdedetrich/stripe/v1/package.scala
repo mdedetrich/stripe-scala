@@ -4,15 +4,16 @@ import java.time.temporal.ChronoField
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 
 import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri.Query
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.model.headers._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.Materializer
 import com.typesafe.scalalogging.Logger
+import de.knutwalker.akka.http.support.CirceHttpSupport._
 import de.knutwalker.akka.stream.support.CirceStreamSupport
 import io.circe.syntax._
 import io.circe.{Errors => _, _}
-import de.knutwalker.akka.http.support.CirceHttpSupport._
 import org.mdedetrich.stripe.v1.Errors.{Error, StripeServerError, UnhandledServerError}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -43,7 +44,7 @@ package object v1 {
     * @param apiKey
     * @return
     */
-  private[v1] def createRequestDELETE(finalUrl: String, idempotencyKey: Option[IdempotencyKey], logger: Logger)(
+  private[v1] def createRequestDELETE(finalUrl: Uri, idempotencyKey: Option[IdempotencyKey], logger: Logger)(
       implicit client: HttpExt,
       materializer: Materializer,
       executionContext: ExecutionContext,
@@ -84,7 +85,7 @@ package object v1 {
     * @tparam M The model which this request should return
     * @return
     */
-  private[v1] def createRequestGET[M](finalUrl: String, logger: Logger, stripeAccount: Option[String] = None)(
+  private[v1] def createRequestGET[M](finalUrl: Uri, logger: Logger, stripeAccount: Option[String] = None)(
       implicit client: HttpExt,
       materializer: Materializer,
       executionContext: ExecutionContext,
@@ -175,19 +176,20 @@ package object v1 {
     } yield result
   }
 
-  private[v1] def listFilterInputToUri(createdInput: ListFilterInput,
-                                       baseUrl: String,
-                                       key: String): com.netaporter.uri.Uri = {
-    import com.netaporter.uri.dsl._
+  private[v1] def listFilterInputToUri(createdInput: ListFilterInput, baseUrl: Uri, key: String): Uri = {
     createdInput match {
       case c: ListFilterInput.Object =>
-        baseUrl ?
-          (s"$key[gt]"  -> c.gt.map(stripeDateTimeParamWrites)) ?
-          (s"$key[gte]" -> c.gte.map(stripeDateTimeParamWrites)) ?
-          (s"$key[lt]"  -> c.lt.map(stripeDateTimeParamWrites)) ?
-          (s"$key[lte]" -> c.lte.map(stripeDateTimeParamWrites))
+        val query = PostParams.flatten(
+          Map(
+            s"$key[gt]"  -> c.gt.map(stripeDateTimeParamWrites),
+            s"$key[gte]" -> c.gte.map(stripeDateTimeParamWrites),
+            s"$key[lt]"  -> c.lt.map(stripeDateTimeParamWrites),
+            s"$key[lte]" -> c.lte.map(stripeDateTimeParamWrites)
+          ))
+
+        baseUrl.withQuery(Query(query))
       case c: ListFilterInput.Timestamp =>
-        baseUrl ? (s"$key" -> Option(stripeDateTimeParamWrites(c.timestamp)))
+        baseUrl.withQuery(Query(s"$key" -> stripeDateTimeParamWrites(c.timestamp)))
     }
   }
 
@@ -314,7 +316,7 @@ package object v1 {
     *         are made. Will throw an [[UnhandledServerError]] or [[StripeServerError]] for uncaught errors.
     */
   private[v1] def parseStripeServerError[A](response: HttpResponse,
-                                            finalUrl: String,
+                                            finalUrl: Uri,
                                             postFormParameters: Option[Map[String, String]],
                                             postJsonParameters: Option[Json],
                                             logger: Logger)(implicit executionContext: ExecutionContext,
