@@ -28,9 +28,9 @@ class EventsSpec extends BaseSpec {
     }
 
     s"parse previous attributes correctly" in {
-        val event = getJsonResourceAs[Event](s"/events/account.updated-0.json")
+        val event = getJsonResourceAs[Event]("/events/account.updated-0.json")
         event.`type` should be(Events.Type.AccountUpdated)
-        event.data.previousAttributes should not be None
+        event.data.previousAttributes.get.toMap("transfers_enabled").asBoolean should contain (false)
       }
 
     "parse payment.created JSON correctly" in {
