@@ -2,6 +2,8 @@ package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
 
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import org.mdedetrich.stripe.Config._
 import org.mdedetrich.stripe.v1.Cards.Card
 import org.mdedetrich.stripe.v1.Customers.Source.Token
@@ -36,7 +38,10 @@ object CustomerIT {
   val defaultTestCard           = "4242424242424242"
   val cardBypassingPendingCheck = "4000000000000077"
 
-  def createCustomerWithCC(cardNumber: String = defaultTestCard)(implicit ec: ExecutionContext): Future[Customer] = {
+  def createCustomerWithCC(cardNumber: String = defaultTestCard)(
+      implicit client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Customer] = {
     val in2years   = OffsetDateTime.now.plusYears(2)
     val cardData   = TokenData.Card.default(in2years.getMonthValue, in2years.getYear, cardNumber).copy(cvc = Some("123"))
     val tokenInput = TokenInput.default(cardData)

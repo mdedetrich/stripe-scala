@@ -5,18 +5,18 @@
 [![Maven Central Version](https://img.shields.io/maven-central/v/org.mdedetrich/stripe-scala_2.11.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mdedetrich%22%20AND%20a%3A%22stripe-scala_2.11%22)
 [![Join the chat at https://gitter.im/mdedetrich/stripe-scala](https://badges.gitter.im/mdedetrich/stripe-scala.svg)](https://gitter.im/mdedetrich/stripe-scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
+
 stripe-scala is a wrapper over the [Stripe](https://stripe.com/) [REST api](https://stripe.com/docs/api/curl#intro). Unlike
 [stripe-java](https://github.com/stripe/stripe-java), stripe-scala binds JSON response to the stripe object models (using Scala
 case classes) and lets you create requests from typed case classes (rather than just using Java `Map<String,Object>`)
 
 ## Libraries Used
-- [play-json](https://www.playframework.com/documentation/2.4.x/ScalaJson) for JSON (play-json provides compile time macros for
+- [circe](https://circe.github.io/circe/) for JSON (circe provides compile time macros for
 reading/writing JSON from/to scala case classes). It also provides a very powerful API for validating/querying JSON
-- [dispatch](https://github.com/dispatch/reboot) for making HTTP requests
+- [akka-http](http://doc.akka.io/docs/akka-http/current/scala.html) for making HTTP requests
+- [akka-stream-json](https://github.com/knutwalker/akka-stream-json) for streaming JSON
 - [ficus](https://github.com/iheartradio/ficus) for providing config (via [typesafe-config](https://github.com/typesafehub/config))
 - [enumeratum](https://github.com/lloydmeta/enumeratum) for providing typesafe enumerations on stripe enum models as well
-- [scala-uri](https://github.com/NET-A-PORTER/scala-uri) for providing a URI DSL to generate query parameters for list operations
-play-json formats for such models
 
 stripe-scala was intentionally designed to use bare minimum external dependencies so its easier to integrate with scala codebases
 
@@ -28,7 +28,7 @@ It has been deployed to Maven Central, so to install it add the following to you
 
 ```scala
 libraryDependencies ++= Seq(
-  "org.mdedetrich" %% "stripe-scala" % "0.1.3"
+  "org.mdedetrich" %% "stripe-scala" % "0.2.0-SNAPSHOT"
 )
 ```
 
@@ -37,7 +37,7 @@ To get the latest version please check the [Maven repository search](http://sear
 ## TODO for release
 - [ ] Add all operations for all endpoints
 - [x] Add tests
-- [ ] Shade jawn/scala-uri/enumeratum if possible. These dependencies don't need to be exposed to users
+- [ ] Shade jawn/enumeratum if possible. These dependencies don't need to be exposed to users
 - [ ] Document Stripe API with ScalaDoc
 - [x] Figure out how to deal with list collections
 - [x] Figure out how to deal with error handling
@@ -123,13 +123,13 @@ that have no `Optional` fields do not have a `.default` method.
 
 Stripe provides a metadata field which is available as an input field to most of the stripe objects. The metadata in stripe-scala
 has a type of `Option[Map[String,String]]`. As you can see, the metadata is wrapped in an `Option`. This is to make working
-with metadata easier. If the map for the metadata happens to empty, the metadata will be `None`.
+with metadata easier.
 
 ### Timestamps
 
 Stripe represents all of its timestamps as unix timestamp numbers (https://support.stripe.com/questions/what-timezone-does-the-dashboard-and-api-use)
 however stripe-scala models store these timestamps as an `OffsetDateTime`. stripe-scala handles converting the unix timestamp
-to `OffsetDateTime` and vice versa by using custom play-json writers/readers for JSON (`stripeDateTimeReads`/`stripeDateTimeWrites`) and
+to `OffsetDateTime` and vice versa by using custom circe encoders/decoders for JSON (`defaults.stripeDateTimeDecoder`/`defaults.stripeDateTimeEncoder`) and
 `stripeDateTimeParamWrites` for form parameters.
 
 These functions are exposed publicly via the [package object](https://github.com/mdedetrich/stripe-scala/blob/master/src/main/scala/org/mdedetrich/stripe/v1/package.scala).

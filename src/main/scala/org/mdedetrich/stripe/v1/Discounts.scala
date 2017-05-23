@@ -1,9 +1,10 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
+import defaults._
+import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.Coupons._
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
 
 object Discounts {
 
@@ -14,22 +15,20 @@ object Discounts {
                       subscription: Option[String])
       extends StripeObject
 
-  implicit val discountReads: Reads[Discount] = (
-    (__ \ "coupon").read[Coupon] ~
-      (__ \ "customer").read[String] ~
-      (__ \ "end").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "start").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "subscription").readNullable[String]
-  ).tupled.map((Discount.apply _).tupled)
+  implicit val discountDecoder: Decoder[Discount] = Decoder.forProduct5(
+    "coupon",
+    "customer",
+    "end",
+    "start",
+    "subscription"
+  )(Discount.apply)
 
-  implicit val discountWrites: Writes[Discount] = Writes(
-    (discount: Discount) =>
-      Json.obj(
-        "object"       -> "discount",
-        "coupon"       -> discount.coupon,
-        "customer"     -> discount.customer,
-        "end"          -> Json.toJson(discount.end)(stripeDateTimeWrites),
-        "start"        -> Json.toJson(discount.start)(stripeDateTimeWrites),
-        "subscription" -> discount.subscription
-    ))
+  implicit val discountEncoder: Encoder[Discount] = Encoder.forProduct6(
+    "object",
+    "coupon",
+    "customer",
+    "end",
+    "start",
+    "subscription"
+  )(x => ("discount", x.coupon, x.customer, x.end, x.start, x.subscription))
 }

@@ -3,13 +3,16 @@ package org.mdedetrich.stripe.v1
 import java.io.InputStream
 import java.time.OffsetDateTime
 
-import com.ning.http.client.multipart.{ByteArrayPart, StringPart}
+import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.{Authorization, BasicHttpCredentials}
+import akka.stream.Materializer
+import akka.stream.scaladsl.StreamConverters
 import com.typesafe.scalalogging.LazyLogging
-import dispatch.{Http, url}
-import enumeratum.{Enum, EnumEntry, EnumFormats, PlayJsonEnum}
+import defaults._
+import enumeratum.{Enum, EnumEntry}
+import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.{ApiKey, FileUploadEndpoint, InvalidJsonModelException}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -21,7 +24,7 @@ object FileUploads extends LazyLogging {
     override val entryName = value
   }
 
-  object Purpose extends Enum[Purpose] with PlayJsonEnum[Purpose] {
+  object Purpose extends Enum[Purpose] {
     val values = findValues
 
     case object BusinessLogo            extends Purpose("business_logo")
@@ -32,7 +35,8 @@ object FileUploads extends LazyLogging {
     case object PaymentProviderTransfer extends Purpose("payment_provider_transfer")
     case object ProductFeed             extends Purpose("product_feed")
 
-    implicit val purposeFormats = EnumFormats.formats(Purpose)
+    implicit val purposeDecoder: Decoder[Purpose] = enumeratum.Circe.decoder(Purpose)
+    implicit val purposeEncoder: Encoder[Purpose] = enumeratum.Circe.encoder(Purpose)
   }
 
   // FileUpload
@@ -45,56 +49,68 @@ object FileUploads extends LazyLogging {
       url: Option[String]
   )
 
-  implicit val customerReads: Reads[FileUpload] = (
-    (__ \ "id").read[String] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "purpose").read[Purpose] ~
-      (__ \ "size").read[Long] ~
-      (__ \ "url").readNullable[String]
-  ).tupled.map((FileUpload.apply _).tupled)
+  implicit val fileUploadDecoder: Decoder[FileUpload] = Decoder.forProduct5(
+    "id",
+    "created",
+    "purpose",
+    "size",
+    "url"
+  )(FileUpload.apply)
 
-  implicit val fileUploadReadsWrites = Json.writes[FileUpload]
+  implicit val fileUploadEncoder: Encoder[FileUpload] = Encoder.forProduct5(
+    "id",
+    "created",
+    "purpose",
+    "size",
+    "url"
+  )(x => FileUpload.unapply(x).get)
 
   def upload(purpose: Purpose, fileName: String, inputStream: InputStream)(
-      implicit apiKey: ApiKey,
+      implicit client: HttpExt,
+      materializer: Materializer,
+      apiKey: ApiKey,
+      fileUploadChunkTimeout: FileUploadChunkTimeout,
       endpoint: FileUploadEndpoint,
-      ec: ExecutionContext): Future[Try[FileUpload]] = {
-
-    val data = Stream.continually(inputStream.read).takeWhile(_ != -1).map(_.toByte).toArray
-    upload(purpose, fileName, data)
-  }
-
-  def upload(purpose: Purpose, fileName: String, data: Array[Byte])(implicit apiKey: ApiKey,
-                                                                    endpoint: FileUploadEndpoint,
-                                                                    ec: ExecutionContext): Future[Try[FileUpload]] = {
+      executionContext: ExecutionContext): Future[Try[FileUpload]] = {
 
     val finalUrl = endpoint.url + s"/v1/files"
 
-    val paramsPart = new StringPart("purpose", purpose.entryName)
-    val filePart   = new ByteArrayPart("file", data, null, null, fileName)
+    val eventualFormData = for {
+      fileStream <- HttpEntity(
+        MediaTypes.`application/octet-stream`,
+        StreamConverters.fromInputStream(() => inputStream)).toStrict(fileUploadChunkTimeout.duration)
+    } yield
+      Multipart
+        .FormData(
+          Multipart.FormData.BodyPart(
+            "file",
+            fileStream,
+            Map("filename" -> fileName)
+          ),
+          Multipart.FormData.BodyPart("purpose", purpose.entryName)
+        )
+        .toEntity()
 
-    val req = url(finalUrl)
-      .addHeader("Content-Type", "multipart/form-data")
-      .POST
-      .as(apiKey.apiKey, "")
-      .addBodyPart(paramsPart)
-      .addBodyPart(filePart)
+    val eventualReq = for {
+      formData <- eventualFormData
+    } yield
+      HttpRequest(uri = finalUrl,
+                  entity = formData,
+                  method = HttpMethods.POST,
+                  headers = List(Authorization(BasicHttpCredentials(apiKey.apiKey, ""))))
 
-    Http(req).map { response =>
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
+    for {
+      req      <- eventualReq
+      response <- client.singleRequest(req)
+      parsed   <- parseStripeServerError[FileUpload](response, finalUrl, None, None, logger)
+      result = parsed match {
         case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[FileUpload](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              },
-              model => model
-            )
-          }
+          util.Success(triedJsValue.get)
         case Left(error) =>
-          scala.util.Failure(error)
+          util.Failure(error)
       }
-    }
+
+    } yield result
+
   }
 }

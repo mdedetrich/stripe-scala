@@ -2,11 +2,13 @@ import ReleaseTransformations._
 
 name := "stripe-scala"
 
-val currentScalaVersion = "2.11.8"
+val currentScalaVersion = "2.11.11"
+val scala212Version     = "2.12.2"
+val circeVersion        = "0.7.1"
 
 scalaVersion := currentScalaVersion
 
-crossScalaVersions := Seq(currentScalaVersion)
+crossScalaVersions := Seq(currentScalaVersion, scala212Version)
 
 organization := "org.mdedetrich"
 
@@ -30,19 +32,23 @@ Defaults.itSettings
 
 configs(IntegrationTest)
 
-val enumeratumVersion = "1.4.16"
+val enumeratumVersion      = "1.5.12"
+val enumeratumCirceVersion = "1.5.13"
+val akkaStreamJson         = "3.3.0"
 
 libraryDependencies ++= Seq(
-  "net.databinder.dispatch"    %% "dispatch-core"        % "0.11.3",
-  "com.beachape"               %% "enumeratum"           % enumeratumVersion,
-  "com.beachape"               %% "enumeratum-play-json" % enumeratumVersion,
-  "com.iheart"                 %% "ficus"                % "1.3.4",
-  "com.typesafe.scala-logging" %% "scala-logging"        % "3.4.0",
-  "com.netaporter"             %% "scala-uri"            % "0.4.13" exclude ("io.spray", "spray-json_2.11"),
-  "com.typesafe.play"          %% "play-json"            % "2.5.8",
-  "org.spire-math"             %% "jawn-play"            % "0.10.1",
-  "org.scalatest"              %% "scalatest"            % "3.0.0" % "test, it",
-  "ch.qos.logback"             % "logback-classic"       % "1.1.7" % "test, it"
+  "com.typesafe.akka"          %% "akka-http"         % "10.0.6",
+  "de.knutwalker"              %% "akka-stream-circe" % akkaStreamJson,
+  "de.knutwalker"              %% "akka-http-circe"   % akkaStreamJson,
+  "io.circe"                   %% "circe-core"        % circeVersion,
+  "io.circe"                   %% "circe-generic"     % circeVersion,
+  "io.circe"                   %% "circe-parser"      % circeVersion,
+  "com.beachape"               %% "enumeratum"        % enumeratumVersion,
+  "com.beachape"               %% "enumeratum-circe"  % enumeratumCirceVersion,
+  "com.iheart"                 %% "ficus"             % "1.4.0",
+  "com.typesafe.scala-logging" %% "scala-logging"     % "3.5.0",
+  "org.scalatest"              %% "scalatest"         % "3.0.0" % "test, it",
+  "ch.qos.logback"             % "logback-classic"    % "1.1.7" % "test, it"
 )
 
 homepage := Some(url("https://github.com/mdedetrich/stripe-scala"))
@@ -67,7 +73,7 @@ releaseProcess := Seq[ReleaseStep](
   setReleaseVersion,
   commitReleaseVersion,
   tagRelease,
-  ReleaseStep(action = Command.process("publishSigned", _)),
+  ReleaseStep(action = Command.process("+publishSigned", _)),
   setNextVersion,
   commitNextVersion,
   ReleaseStep(action = Command.process("sonatypeReleaseAll", _)),

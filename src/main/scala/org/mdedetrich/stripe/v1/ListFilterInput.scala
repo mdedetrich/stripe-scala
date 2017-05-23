@@ -1,9 +1,10 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
-import play.api.data.validation.ValidationError
-import play.api.libs.json._
-import play.api.libs.functional.syntax._
+
+import cats.syntax.either._
+import defaults._
+import io.circe.{Decoder, DecodingFailure, Encoder, Json}
 
 /**
   * Common data model for list requests that accept a created input
@@ -29,43 +30,46 @@ object ListFilterInput {
     )
   }
 
-  implicit val timestampReads: Reads[Timestamp] =
-    stripeDateTimeReads.map(Timestamp)
-  implicit val timestampWrites: Writes[Timestamp] = Writes(
-    (timestamp: Timestamp) => stripeDateTimeWrites.writes(timestamp.timestamp))
+  implicit val timestampDecoder: Decoder[Timestamp] = stripeDateTimeDecoder.map(Timestamp)
 
-  implicit val objectReads: Reads[Object] = (
-    (__ \ "gt").readNullable(stripeDateTimeReads) ~
-      (__ \ "gte").readNullable(stripeDateTimeReads) ~
-      (__ \ "lt").readNullable(stripeDateTimeReads) ~
-      (__ \ "lte").readNullable(stripeDateTimeReads)
-  ).tupled.map((Object.apply _).tupled)
+  implicit val timestampEncoder: Encoder[Timestamp] = Encoder.instance[Timestamp] { timestamp =>
+    timestampEncoder.apply(timestamp)
+  }
 
-  implicit val objectWrites: Writes[Object] = Writes(
-    (o: Object) =>
-      Json.obj(
-        "gt"  -> o.gt.map(Json.toJson(_)(stripeDateTimeWrites)),
-        "gte" -> o.gte.map(Json.toJson(_)(stripeDateTimeWrites)),
-        "lt"  -> o.lt.map(Json.toJson(_)(stripeDateTimeWrites)),
-        "gte" -> o.lte.map(Json.toJson(_)(stripeDateTimeWrites))
-    ))
+  implicit val objectDecoder: Decoder[Object] = Decoder.forProduct4(
+    "gt",
+    "gte",
+    "lt",
+    "lte"
+  )(Object.apply)
 
-  implicit val listFilterInputReads: Reads[ListFilterInput] =
-    __.read[JsValue].flatMap {
-      case jsObject: JsObject =>
-        __.read[ListFilterInput.Object].map(x => x: ListFilterInput)
-      case jsString: JsString =>
-        __.read[ListFilterInput.Timestamp].map(x => x: ListFilterInput)
-      case _ =>
-        Reads[ListFilterInput](_ => JsError(ValidationError("UnknownListFilterInput")))
-    }
+  implicit val objectEncoder: Encoder[Object] = Encoder.forProduct4(
+    "gt",
+    "gte",
+    "lt",
+    "lte"
+  )(x => Object.unapply(x).get)
 
-  implicit val listFilterInputWrites: Writes[ListFilterInput] = Writes((filterInput: ListFilterInput) => {
-    filterInput match {
-      case o: ListFilterInput.Object =>
-        Json.toJson(o)
-      case timestamp: ListFilterInput.Timestamp =>
-        Json.toJson(timestamp)
-    }
-  })
+  implicit val listFilterInputDecoder: Decoder[ListFilterInput] = Decoder.instance[ListFilterInput] { c =>
+    for {
+      json <- c.as[Json]
+      result <- {
+        if (json.isObject) {
+          c.as[ListFilterInput.Object].map(x => x: ListFilterInput)
+        } else if (json.isString) {
+          c.as[ListFilterInput.Timestamp].map(x => x: ListFilterInput)
+        } else {
+          Left(DecodingFailure("UnknownListFilterInput", c.history))
+        }
+      }
+    } yield result
+  }
+
+  implicit val listFilterInputEncoder: Encoder[ListFilterInput] = Encoder.instance[ListFilterInput] {
+    case o: ListFilterInput.Object =>
+      implicitly[Encoder[ListFilterInput.Object]].apply(o)
+    case timestamp: ListFilterInput.Timestamp =>
+      implicitly[Encoder[ListFilterInput.Timestamp]].apply(timestamp)
+  }
+
 }

@@ -1,15 +1,18 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
-import com.typesafe.scalalogging.LazyLogging
-import enumeratum._
-import org.mdedetrich.playjson.Utils._
-import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
-import scala.concurrent.Future
+import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
+import akka.stream.Materializer
+import com.typesafe.scalalogging.LazyLogging
+import defaults._
+import enumeratum._
+import io.circe.{Decoder, Encoder}
+import org.mdedetrich.stripe.v1.defaults._
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
+
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object Plans extends LazyLogging {
@@ -19,41 +22,33 @@ object Plans extends LazyLogging {
   }
 
   object Interval extends Enum[Interval] {
-
     val values = findValues
 
-    case object Day extends Interval("day")
-
-    case object Week extends Interval("week")
-
+    case object Day   extends Interval("day")
+    case object Week  extends Interval("week")
     case object Month extends Interval("month")
+    case object Year  extends Interval("year")
 
-    case object Year extends Interval("year")
+    implicit val planIntervalDecoder: Decoder[Interval] = enumeratum.Circe.decoder(Interval)
+    implicit val planIntervalEncoder: Encoder[Interval] = enumeratum.Circe.encoder(Interval)
   }
-
-  implicit val intervalFormats =
-    EnumFormats.formats(Interval, insensitive = true)
 
   sealed abstract class Status(val id: String) extends EnumEntry {
     override val entryName = id
   }
 
   object Status extends Enum[Status] {
-
     val values = findValues
 
     case object Trialing extends Status("trialing")
-
-    case object active extends Status("active")
-
-    case object PastDue extends Status("past_due")
-
+    case object Active   extends Status("active")
+    case object PastDue  extends Status("past_due")
     case object Canceled extends Status("canceled")
+    case object Unpaid   extends Status("unpaid")
 
-    case object Unpaid extends Status("unpaid")
+    implicit val planStatusDecoder: Decoder[Status] = enumeratum.Circe.decoder(Status)
+    implicit val planStatusEncoder: Encoder[Status] = enumeratum.Circe.encoder(Status)
   }
-
-  implicit val statusFormats = EnumFormats.formats(Status, insensitive = true)
 
   /**
     * @see https://stripe.com/docs/api#plan_object
@@ -114,36 +109,47 @@ object Plans extends LazyLogging {
     )
   }
 
-  implicit val planReads: Reads[Plan] = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "interval").read[Interval] ~
-      (__ \ "interval_count").read[Long] ~
-      (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "name").read[String] ~
-      (__ \ "statement_descriptor").readNullable[String] ~
-      (__ \ "trial_period_days").readNullable[Long]
-  ).tupled.map((Plan.apply _).tupled)
+  implicit val planDecoder: Decoder[Plan] = Decoder.forProduct11(
+    "id",
+    "amount",
+    "created",
+    "currency",
+    "interval",
+    "interval_count",
+    "livemode",
+    "metadata",
+    "name",
+    "statement_descriptor",
+    "trial_period_days"
+  )(Plan.apply)
 
-  implicit val planWrites: Writes[Plan] = Writes(
-    (plan: Plan) =>
-      Json.obj(
-        "id"                   -> plan.id,
-        "object"               -> "plan",
-        "amount"               -> plan.amount,
-        "created"              -> Json.toJson(plan.created)(stripeDateTimeWrites),
-        "currency"             -> plan.currency,
-        "interval"             -> plan.interval,
-        "interval_count"       -> plan.intervalCount,
-        "livemode"             -> plan.livemode,
-        "metadata"             -> plan.metadata,
-        "name"                 -> plan.name,
-        "statement_descriptor" -> plan.statementDescriptor,
-        "trial_period_days"    -> plan.trialPeriodDays
-    ))
+  implicit val planEncoder: Encoder[Plan] = Encoder.forProduct12(
+    "id",
+    "object",
+    "amount",
+    "created",
+    "currency",
+    "interval",
+    "interval_count",
+    "livemode",
+    "metadata",
+    "name",
+    "statement_descriptor",
+    "trial_period_days"
+  )(
+    x =>
+      (x.id,
+       "plan",
+       x.amount,
+       x.created,
+       x.currency,
+       x.interval,
+       x.intervalCount,
+       x.livemode,
+       x.metadata,
+       x.name,
+       x.statementDescriptor,
+       x.trialPeriodDays))
 
   /**
     * @see https://stripe.com/docs/api#create_plan
@@ -223,36 +229,37 @@ object Plans extends LazyLogging {
       )
   }
 
-  implicit val planInputReads: Reads[PlanInput] = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "interval").read[Interval] ~
-      (__ \ "name").read[String] ~
-      (__ \ "interval_count").readNullable[Long] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "statement_descriptor").readNullable[String] ~
-      (__ \ "trial_period_days").readNullable[Long]
-  ).tupled.map((PlanInput.apply _).tupled)
+  implicit val planInputDecoder: Decoder[PlanInput] = Decoder.forProduct9(
+    "id",
+    "amount",
+    "currency",
+    "interval",
+    "name",
+    "interval_count",
+    "metadata",
+    "statement_descriptor",
+    "trial_period_days"
+  )(PlanInput.apply)
 
-  implicit val planInputWrites: Writes[PlanInput] = Writes(
-    (planInput: PlanInput) =>
-      Json.obj(
-        "id"                   -> planInput.id,
-        "amount"               -> planInput.amount,
-        "currency"             -> planInput.currency,
-        "interval"             -> planInput.interval,
-        "name"                 -> planInput.name,
-        "interval_count"       -> planInput.intervalCount,
-        "metadata"             -> planInput.metadata,
-        "statement_descriptor" -> planInput.statementDescriptor,
-        "trial_period_days"    -> planInput.trialPeriodDays
-    ))
+  implicit val planInputEncoder: Encoder[PlanInput] = Encoder.forProduct9(
+    "id",
+    "amount",
+    "currency",
+    "interval",
+    "name",
+    "interval_count",
+    "metadata",
+    "statement_descriptor",
+    "trial_period_days"
+  )(x => PlanInput.unapply(x).get)
 
   def create(planInput: PlanInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Plan]] = {
-    val postFormParameters: Map[String, String] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Plan]] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "id"                   -> Option(planInput.id.toString),
         "amount"               -> Option(planInput.amount.toString()),
@@ -262,10 +269,7 @@ object Plans extends LazyLogging {
         "interval_count"       -> planInput.intervalCount.map(_.toString),
         "statement_descriptor" -> planInput.statementDescriptor,
         "trial_period_days"    -> planInput.trialPeriodDays.map(_.toString)
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ mapToPostParams(planInput.metadata, "metadata")
+      )) ++ mapToPostParams(planInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -274,7 +278,11 @@ object Plans extends LazyLogging {
     createRequestPOST[Plan](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Plan]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[Plan]] = {
     val finalUrl = endpoint.url + s"/v1/plans/$id"
 
     createRequestGET[Plan](finalUrl, logger)
@@ -282,7 +290,10 @@ object Plans extends LazyLogging {
 
   def delete(id: String)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/plans/$id"
 
     createRequestDELETE(finalUrl, idempotencyKey, logger)
@@ -330,16 +341,20 @@ object Plans extends LazyLogging {
       extends Collections.List[Plan](url, hasMore, data, totalCount)
 
   object PlanList extends Collections.ListJsonMappers[Plan] {
-    implicit val customerListReads: Reads[PlanList] =
-      listReads.tupled.map((PlanList.apply _).tupled)
+    implicit val planListDecoder: Decoder[PlanList] =
+      listDecoder(implicitly)(PlanList.apply)
 
-    implicit val customerWrites: Writes[PlanList] = listWrites
+    implicit val planListEncoder: Encoder[PlanList] =
+      listEncoder[PlanList]
   }
 
-  def list(planListInput: PlanListInput, includeTotalCount: Boolean)(implicit apiKey: ApiKey,
-                                                                     endpoint: Endpoint): Future[Try[PlanList]] = {
+  def list(planListInput: PlanListInput, includeTotalCount: Boolean)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[PlanList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -348,16 +363,21 @@ object Plans extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/customers$totalCountUrl"
 
-      val created: com.netaporter.uri.Uri = planListInput.created match {
+      val created: Uri = planListInput.created match {
         case Some(createdInput) =>
           listFilterInputToUri(createdInput, baseUrl, "created")
         case None => baseUrl
       }
 
-      (created ?
-        ("ending_before"  -> planListInput.endingBefore) ?
-        ("limit"          -> planListInput.limit.map(_.toString)) ?
-        ("starting_after" -> planListInput.startingAfter)).toString()
+      val queries = PostParams.flatten(
+        List(
+          "ending_before"  -> planListInput.endingBefore,
+          "limit"          -> planListInput.limit.map(_.toString),
+          "starting_after" -> planListInput.startingAfter
+        ))
+
+      val query = queries.foldLeft(created.query())((a, b) => b +: a)
+      created.withQuery(query)
     }
 
     createRequestGET[PlanList](finalUrl, logger)

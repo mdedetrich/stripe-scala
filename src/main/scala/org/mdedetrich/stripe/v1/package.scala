@@ -1,23 +1,40 @@
 package org.mdedetrich.stripe
 
+import java.time.temporal.ChronoField
 import java.time.{Instant, OffsetDateTime, ZoneOffset}
 
-import com.ning.http.client.Response
+import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri.Query
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers._
+import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.stream.Materializer
 import com.typesafe.scalalogging.Logger
-import jawn.support.play.Parser
-import java.time.temporal.ChronoField
-
-import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
+import de.knutwalker.akka.http.support.CirceHttpSupport._
+import de.knutwalker.akka.stream.support.CirceStreamSupport
+import io.circe.syntax._
+import io.circe.{Errors => _, _}
 import org.mdedetrich.stripe.v1.Errors.{Error, StripeServerError, UnhandledServerError}
-import play.api.libs.json._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util._
 
 package object v1 {
 
+  object defaults {
+
+    implicit val stripeDateTimeDecoder: Decoder[OffsetDateTime] = Decoder[Long].map { timestamp =>
+      OffsetDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneOffset.UTC)
+    }
+
+    implicit val stripeDateTimeEncoder: Encoder[OffsetDateTime] = Encoder.instance[OffsetDateTime] { dateTime =>
+      dateTime.get(ChronoField.OFFSET_SECONDS).asJson
+    }
+
+  }
+
   /**
-    * A helper function which creates a DELETE request through dispatch.
+    * A helper function which creates a DELETE request through akka-http.
     * Note that DELETE requests in stripe all have the same response
     *
     * @param finalUrl       The URL for the request
@@ -27,149 +44,152 @@ package object v1 {
     * @param apiKey
     * @return
     */
-  private[v1] def createRequestDELETE(finalUrl: String, idempotencyKey: Option[IdempotencyKey], logger: Logger)(
-      implicit apiKey: ApiKey): Future[Try[DeleteResponse]] = {
-    import dispatch.Defaults._
-    import dispatch._
+  private[v1] def createRequestDELETE(finalUrl: Uri, idempotencyKey: Option[IdempotencyKey], logger: Logger)(
+      implicit client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext,
+      apiKey: ApiKey): Future[Try[DeleteResponse]] = {
+    val authorization = Authorization(BasicHttpCredentials(apiKey.apiKey, ""))
 
     val req = {
-      val r = url(finalUrl).DELETE.as(apiKey.apiKey, "")
-
-      idempotencyKey match {
+      val h = idempotencyKey match {
         case Some(key) =>
-          r.addHeader(idempotencyKeyHeader, key.key)
+          List(authorization, RawHeader(idempotencyKeyHeader, key.key))
         case None =>
-          r
+          List(authorization)
       }
+
+      HttpRequest(uri = finalUrl, method = HttpMethods.DELETE, headers = h)
     }
 
-    Http(req).map { response =>
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[DeleteResponse](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              },
-              deleteResponse => deleteResponse
-            )
-          }
+    for {
+      response <- client.singleRequest(req)
+      parsed   <- parseStripeServerError[DeleteResponse](response, finalUrl, None, None, logger)
+      result = parsed match {
+        case Right(triedDeleteResponse) =>
+          util.Success(triedDeleteResponse.get)
         case Left(error) =>
-          scala.util.Failure(error)
+          util.Failure(error)
       }
-    }
+    } yield result
   }
 
   /**
-    * A helper function which creates a GET request through dispatch
+    * A helper function which creates a GET request through akka-http
     *
     * @param finalUrl The URL for the request
     * @param logger   The logger to use, should the logger for the model for
     *                 easy debugging
-    * @param reads
+    * @param decoder
     * @param apiKey
     * @tparam M The model which this request should return
     * @return
     */
-  private[v1] def createRequestGET[M](finalUrl: String, logger: Logger, stripeAccount: Option[String] = None)(implicit reads: Reads[M],
-                                                                        apiKey: ApiKey): Future[Try[M]] = {
-    import dispatch.Defaults._
-    import dispatch._
-
-    val withoutAccountHeader = url(finalUrl).GET.as(apiKey.apiKey, "")
-    val req = stripeAccount
-      .map(stripeAccount => withoutAccountHeader.addHeader(stripeAccountHeader, stripeAccount))
-      .getOrElse(withoutAccountHeader)
-
-
-    Http(req).map { response =>
-      parseStripeServerError(response, finalUrl, None, None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[M](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode, finalUrl, None, None, jsValue, errors)
-              },
-              model => model
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
+  private[v1] def createRequestGET[M](finalUrl: Uri, logger: Logger, stripeAccount: Option[String] = None)(
+      implicit client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext,
+      decoder: Decoder[M],
+      apiKey: ApiKey): Future[Try[M]] = {
+    val baseHeaders = stripeAccount
+      .map { header =>
+        List(RawHeader(stripeAccountHeader, header))
       }
-    }
+      .getOrElse(List.empty)
+
+    val req =
+      HttpRequest(uri = finalUrl,
+                  method = HttpMethods.GET,
+                  headers = List(Authorization(BasicHttpCredentials(apiKey.apiKey, ""))) ++ baseHeaders)
+
+    for {
+      response <- client.singleRequest(req)
+      parsed   <- parseStripeServerError[M](response, finalUrl, None, None, logger)
+      result = parsed match {
+        case Right(triedValue) =>
+          util.Success(triedValue.get)
+        case Left(error) =>
+          util.Failure(error)
+      }
+    } yield result
   }
 
   /**
-    * A helper function which creates a POST request through dispatch
+    * A helper function which creates a POST request through akka-http
     *
     * @param finalUrl           The URL for the request
     * @param postFormParameters The POST form parameters
     * @param idempotencyKey     The IdempotencyKey
     * @param logger             The logger to use, should the logger for the model for
     *                           easy debugging
-    * @param reads
+    * @param decoder
     * @param apiKey
     * @tparam M The model which this request should return
     * @return
     */
-  private[v1] def createRequestPOST[M](
-      finalUrl: String,
-      postFormParameters: Map[String, String],
-      idempotencyKey: Option[IdempotencyKey],
-      logger: Logger,
-      stripeAccount: Option[String] = None)(implicit reads: Reads[M], apiKey: ApiKey): Future[Try[M]] = {
-    import dispatch.Defaults._
-    import dispatch._
+  private[v1] def createRequestPOST[M](finalUrl: String,
+                                       postFormParameters: Map[String, String],
+                                       idempotencyKey: Option[IdempotencyKey],
+                                       logger: Logger,
+                                       stripeAccount: Option[String] = None)(implicit client: HttpExt,
+                                                                             materializer: Materializer,
+                                                                             executionContext: ExecutionContext,
+                                                                             decoder: Decoder[M],
+                                                                             apiKey: ApiKey): Future[Try[M]] = {
 
     val req = {
-      val r = (
-        url(finalUrl).addHeader("Content-Type", "application/x-www-form-urlencoded") << postFormParameters
-      ).POST.as(apiKey.apiKey, "")
 
-      val withIdempotencyKey = idempotencyKey.map(key => r.addHeader(idempotencyKeyHeader, key.key)).getOrElse(r)
-      stripeAccount
-        .map(stripeAccount => withIdempotencyKey.addHeader(stripeAccountHeader, stripeAccount))
-        .getOrElse(withIdempotencyKey)
-    }
+      val authorization = Authorization(BasicHttpCredentials(apiKey.apiKey, ""))
 
-    Http(req).map { response =>
-      parseStripeServerError(response, finalUrl, Option(postFormParameters), None)(logger) match {
-        case Right(triedJsValue) =>
-          triedJsValue.map { jsValue =>
-            val jsResult = Json.fromJson[M](jsValue)
-            jsResult.fold(
-              errors => {
-                throw InvalidJsonModelException(response.getStatusCode,
-                                                finalUrl,
-                                                Option(postFormParameters),
-                                                None,
-                                                jsValue,
-                                                errors)
-              },
-              model => model
-            )
-          }
-        case Left(error) =>
-          scala.util.Failure(error)
+      val headers = {
+        val id = idempotencyKey match {
+          case Some(key) =>
+            List(authorization, RawHeader(idempotencyKeyHeader, key.key))
+          case None =>
+            List(authorization)
+        }
+        stripeAccount match {
+          case Some(account) => id ++ List(RawHeader(stripeAccountHeader, account))
+          case None          => id
+        }
+
       }
+
+      HttpRequest(
+        uri = finalUrl,
+        entity = FormData(postFormParameters).toEntity,
+        method = HttpMethods.POST,
+        headers = headers
+      )
     }
+
+    for {
+      response <- client.singleRequest(req)
+      parsed   <- parseStripeServerError[M](response, finalUrl, Option(postFormParameters), None, logger)
+      result = parsed match {
+        case Right(triedValue) =>
+          util.Success(triedValue.get)
+        case Left(error) =>
+          util.Failure(error)
+      }
+
+    } yield result
   }
 
-  private[v1] def listFilterInputToUri(createdInput: ListFilterInput,
-                                       baseUrl: String,
-                                       key: String): com.netaporter.uri.Uri = {
-    import com.netaporter.uri.dsl._
+  private[v1] def listFilterInputToUri(createdInput: ListFilterInput, baseUrl: Uri, key: String): Uri = {
     createdInput match {
       case c: ListFilterInput.Object =>
-        baseUrl ?
-          (s"$key[gt]"  -> c.gt.map(stripeDateTimeParamWrites)) ?
-          (s"$key[gte]" -> c.gte.map(stripeDateTimeParamWrites)) ?
-          (s"$key[lt]"  -> c.lt.map(stripeDateTimeParamWrites)) ?
-          (s"$key[lte]" -> c.lte.map(stripeDateTimeParamWrites))
+        val query = PostParams.flatten(
+          Map(
+            s"$key[gt]"  -> c.gt.map(stripeDateTimeParamWrites),
+            s"$key[gte]" -> c.gte.map(stripeDateTimeParamWrites),
+            s"$key[lt]"  -> c.lt.map(stripeDateTimeParamWrites),
+            s"$key[lte]" -> c.lte.map(stripeDateTimeParamWrites)
+          ))
+
+        baseUrl.withQuery(Query(query))
       case c: ListFilterInput.Timestamp =>
-        baseUrl ? (s"$key" -> Option(stripeDateTimeParamWrites(c.timestamp)))
+        baseUrl.withQuery(Query(s"$key" -> stripeDateTimeParamWrites(c.timestamp)))
     }
   }
 
@@ -191,16 +211,6 @@ package object v1 {
 
   def stripeDateTimeParamWrites(dateTime: OffsetDateTime): String =
     dateTime.get(ChronoField.OFFSET_SECONDS).toString
-
-  val stripeDateTimeReads: Reads[OffsetDateTime] = Reads.of[Long].map { timestamp =>
-    OffsetDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneOffset.UTC)
-  }
-
-  val stripeDateTimeWrites: Writes[OffsetDateTime] = Writes { (dateTime: OffsetDateTime) =>
-    JsNumber(dateTime.get(ChronoField.OFFSET_SECONDS))
-  }
-
-  val stripeDateTimeFormats: Format[OffsetDateTime] = Format(stripeDateTimeReads, stripeDateTimeWrites)
 
   /**
     * A function which does the simplest ideal handling for making a stripe request.
@@ -305,60 +315,95 @@ package object v1 {
     *         https://stripe.com/docs/api/curl#errors. Will return a [[Right]] if no server errors
     *         are made. Will throw an [[UnhandledServerError]] or [[StripeServerError]] for uncaught errors.
     */
-  private[v1] def parseStripeServerError(
-      response: Response,
-      finalUrl: String,
-      postFormParameters: Option[Map[String, String]],
-      postJsonParameters: Option[JsValue])(implicit logger: Logger): Either[Errors.Error, Try[JsValue]] = {
-    val httpCode = response.getStatusCode
+  private[v1] def parseStripeServerError[A](response: HttpResponse,
+                                            finalUrl: Uri,
+                                            postFormParameters: Option[Map[String, String]],
+                                            postJsonParameters: Option[Json],
+                                            logger: Logger)(implicit executionContext: ExecutionContext,
+                                                            materializer: Materializer,
+                                                            decoder: Decoder[A]): Future[Either[Error, Try[A]]] = {
+    val httpCode = response.status.intValue()
 
     logger.debug(s"Response status code is $httpCode")
 
-    logger.debug(s"Response retrieved from $finalUrl is \n${response.getResponseBody}")
+    for {
+      result <- {
+        if (response.status.isSuccess()) {
+          Unmarshal(response.entity.httpEntity.withContentType(ContentTypes.`application/json`))
+            .to[A]
+            .map(x => Right(util.Success(x)))
+            .recover {
+              case e: CirceStreamSupport.JsonParsingException => Right(util.Failure(e))
+            }
+        } else {
+          httpCode match {
+            case 400 | 401 | 402 | 404 | 429 =>
+              for {
+                json <- {
+                  Unmarshal(response.entity.httpEntity.withContentType(ContentTypes.`application/json`))
+                    .to[Json]
+                    .map(x => util.Success(x))
+                    .recover { case e => util.Failure(e) }
+                }
+                jsonResponse = {
+                  json.map { jsValue =>
+                    val jsResult: Decoder.Result[Error] = httpCode match {
+                      case 400 =>
+                        val decoder: Decoder[Error.BadRequest] = Decoder.instance[Error.BadRequest] { c =>
+                          c.downField("error").as[Error.BadRequest]
+                        }
+                        decoder.apply(jsValue.hcursor)
+                      case 401 | 403 =>
+                        val decoder: Decoder[Error.Unauthorized] = Decoder.instance[Error.Unauthorized] { c =>
+                          c.downField("error").as[Error.Unauthorized]
+                        }
+                        decoder.apply(jsValue.hcursor)
+                      case 402 =>
+                        val decoder: Decoder[Error.RequestFailed] = Decoder.instance[Error.RequestFailed] { c =>
+                          c.downField("error").as[Error.RequestFailed]
+                        }
+                        decoder.apply(jsValue.hcursor)
+                      case 404 =>
+                        val decoder: Decoder[Error.NotFound] = Decoder.instance[Error.NotFound] { c =>
+                          c.downField("error").as[Error.NotFound]
+                        }
+                        decoder.apply(jsValue.hcursor)
+                      case 429 =>
+                        val decoder: Decoder[Error.TooManyRequests] = Decoder.instance[Error.TooManyRequests] { c =>
+                          c.downField("error").as[Error.TooManyRequests]
+                        }
+                        decoder.apply(jsValue.hcursor)
+                    }
 
-    httpCode match {
-      case code if code / 100 == 2 =>
-        Right(Parser.parseFromByteBuffer(response.getResponseBodyAsByteBuffer))
-      case 400 | 401 | 402 | 404 | 429 =>
-        val jsonResponse = Parser.parseFromByteBuffer(response.getResponseBodyAsByteBuffer).map { jsValue =>
-          val path = __ \ "error"
-          val jsResult: JsResult[Error] = httpCode match {
-            case 400 =>
-              path.read[Error.BadRequest].reads(jsValue)
-            case 401 | 403 =>
-              path.read[Error.Unauthorized].reads(jsValue)
-            case 402 =>
-              path.read[Error.RequestFailed].reads(jsValue)
-            case 404 =>
-              path.read[Error.NotFound].reads(jsValue)
-            case 429 =>
-              path.read[Error.TooManyRequests].reads(jsValue)
+                    jsResult.fold(
+                      error => {
+                        throw InvalidJsonModelException(httpCode,
+                                                        finalUrl,
+                                                        postFormParameters,
+                                                        postJsonParameters,
+                                                        jsValue,
+                                                        error)
+                      },
+                      error => error
+                    )
+
+                  }
+                }
+              } yield
+                Left {
+                  jsonResponse match {
+                    case util.Success(error)     => error
+                    case util.Failure(throwable) => throw throwable
+                  }
+                }
+            case 500 | 502 | 503 | 504 =>
+              throw StripeServerError(response)
+            case _ =>
+              throw UnhandledServerError(response)
           }
-
-          val error = jsResult.fold(
-            errors => {
-              val error =
-                InvalidJsonModelException(httpCode, finalUrl, postFormParameters, postJsonParameters, jsValue, errors)
-              throw error
-            },
-            error => error
-          )
-
-          error
         }
-
-        Left {
-          jsonResponse match {
-            case scala.util.Success(error)     => error
-            case scala.util.Failure(throwable) => throw throwable
-          }
-        }
-
-      case 500 | 502 | 503 | 504 =>
-        throw StripeServerError(response)
-      case _ =>
-        throw UnhandledServerError(response)
-    }
+      }
+    } yield result
   }
 
   private[v1] def mapToPostParams(optionalMap: Option[Map[String, String]], parentKey: String) = {

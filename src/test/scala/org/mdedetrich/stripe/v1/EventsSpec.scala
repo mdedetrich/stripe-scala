@@ -1,20 +1,15 @@
 package org.mdedetrich.stripe.v1
 
 import org.mdedetrich.stripe.v1.Customers.Customer
-import org.mdedetrich.stripe.v1.Events.Event
-import org.mdedetrich.stripe.v1.Events._
-import org.scalatest.{Matchers, WordSpec}
-import play.api.libs.json.{JsSuccess, Json}
+import org.mdedetrich.stripe.v1.Events.{Event, _}
 
-class EventsSpec extends WordSpec with Matchers {
+class EventsSpec extends BaseSpec {
+
   "Events" should {
 
     "parse customer.create JSON correctly" in {
-      val in = this.getClass.getResourceAsStream("/events/customer.created.json")
-      in should not be null
-      val json = Json.parse(in)
+      val event = getJsonResourceAs[Event]("/events/customer.created.json")
 
-      val JsSuccess(event, _) = json.validate[Event]
       event.id should be("evt_1A9re7J6y4jvjvHhEh0DfAAv")
       event.`type` should be(Events.Type.CustomerCreated)
 
@@ -26,28 +21,25 @@ class EventsSpec extends WordSpec with Matchers {
     (0 to 1).foreach { index =>
       val filename = s"account.updated-$index.json"
       s"parse accounts.update from $filename" in {
-        val in = this.getClass.getResourceAsStream(s"/events/$filename")
-        in should not be null
-        val json                = Json.parse(in)
-        val JsSuccess(event, _) = json.validate[Event]
+        val event = getJsonResourceAs[Event](s"/events/$filename")
         event.`type` should be(Events.Type.AccountUpdated)
+        event.data.previousAttributes should not be None
       }
     }
 
+    s"parse previous attributes correctly" in {
+        val event = getJsonResourceAs[Event]("/events/account.updated-0.json")
+        event.`type` should be(Events.Type.AccountUpdated)
+        event.data.previousAttributes.get.toMap("transfers_enabled").asBoolean should contain (false)
+      }
+
     "parse payment.created JSON correctly" in {
-      val in = this.getClass.getResourceAsStream("/events/payment.created.json")
-      in should not be null
-      val json                = Json.parse(in)
-      val JsSuccess(event, _) = json.validate[Event]
+      val event = getJsonResourceAs[Event]("/events/payment.created.json")
       event.`type` should be(Events.Type.PaymentCreated)
     }
 
     "parse event list" in {
-      val in   = this.getClass.getResourceAsStream("/events/event-list.json")
-      val json = Json.parse(in)
-
-      val JsSuccess(eventList, _) = json.validate[EventList]
-
+      val eventList = getJsonResourceAs[EventList]("/events/event-list.json")
       eventList.data.size should be(100)
     }
   }

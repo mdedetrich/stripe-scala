@@ -2,14 +2,15 @@ package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
 
+import akka.http.scaladsl.HttpExt
+import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
-import org.mdedetrich.playjson.Utils._
+import defaults._
+import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.PostParams.{flatten, toPostParams}
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 /**
@@ -25,17 +26,26 @@ object ApplicationFeeRefunds extends LazyLogging {
                                   fee: String,
                                   balanceTransaction: Option[String])
 
-  implicit val refundReads: Reads[ApplicationFeeRefund] = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "fee").read[String] ~
-      (__ \ "balance_transaction").readNullable[String]
-  ).tupled.map((ApplicationFeeRefund.apply _).tupled)
+  implicit val applicationFeeRefundDecoder: Decoder[ApplicationFeeRefund] = Decoder.forProduct7(
+    "id",
+    "amount",
+    "metadata",
+    "created",
+    "currency",
+    "fee",
+    "balance_transaction"
+  )(ApplicationFeeRefund.apply)
 
-  implicit val refundWrites: Writes[ApplicationFeeRefund] = Json.writes[ApplicationFeeRefund]
+  implicit val applicationFeeRefundEncoder: Encoder[ApplicationFeeRefund] = Encoder.forProduct8(
+    "id",
+    "object",
+    "amount",
+    "metadata",
+    "created",
+    "currency",
+    "fee",
+    "balance_transaction"
+  )(x => (x.id, "fee_refund", x.amount, x.metadata, x.created, x.currency, x.fee, x.balanceTransaction))
 
   case class ApplicationFeeRefundInput(id: String, amount: Option[BigDecimal], metadata: Map[String, String])
 
@@ -56,7 +66,10 @@ object ApplicationFeeRefunds extends LazyLogging {
 
   def create(refundInput: ApplicationFeeRefundInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[ApplicationFeeRefund]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[ApplicationFeeRefund]] = {
 
     val postFormParameters = toPostParams(refundInput)
     logger.debug(s"Generated POST form parameters is $postFormParameters")
@@ -66,7 +79,11 @@ object ApplicationFeeRefunds extends LazyLogging {
     createRequestPOST[ApplicationFeeRefund](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[ApplicationFeeRefund]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[ApplicationFeeRefund]] = {
     val finalUrl = s"${endpoint.url}/v1/application_fees/$id/refunds"
 
     createRequestGET[ApplicationFeeRefund](finalUrl, logger)

@@ -1,9 +1,9 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
-import org.mdedetrich.playjson.Utils._
+
+import defaults._
+import io.circe.{Decoder, Encoder}
 
 object Alipays {
 
@@ -64,34 +64,45 @@ object Alipays {
     )
   }
 
-  implicit val alipayReads: Reads[AliPay] = (
-    (__ \ "id").read[String] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "customer").readNullable[String] ~
-      (__ \ "fingerprint").readNullable[String] ~
-      (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "payment_amount").readNullable[BigDecimal] ~
-      (__ \ "payment_currency").readNullable[Currency] ~
-      (__ \ "reusable").read[Boolean] ~
-      (__ \ "used").read[Boolean] ~
-      (__ \ "username").read[String]
-  ).tupled.map((AliPay.apply _).tupled)
+  implicit val aliPayDecoder: Decoder[AliPay] = Decoder.forProduct11(
+    "id",
+    "created",
+    "customer",
+    "fingerprint",
+    "livemode",
+    "metadata",
+    "payment_amount",
+    "payment_currency",
+    "reusable",
+    "used",
+    "username"
+  )(AliPay.apply)
 
-  implicit val alipayWrites: Writes[AliPay] = Writes(
-    (alipay: AliPay) =>
-      Json.obj(
-        "id"               -> alipay.id,
-        "object"           -> "alipay_account",
-        "created"          -> Json.toJson(alipay.created)(stripeDateTimeWrites),
-        "customer"         -> alipay.customer,
-        "fingerprint"      -> alipay.fingerprint,
-        "livemode"         -> alipay.livemode,
-        "metadata"         -> alipay.metadata,
-        "payment_amount"   -> alipay.paymentAmount,
-        "payment_currency" -> alipay.paymentCurrency,
-        "reusable"         -> alipay.reusable,
-        "used"             -> alipay.used,
-        "username"         -> alipay.username
-    ))
+  implicit val aliPayEncoder: Encoder[AliPay] = Encoder.forProduct12(
+    "id",
+    "object",
+    "created",
+    "customer",
+    "fingerprint",
+    "livemode",
+    "metadata",
+    "payment_amount",
+    "payment_currency",
+    "reusable",
+    "used",
+    "username"
+  )(
+    x =>
+      (x.id,
+       "alipay_account",
+       x.created,
+       x.customer,
+       x.fingerprint,
+       x.livemode,
+       x.metadata,
+       x.paymentAmount,
+       x.paymentCurrency,
+       x.reusable,
+       x.used,
+       x.username))
 }

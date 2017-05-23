@@ -1,20 +1,25 @@
 package org.mdedetrich.stripe.v1
 
 import java.time.OffsetDateTime
+
+import akka.http.scaladsl.HttpExt
+import akka.http.scaladsl.model.Uri
+import akka.http.scaladsl.model.Uri.Query
+import akka.stream.Materializer
+import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
+import defaults._
 import enumeratum._
-import org.mdedetrich.playjson.Utils._
+import io.circe._
+import io.circe.syntax._
 import org.mdedetrich.stripe.v1.BankAccountsPaymentSource.BankAccount
 import org.mdedetrich.stripe.v1.BitcoinReceivers.BitcoinReceiver
 import org.mdedetrich.stripe.v1.Cards.Card
 import org.mdedetrich.stripe.v1.Collections.ListJsonMappers
-import org.mdedetrich.stripe.v1.DeleteResponses.DeleteResponse
-import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey}
-import play.api.data.validation.ValidationError
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import org.mdedetrich.stripe.v1.defaults._
+import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 /**
@@ -25,30 +30,29 @@ sealed trait PaymentSource
 
 object PaymentSource extends LazyLogging {
 
-  implicit val paymentSourcesReads: Reads[PaymentSource] =
-    __.read[JsObject].flatMap { o =>
-      (__ \ "object").read[String].flatMap {
-        case "card"         => __.read[Card].map(x => x: PaymentSource)
-        case "bank_account" => __.read[BankAccount].map(_.asInstanceOf[PaymentSource])
-        case "bitcoin_receiver" =>
-          __.read[BitcoinReceiver].map(x => x: PaymentSource)
-        case unknown =>
-          Reads[PaymentSource](_ => JsError(ValidationError(s"UnknownPaymentSource: $unknown")))
+  implicit val paymentSourceDecoder: Decoder[PaymentSource] = Decoder.instance[PaymentSource] { c =>
+    for {
+      tpe <- c.downField("object").as[String]
+      paymentSource <- tpe match {
+        case "card"             => c.as[Card].map(x => x: PaymentSource)
+        case "bank_account"     => c.as[BankAccount].map(x => x: PaymentSource)
+        case "bitcoin_receiver" => c.as[BitcoinReceiver].map(x => x: PaymentSource)
+        case _                  => Left(DecodingFailure("Unknown Payment Source", c.history))
       }
-    }
+    } yield paymentSource
+  }
 
-  implicit val paymentSourceWrites: Writes[PaymentSource] = Writes((paymentSource: PaymentSource) =>
-    paymentSource match {
-      case c: Card            => Json.toJson(c)(Cards.cardWrites)
-      case b: BitcoinReceiver => Json.toJson(b)
-      case ba: BankAccount    => Json.toJson(ba)(BankAccountsPaymentSource.bankAccountWrites)
-  })
+  implicit val paymentSourceEncoder: Encoder[PaymentSource] = Encoder.instance[PaymentSource] {
+    case c: Card            => implicitly[Encoder[Card]].apply(c)
+    case b: BitcoinReceiver => implicitly[Encoder[BitcoinReceiver]].apply(b)
+    case ba: BankAccount    => implicitly[Encoder[BankAccount]].apply(ba)
+  }
 }
 
 case class PaymentSourceList(override val url: String,
                              override val hasMore: Boolean,
                              override val data: List[PaymentSource],
-                             override val totalCount: Option[Long])(implicit reads: Reads[JsValue])
+                             override val totalCount: Option[Long])
     extends Collections.List[PaymentSource](
       url,
       hasMore,
@@ -57,12 +61,11 @@ case class PaymentSourceList(override val url: String,
     )
 
 object PaymentSourceList extends ListJsonMappers[PaymentSource] {
+  implicit val paymentSourceListDecoder: Decoder[PaymentSourceList] =
+    listDecoder(implicitly)(PaymentSourceList.apply)
 
-  implicit val paymentSourceListReadsInstance: Reads[PaymentSourceList] =
-    listReads.tupled.map((PaymentSourceList.apply _).tupled)
-
-  implicit val paymentSourceListWritesInstance: Writes[PaymentSourceList] =
-    Writes((paymentSourceList: PaymentSourceList) => listWrites.writes(paymentSourceList))
+  implicit val paymentSourceListEncoder: Encoder[PaymentSourceList] =
+    listEncoder[PaymentSourceList]
 }
 
 object Cards extends LazyLogging {
@@ -72,25 +75,19 @@ object Cards extends LazyLogging {
   }
 
   object Brand extends Enum[Brand] {
-
     val values = findValues
 
-    case object Visa extends Brand("Visa")
-
+    case object Visa               extends Brand("Visa")
     case object `American Express` extends Brand("American Express")
+    case object MasterCard         extends Brand("MasterCard")
+    case object Discover           extends Brand("Discover")
+    case object JCB                extends Brand("JCB")
+    case object `Diners Club`      extends Brand("Diners Club")
+    case object Unknown            extends Brand("Unknown")
 
-    case object MasterCard extends Brand("MasterCard")
-
-    case object Discover extends Brand("Discover")
-
-    case object JCB extends Brand("JCB")
-
-    case object `Diners Club` extends Brand("Diners Club")
-
-    case object Unknown extends Brand("Unknown")
+    implicit val cardsBrandDecoder: Decoder[Brand] = enumeratum.Circe.decoder(Brand)
+    implicit val cardsBrandEncoder: Encoder[Brand] = enumeratum.Circe.encoder(Brand)
   }
-
-  implicit val brandFormats = EnumFormats.formats(Brand, insensitive = true)
 
   sealed abstract class Check(val id: String) extends EnumEntry {
     override val entryName = id
@@ -99,16 +96,14 @@ object Cards extends LazyLogging {
   object Check extends Enum[Check] {
     val values = findValues
 
-    case object Pass extends Check("pass")
-
-    case object Fail extends Check("fail")
-
+    case object Pass        extends Check("pass")
+    case object Fail        extends Check("fail")
     case object Unavailable extends Check("unavailable")
+    case object Unchecked   extends Check("unchecked")
 
-    case object Unchecked extends Check("unchecked")
+    implicit val cardsCheckDecoder: Decoder[Check] = enumeratum.Circe.decoder(Check)
+    implicit val cardsCheckEncoder: Encoder[Check] = enumeratum.Circe.encoder(Check)
   }
-
-  implicit val checkFormats = EnumFormats.formats(Check, insensitive = true)
 
   sealed abstract class Funding(val id: String) extends EnumEntry {
     override val entryName = id
@@ -117,33 +112,31 @@ object Cards extends LazyLogging {
   object Funding extends Enum[Funding] {
     val values = findValues
 
-    case object Credit extends Funding("credit")
-
-    case object Debit extends Funding("debit")
-
+    case object Credit  extends Funding("credit")
+    case object Debit   extends Funding("debit")
     case object Prepaid extends Funding("prepaid")
-
     case object Unknown extends Funding("unknown")
-  }
 
-  implicit val fundingFormats =
-    EnumFormats.formats(Funding, insensitive = true)
+    implicit val cardsFundingDecoder: Decoder[Funding] = enumeratum.Circe.decoder(Funding)
+    implicit val cardsFundingEncoder: Encoder[Funding] = enumeratum.Circe.encoder(Funding)
+  }
 
   sealed abstract class TokenizationMethod(val id: String) extends EnumEntry {
     override val entryName = id
   }
 
   object TokenizationMethod extends Enum[TokenizationMethod] {
-
     val values = findValues
 
-    case object ApplePay extends TokenizationMethod("apple_pay")
-
+    case object ApplePay   extends TokenizationMethod("apple_pay")
     case object AndroidPay extends TokenizationMethod("android_pay")
-  }
 
-  implicit val tokenizationMethodFormats =
-    EnumFormats.formats(TokenizationMethod, insensitive = true)
+    implicit val cardsTokenizationMethodDecoder: Decoder[TokenizationMethod] =
+      enumeratum.Circe.decoder(TokenizationMethod)
+
+    implicit val cardsTokenizationMethodEncoder: Encoder[TokenizationMethod] =
+      enumeratum.Circe.encoder(TokenizationMethod)
+  }
 
   /**
     * @see https://stripe.com/docs/api#card_object
@@ -259,127 +252,192 @@ object Cards extends LazyLogging {
     )
   }
 
-  private[this] val cardReadsOne = (
-    (__ \ "id").read[String] ~
-      (__ \ "account").readNullable[String] ~
-      (__ \ "address_city").readNullable[String] ~
-      (__ \ "address_country").readNullable[String] ~
-      (__ \ "address_line1").readNullable[String] ~
-      (__ \ "address_line1_check").readNullable[Check] ~
-      (__ \ "address_line2").readNullable[String] ~
-      (__ \ "address_state").readNullable[String] ~
-      (__ \ "address_zip").readNullable[String] ~
-      (__ \ "address_zip_check").readNullable[Check] ~
-      (__ \ "brand").read[Brand] ~
-      (__ \ "country").readNullable[String] ~
-      (__ \ "currency").readNullable[Currency] ~
-      (__ \ "customer").readNullable[String] ~
-      (__ \ "cvc_check").readNullable[Check] ~
-      (__ \ "default_for_currency").readNullable[Boolean] ~
-      (__ \ "dynamic_last4").readNullable[String] ~
-      (__ \ "exp_month").read[Int] ~
-      (__ \ "exp_year").read[Int] ~
-      (__ \ "fingerprint").readNullable[String] ~
-      (__ \ "funding").read[Funding] ~
-      (__ \ "last4").read[String]
-  ).tupled
+  private val cardDecoderOne = Decoder.forProduct22(
+    "id",
+    "account",
+    "address_city",
+    "address_country",
+    "address_line1",
+    "address_line1_check",
+    "address_line2",
+    "address_state",
+    "address_zip",
+    "address_zip_check",
+    "brand",
+    "country",
+    "currency",
+    "customer",
+    "cvc_check",
+    "default_for_currency",
+    "dynamic_last4",
+    "exp_month",
+    "exp_year",
+    "fingerprint",
+    "funding",
+    "last4"
+  )(
+    Tuple22.apply(
+      _: String,
+      _: Option[String],
+      _: Option[String],
+      _: Option[String],
+      _: Option[String],
+      _: Option[Check],
+      _: Option[String],
+      _: Option[String],
+      _: Option[String],
+      _: Option[Check],
+      _: Brand,
+      _: Option[String],
+      _: Option[Currency],
+      _: Option[String],
+      _: Option[Check],
+      _: Option[Boolean],
+      _: Option[String],
+      _: Int,
+      _: Int,
+      _: Option[String],
+      _: Funding,
+      _: String
+    ))
 
-  private[this] val cardReadsTwo = (
-    (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "name").readNullable[String] ~
-      (__ \ "recipient").readNullable[String] ~
-      (__ \ "tokenization_method").readNullable[TokenizationMethod]
-  ).tupled
+  private val cardDecoderTwo = Decoder.forProduct4(
+    "metadata",
+    "name",
+    "recipient",
+    "tokenization_method"
+  )(
+    Tuple4.apply(
+      _: Option[Map[String, String]],
+      _: Option[String],
+      _: Option[String],
+      _: Option[TokenizationMethod]
+    ))
 
-  implicit val cardReads: Reads[Card] = (
-    cardReadsOne ~ cardReadsTwo
-  ) { (one, two) =>
-    val (id,
-         account,
-         addressCity,
-         addressCountry,
-         addressLine1,
-         addressLine1Check,
-         addressLine2,
-         addressState,
-         addressZip,
-         addressZipCheck,
-         brand,
-         country,
-         currency,
-         customer,
-         cvcCheck,
-         defaultForCurrency,
-         dynamicLast4,
-         expMonth,
-         expYear,
-         fingerprint,
-         funding,
-         last4) = one
-
-    val (metadata, name, recipient, tokenizationMethod) = two
-
-    Card(
-      id,
-      account,
-      addressCity,
-      addressCountry,
-      addressLine1,
-      addressLine1Check,
-      addressLine2,
-      addressState,
-      addressZip,
-      addressZipCheck,
-      brand,
-      country,
-      currency,
-      customer,
-      cvcCheck,
-      defaultForCurrency,
-      dynamicLast4,
-      expMonth,
-      expYear,
-      fingerprint,
-      funding,
-      last4,
-      metadata,
-      name,
-      recipient,
-      tokenizationMethod
-    )
+  implicit val cardDecoder: Decoder[Card] = Decoder.instance[Card] { c =>
+    for {
+      one <- cardDecoderOne(c)
+      two <- cardDecoderTwo(c)
+    } yield {
+      val (id,
+           account,
+           addressCity,
+           addressCountry,
+           addressLine1,
+           addressLine1Check,
+           addressLine2,
+           addressState,
+           addressZip,
+           addressZipCheck,
+           brand,
+           country,
+           currency,
+           customer,
+           cvcCheck,
+           defaultForCurrency,
+           dynamicLast4,
+           expMonth,
+           expYear,
+           fingerprint,
+           funding,
+           last4)                                         = one
+      val (metadata, name, recipient, tokenizationMethod) = two
+      Card(
+        id,
+        account,
+        addressCity,
+        addressCountry,
+        addressLine1,
+        addressLine1Check,
+        addressLine2,
+        addressState,
+        addressZip,
+        addressZipCheck,
+        brand,
+        country,
+        currency,
+        customer,
+        cvcCheck,
+        defaultForCurrency,
+        dynamicLast4,
+        expMonth,
+        expYear,
+        fingerprint,
+        funding,
+        last4,
+        metadata,
+        name,
+        recipient,
+        tokenizationMethod
+      )
+    }
   }
 
-  implicit val cardWrites: Writes[Card] = Writes(
-    (card: Card) =>
-      Json.obj(
-        "id"                   -> card.id,
-        "object"               -> "card",
-        "account"              -> card.account,
-        "address_city"         -> card.addressCity,
-        "address_country"      -> card.addressCountry,
-        "address_line1"        -> card.addressLine1,
-        "address_line1_check"  -> card.addressLine1Check,
-        "address_line2"        -> card.addressLine2,
-        "address_state"        -> card.addressState,
-        "address_zip"          -> card.addressZip,
-        "address_zip_check"    -> card.addressZipCheck,
-        "brand"                -> card.brand,
-        "country"              -> card.country,
-        "currency"             -> card.currency,
-        "customer"             -> card.customer,
-        "cvc_check"            -> card.cvcCheck,
-        "default_for_currency" -> card.defaultForCurrency,
-        "dynamic_last4"        -> card.dynamicLast4,
-        "exp_month"            -> card.expMonth,
-        "exp_year"             -> card.expYear,
-        "fingerprint"          -> card.fingerprint,
-        "funding"              -> card.funding,
-        "last4"                -> card.last4,
-        "metadata"             -> card.metadata,
-        "name"                 -> card.name,
-        "recipient"            -> card.recipient,
-        "tokenization_method"  -> card.tokenizationMethod
+  private val cardEncoderOne: Encoder[Card] = Encoder.forProduct22(
+    "id",
+    "object",
+    "account",
+    "address_city",
+    "address_country",
+    "address_line1",
+    "address_line1_check",
+    "address_line2",
+    "address_state",
+    "address_zip",
+    "address_zip_check",
+    "brand",
+    "country",
+    "currency",
+    "customer",
+    "cvc_check",
+    "default_for_currency",
+    "dynamic_last4",
+    "exp_month",
+    "exp_year",
+    "fingerprint",
+    "funding"
+  )(
+    x =>
+      (x.id,
+       "card",
+       x.account,
+       x.addressCity,
+       x.addressCountry,
+       x.addressLine1,
+       x.addressLine1Check,
+       x.addressLine2,
+       x.addressState,
+       x.addressZip,
+       x.addressZipCheck,
+       x.brand,
+       x.country,
+       x.currency,
+       x.customer,
+       x.cvcCheck,
+       x.defaultForCurrency,
+       x.dynamicLast4,
+       x.expMonth,
+       x.expYear,
+       x.fingerprint,
+       x.funding))
+
+  private val cardEncoderTwo: Encoder[Card] = Encoder.forProduct5(
+    "last4",
+    "metadata",
+    "name",
+    "recipient",
+    "tokenization_method"
+  )(
+    x =>
+      (
+        x.last4,
+        x.metadata,
+        x.name,
+        x.recipient,
+        x.tokenizationMethod
     ))
+
+  implicit val cardEncoder: Encoder[Card] = Encoder.instance[Card](e => cardEncoderOne(e).deepMerge(cardEncoderTwo(e)))
 
   sealed abstract class CardData
 
@@ -442,44 +500,57 @@ object Cards extends LazyLogging {
         )
       }
 
-      implicit val sourceObjectReads: Reads[Object] = (
-        (__ \ "exp_month").read[Int] ~
-          (__ \ "exp_year").read[Int] ~
-          (__ \ "number").read[String] ~
-          (__ \ "address_city").readNullable[String] ~
-          (__ \ "address_country").readNullable[String] ~
-          (__ \ "address_line1").readNullable[String] ~
-          (__ \ "address_line2").readNullable[String] ~
-          (__ \ "address_state").readNullable[String] ~
-          (__ \ "address_zip").readNullable[String] ~
-          (__ \ "cvc").readNullable[String] ~
-          (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-          (__ \ "name").readNullable[String]
-      ).tupled.map((Object.apply _).tupled)
+      implicit val sourceObjectDecoder: Decoder[Object] = Decoder.forProduct12(
+        "exp_month",
+        "exp_year",
+        "number",
+        "address_city",
+        "address_country",
+        "address_line1",
+        "address_line2",
+        "address_state",
+        "address_zip",
+        "cvc",
+        "metadata",
+        "name"
+      )(Object.apply)
 
-      implicit val sourceObjectWrites: Writes[Object] = Writes(
-        (`object`: Object) =>
-          Json.obj(
-            "object"          -> "card",
-            "exp_month"       -> `object`.expMonth,
-            "exp_year"        -> `object`.expYear,
-            "number"          -> `object`.number,
-            "address_city"    -> `object`.addressCity,
-            "address_country" -> `object`.addressCountry,
-            "address_line1"   -> `object`.addressLine1,
-            "address_line2"   -> `object`.addressLine2,
-            "address_state"   -> `object`.addressState,
-            "address_zip"     -> `object`.addressState,
-            "cvc"             -> `object`.cvc,
-            "metadata"        -> `object`.metadata,
-            "name"            -> `object`.name
+      implicit val sourceObjectEncoder: Encoder[Object] = Encoder.forProduct13(
+        "object",
+        "exp_month",
+        "exp_year",
+        "number",
+        "address_city",
+        "address_country",
+        "address_line1",
+        "address_line2",
+        "address_state",
+        "address_zip",
+        "cvc",
+        "metadata",
+        "name"
+      )(
+        x =>
+          (
+            "card",
+            x.expMonth,
+            x.expYear,
+            x.number,
+            x.addressCity,
+            x.addressCountry,
+            x.addressLine1,
+            x.addressLine2,
+            x.addressState,
+            x.addressZip,
+            x.cvc,
+            x.metadata,
+            x.name
         ))
 
       case class Token(id: String) extends Source
 
-      implicit val sourceTokenReads: Reads[Token] = Reads.of[String].map(Token)
-
-      implicit val sourceTokenWrites: Writes[Token] = Writes((token: Token) => JsString(token.id))
+      implicit val sourceTokenDecoder: Decoder[Token] = Decoder[String].map(Token)
+      implicit val sourceTokenEncoder: Encoder[Token] = Encoder.instance[Token](_.id.asJson)
     }
 
     sealed abstract class ExternalAccount extends CardData
@@ -554,59 +625,74 @@ object Cards extends LazyLogging {
         )
       }
 
-      implicit val externalAccountObjectReads: Reads[Object] = (
-        (__ \ "exp_month").read[Int] ~
-          (__ \ "exp_year").read[Int] ~
-          (__ \ "number").read[String] ~
-          (__ \ "address_city").readNullable[String] ~
-          (__ \ "address_country").readNullable[String] ~
-          (__ \ "address_line1").readNullable[String] ~
-          (__ \ "address_line2").readNullable[String] ~
-          (__ \ "address_state").readNullable[String] ~
-          (__ \ "address_zip").readNullable[String] ~
-          (__ \ "currency").readNullable[Currency] ~
-          (__ \ "cvc").readNullable[String] ~
-          (__ \ "default_for_currency").readNullable[Currency] ~
-          (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-          (__ \ "name").readNullable[String]
-      ).tupled.map((Object.apply _).tupled)
+      implicit val externalAccountObjectDecoder: Decoder[Object] =
+        Decoder.forProduct14(
+          "exp_month",
+          "exp_year",
+          "number",
+          "address_city",
+          "address_country",
+          "address_line1",
+          "address_line2",
+          "address_state",
+          "address_zip",
+          "currency",
+          "cvc",
+          "default_for_currency",
+          "metadata",
+          "name"
+        )(Object.apply)
 
-      implicit val externalAccountObjectWrites: Writes[Object] = Writes(
-        (`object`: Object) =>
-          Json.obj(
-            "object"               -> "card",
-            "exp_month"            -> `object`.expMonth,
-            "exp_year"             -> `object`.expYear,
-            "number"               -> `object`.number,
-            "address_city"         -> `object`.addressCity,
-            "address_country"      -> `object`.addressCountry,
-            "address_line1"        -> `object`.addressLine1,
-            "address_line2"        -> `object`.addressLine2,
-            "address_state"        -> `object`.addressState,
-            "address_zip"          -> `object`.addressState,
-            "currency"             -> `object`.currency,
-            "cvc"                  -> `object`.cvc,
-            "default_for_currency" -> `object`.defaultForCurrency,
-            "metadata"             -> `object`.metadata,
-            "name"                 -> `object`.name
+      implicit val externalAccountObjectEncoder: Encoder[Object] = Encoder.forProduct15(
+        "object",
+        "exp_month",
+        "exp_year",
+        "number",
+        "address_city",
+        "address_country",
+        "address_line1",
+        "address_line2",
+        "address_state",
+        "address_zip",
+        "currency",
+        "cvc",
+        "default_for_currency",
+        "metadata",
+        "name"
+      )(
+        x =>
+          (
+            "card",
+            x.expMonth,
+            x.expYear,
+            x.number,
+            x.addressCity,
+            x.addressCountry,
+            x.addressLine1,
+            x.addressLine2,
+            x.addressState,
+            x.addressZip,
+            x.currency,
+            x.cvc,
+            x.defaultForCurrency,
+            x.metadata,
+            x.name
         ))
 
       case class Token(id: String) extends ExternalAccount
 
-      implicit val externalAccountTokenReads: Reads[Token] =
-        Reads.of[String].map(Token)
-
-      implicit val externalAccountTokenWrites: Writes[Token] = Writes((token: Token) => JsString(token.id))
+      implicit val externalAccountTokenDecoder: Decoder[Token] = Decoder[String].map(Token)
+      implicit val externalAccountTokenEncoder: Encoder[Token] = Encoder.instance[Token](_.id.asJson)
     }
   }
 
-  implicit val cardDataWrites: Writes[CardData] = Writes { (cardData: CardData) =>
-    cardData match {
-      case cardData: CardData.Source.Object          => Json.toJson(cardData)
-      case cardData: CardData.ExternalAccount.Object => Json.toJson(cardData)
-      case cardData: CardData.Source.Token           => Json.toJson(cardData)
-      case cardData: CardData.ExternalAccount.Token  => Json.toJson(cardData)
-    }
+  implicit val cardDataDecoder: Encoder[CardData] = Encoder.instance[CardData] {
+    case cardData: CardData.Source.Object => implicitly[Encoder[CardData.Source.Object]].apply(cardData)
+    case cardData: CardData.ExternalAccount.Object =>
+      implicitly[Encoder[CardData.ExternalAccount.Object]].apply(cardData)
+    case cardData: CardData.Source.Token => implicitly[Encoder[CardData.Source.Token]].apply(cardData)
+    case cardData: CardData.ExternalAccount.Token =>
+      implicitly[Encoder[CardData.ExternalAccount.Token]].apply(cardData)
   }
 
   /**
@@ -633,98 +719,113 @@ object Cards extends LazyLogging {
     )
   }
 
-  implicit val cardInputWrites: Writes[CardInput] = Writes { (cardInput: CardInput) =>
+  implicit val cardInputEncoder: Encoder[CardInput] = Encoder.instance[CardInput] { cardInput =>
     val cardData = cardInput.cardData match {
       case cardData: CardData.ExternalAccount.Token =>
-        Json.obj("external_account" -> cardData)
+        Json.obj("external_account" -> cardData.asJson)
       case cardData: CardData.ExternalAccount.Object =>
-        Json.obj("external_account" -> cardData)
+        Json.obj("external_account" -> cardData.asJson)
       case cardData: CardData.Source.Object =>
-        Json.obj("source" -> cardData)
+        Json.obj("source" -> cardData.asJson)
       case cardData: CardData.Source.Token =>
-        Json.obj("source" -> cardData)
+        Json.obj("source" -> cardData.asJson)
     }
 
-    cardData ++ Json.obj(
-      "metadata"             -> cardInput.metadata,
-      "default_for_currency" -> cardInput.defaultForCurrency
-    )
+    cardData.deepMerge(
+      Json.obj(
+        "metadata"             -> cardInput.metadata.asJson,
+        "default_for_currency" -> cardInput.defaultForCurrency.asJson
+      ))
   }
 
-  implicit val cardInputReads: Reads[CardInput] = {
-    val cardData = (__ \ "external_account").read[JsValue].flatMap {
-      case JsObject(_) =>
-        (__ \ "external_account").read[CardData.ExternalAccount.Object].map(x => x: CardData)
-      case JsString(_) =>
-        (__ \ "external_account").read[CardData.ExternalAccount.Token].map(x => x: CardData)
-      case _ =>
-        (__ \ "source").read[JsValue].flatMap {
-          case JsObject(_) =>
-            (__ \ "source").read[CardData.Source.Object].map(x => x: CardData)
-          case JsString(_) =>
-            (__ \ "source").read[CardData.Source.Token].map(x => x: CardData)
-          case _ =>
-            Reads[CardData](_ => JsError(ValidationError("UnknownCardData")))
-        }
-    }
+  implicit val cardInputDecoder: Decoder[CardInput] = Decoder.instance[CardInput] { c =>
+    val baseDecoder = Decoder.forProduct2(
+      "metadata",
+      "default_for_currency"
+    )(Tuple2.apply(_: Option[Map[String, String]], _: Option[Boolean]))
 
-    (cardData ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "default_for_currency").readNullable[Boolean]).tupled.map((CardInput.apply _).tupled)
+    for {
+      base  <- baseDecoder.apply(c)
+      field <- c.downField("external_account").as[Json]
+      cardData <- {
+        if (field.isObject) {
+          c.downField("external_account").as[CardData.ExternalAccount.Object].map(x => x: CardData)
+        } else if (field.isString) {
+          c.downField("external_account").as[CardData.ExternalAccount.Token].map(x => x: CardData)
+        } else {
+          for {
+            fieldInner <- c.downField("source").as[Json]
+            source <- {
+              if (fieldInner.isObject) {
+                c.downField("source").as[CardData.Source.Object].map(x => x: CardData)
+              } else if (field.isString) {
+                c.downField("source").as[CardData.Source.Token].map(x => x: CardData)
+              } else {
+                Left(DecodingFailure("Unknown Card Data", c.history))
+              }
+            }
+          } yield source
+
+        }
+      }
+    } yield
+      CardInput(
+        cardData,
+        base._1,
+        base._2
+      )
   }
 
   def create(customerId: String, cardInput: CardInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[Card]] = {
-    val postFormParameters: Map[String, String] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[Card]] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "default_for_currency" -> cardInput.defaultForCurrency.map(_.toString)
-      )
-    }.collect {
-      case (k, Some(v)) => (k, v)
-    } ++ {
+      )) ++ {
       cardInput.cardData match {
         case CardData.ExternalAccount.Token(id) =>
           Map("external_account" -> id)
         case CardData.Source.Token(id) =>
           Map("source" -> id)
         case externalAccount: CardData.ExternalAccount.Object =>
-          val map = Map(
-            "object"               -> Option("card"),
-            "exp_month"            -> Option(externalAccount.expMonth.toString),
-            "exp_year"             -> Option(externalAccount.expYear.toString),
-            "number"               -> Option(externalAccount.number),
-            "address_city"         -> externalAccount.addressCity,
-            "address_country"      -> externalAccount.addressCountry,
-            "address_line1"        -> externalAccount.addressLine1,
-            "address_line2"        -> externalAccount.addressLine2,
-            "address_state"        -> externalAccount.addressState,
-            "address_zip"          -> externalAccount.addressState,
-            "currency"             -> externalAccount.currency.map(_.iso.toLowerCase),
-            "cvc"                  -> externalAccount.cvc,
-            "default_for_currency" -> externalAccount.defaultForCurrency.map(_.iso.toLowerCase),
-            "name"                 -> externalAccount.name
-          ).collect {
-            case (k, Some(v)) => (k, v)
-          }
+          val map = PostParams.flatten(
+            Map(
+              "object"               -> Option("card"),
+              "exp_month"            -> Option(externalAccount.expMonth.toString),
+              "exp_year"             -> Option(externalAccount.expYear.toString),
+              "number"               -> Option(externalAccount.number),
+              "address_city"         -> externalAccount.addressCity,
+              "address_country"      -> externalAccount.addressCountry,
+              "address_line1"        -> externalAccount.addressLine1,
+              "address_line2"        -> externalAccount.addressLine2,
+              "address_state"        -> externalAccount.addressState,
+              "address_zip"          -> externalAccount.addressState,
+              "currency"             -> externalAccount.currency.map(_.iso.toLowerCase),
+              "cvc"                  -> externalAccount.cvc,
+              "default_for_currency" -> externalAccount.defaultForCurrency.map(_.iso.toLowerCase),
+              "name"                 -> externalAccount.name
+            ))
           mapToPostParams(Option(map), "external_account")
         case source: CardData.Source.Object =>
-          val map = Map(
-            "object"          -> Option("card"),
-            "exp_month"       -> Option(source.expMonth.toString),
-            "exp_year"        -> Option(source.expYear.toString),
-            "number"          -> Option(source.number),
-            "address_city"    -> source.addressCity,
-            "address_country" -> source.addressCountry,
-            "address_line1"   -> source.addressLine1,
-            "address_line2"   -> source.addressLine2,
-            "address_state"   -> source.addressState,
-            "address_zip"     -> source.addressState,
-            "cvc"             -> source.cvc,
-            "name"            -> source.name
-          ).collect {
-            case (k, Some(v)) => (k, v)
-          }
+          val map = PostParams.flatten(
+            Map(
+              "object"          -> Option("card"),
+              "exp_month"       -> Option(source.expMonth.toString),
+              "exp_year"        -> Option(source.expYear.toString),
+              "number"          -> Option(source.number),
+              "address_city"    -> source.addressCity,
+              "address_country" -> source.addressCountry,
+              "address_line1"   -> source.addressLine1,
+              "address_line2"   -> source.addressLine2,
+              "address_state"   -> source.addressState,
+              "address_zip"     -> source.addressState,
+              "cvc"             -> source.cvc,
+              "name"            -> source.name
+            ))
           mapToPostParams(Option(map), "source")
       }
     } ++ mapToPostParams(cardInput.metadata, "metadata")
@@ -736,7 +837,11 @@ object Cards extends LazyLogging {
     createRequestPOST[Card](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(customerId: String, cardId: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[Card]] = {
+  def get(customerId: String, cardId: String)(implicit apiKey: ApiKey,
+                                              endpoint: Endpoint,
+                                              client: HttpExt,
+                                              materializer: Materializer,
+                                              executionContext: ExecutionContext): Future[Try[Card]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$cardId"
 
     createRequestGET[Card](finalUrl, logger)
@@ -744,7 +849,10 @@ object Cards extends LazyLogging {
 
   def delete(customerId: String, cardId: String)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[DeleteResponse]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
 
     val finalUrl = endpoint.url + s"/v1/customers/$customerId/sources/$cardId"
 
@@ -783,17 +891,20 @@ object Cards extends LazyLogging {
       extends Collections.List[Card](url, hasMore, data, totalCount)
 
   object CardList extends Collections.ListJsonMappers[Card] {
-    implicit val cardListReads: Reads[CardList] =
-      listReads.tupled.map((CardList.apply _).tupled)
+    implicit val cardListDecoder: Decoder[CardList] =
+      listDecoder(implicitly)(CardList.apply)
 
-    implicit val cardListWrites: Writes[CardList] = listWrites
+    implicit val cardListEncoder: Encoder[CardList] =
+      listEncoder[CardList]
   }
 
   def list(customerId: String, cardListInput: CardListInput, includeTotalCount: Boolean)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[CardList]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[CardList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -803,11 +914,15 @@ object Cards extends LazyLogging {
       val baseUrl =
         endpoint.url + s"/v1/customers/$customerId/sources$totalCountUrl"
 
-      (baseUrl ?
-        ("object"         -> "card") ?
-        ("ending_before"  -> cardListInput.endingBefore) ?
-        ("limit"          -> cardListInput.limit.map(_.toString)) ?
-        ("starting_after" -> cardListInput.startingAfter)).toString()
+      val queries = PostParams.flatten(
+        Map(
+          "object"         -> Option("card"),
+          "ending_before"  -> cardListInput.endingBefore,
+          "limit"          -> cardListInput.limit.map(_.toString),
+          "starting_after" -> cardListInput.startingAfter
+        ))
+
+      Uri(baseUrl).withQuery(Query(queries))
     }
 
     createRequestGET[CardList](finalUrl, logger)
@@ -825,15 +940,23 @@ object BankAccountsPaymentSource extends LazyLogging {
   ) extends StripeObject
       with PaymentSource
 
-  implicit val bankAccountReads: Reads[BankAccount] = (
-    (__ \ "id").read[String] ~
-      (__ \ "account_holder_name").readNullable[String] ~
-      (__ \ "last4").read[String] ~
-      (__ \ "routing_number").read[String] ~
-      (__ \ "country").read[String] ~
-      (__ \ "default_for_currency").read[Boolean]
-  ).tupled.map((BankAccount.apply _).tupled)
-  implicit val bankAccountWrites: Writes[BankAccount] = Json.writes[BankAccount]
+  implicit val bankAccountDecoder: Decoder[BankAccount] = Decoder.forProduct6(
+    "id",
+    "account_holder_name",
+    "last4",
+    "routing_number",
+    "country",
+    "default_for_currency"
+  )(BankAccount.apply)
+
+  implicit val bankAccountEncoder: Encoder[BankAccount] = Encoder.forProduct6(
+    "id",
+    "account_holder_name",
+    "last4",
+    "routing_number",
+    "country",
+    "default_for_currency"
+  )(x => BankAccount.unapply(x).get)
 }
 
 object BitcoinReceivers extends LazyLogging {
@@ -858,26 +981,24 @@ object BitcoinReceivers extends LazyLogging {
                          currency: Currency,
                          receiver: String)
 
-  implicit val transactionReads: Reads[Transaction] = (
-    (__ \ "id").read[String] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "bitcoin_amount").read[BigDecimal] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "receiver").read[String]
-  ).tupled.map((Transaction.apply _).tupled)
+  implicit val transactionDecoder: Decoder[Transaction] = Decoder.forProduct6(
+    "id",
+    "amount",
+    "bitcoin_amount",
+    "created",
+    "currency",
+    "receiver"
+  )(Transaction.apply)
 
-  implicit val transactionWrites: Writes[Transaction] = Writes(
-    (transaction: Transaction) =>
-      Json.obj(
-        "id"             -> transaction.id,
-        "object"         -> "list",
-        "amount"         -> transaction.amount,
-        "bitcoin_amount" -> transaction.bitcoinAmount,
-        "created"        -> Json.toJson(transaction.created)(stripeDateTimeWrites),
-        "currency"       -> transaction.currency,
-        "receiver"       -> transaction.receiver
-    ))
+  implicit val transactionEncoder: Encoder[Transaction] = Encoder.forProduct7(
+    "id",
+    "object",
+    "amount",
+    "bitcoin_amount",
+    "created",
+    "currency",
+    "receiver"
+  )(x => (x.id, "list", x.amount, x.bitcoinAmount, x.created, x.currency, x.receiver))
 
   case class TransactionList(override val url: String,
                              override val hasMore: Boolean,
@@ -891,10 +1012,11 @@ object BitcoinReceivers extends LazyLogging {
       )
 
   object TransactionList extends Collections.ListJsonMappers[Transaction] {
-    implicit val transactionsReads: Reads[TransactionList] =
-      listReads.tupled.map((TransactionList.apply _).tupled)
+    implicit val transactionListDecoder: Decoder[TransactionList] =
+      listDecoder(implicitly)(TransactionList.apply)
 
-    implicit val transactionsWrites: Writes[TransactionList] = listWrites
+    implicit val transactionListEncoder: Encoder[TransactionList] =
+      listEncoder[TransactionList]
   }
 
   /**
@@ -1008,55 +1130,78 @@ object BitcoinReceivers extends LazyLogging {
     )
   }
 
-  implicit val bitcoinReceiverReads: Reads[BitcoinReceiver] = (
-    (__ \ "id").read[String] ~
-      (__ \ "active").read[Boolean] ~
-      (__ \ "amount").read[BigDecimal] ~
-      (__ \ "amount_received").read[BigDecimal] ~
-      (__ \ "bitcoin_amount").read[BigDecimal] ~
-      (__ \ "bitcoin_amount_received").read[BigDecimal] ~
-      (__ \ "bitcoin_uri").read[String] ~
-      (__ \ "created").read[OffsetDateTime](stripeDateTimeReads) ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "customer").read[String] ~
-      (__ \ "description").read[String] ~
-      (__ \ "email").read[String] ~
-      (__ \ "filled").read[Boolean] ~
-      (__ \ "inbound_address").read[String] ~
-      (__ \ "livemode").read[Boolean] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "payment").readNullable[String] ~
-      (__ \ "refund_address").readNullable[String] ~
-      (__ \ "transactions").readNullable[TransactionList] ~
-      (__ \ "uncaptured_funds").read[Boolean] ~
-      (__ \ "used_for_payment").read[Boolean]
-  ).tupled.map((BitcoinReceiver.apply _).tupled)
+  implicit val bitcoinReceiverDecoder: Decoder[BitcoinReceiver] = Decoder.forProduct21(
+    "id",
+    "active",
+    "amount",
+    "amount_received",
+    "bitcoin_amount",
+    "bitcoin_amount_received",
+    "bitcoin_uri",
+    "created",
+    "currency",
+    "customer",
+    "description",
+    "email",
+    "filled",
+    "inbound_address",
+    "livemode",
+    "metadata",
+    "payment",
+    "refund_address",
+    "transactions",
+    "uncaptured_funds",
+    "used_for_payment"
+  )(BitcoinReceiver.apply)
 
-  implicit val bitcoinReceiverWrites: Writes[BitcoinReceiver] = Writes(
-    (bitcoinReceiver: BitcoinReceiver) =>
-      Json.obj(
-        "id"                      -> bitcoinReceiver.id,
-        "object"                  -> "bitcoin_receiver",
-        "active"                  -> bitcoinReceiver.active,
-        "amount"                  -> bitcoinReceiver.amount,
-        "amount_received"         -> bitcoinReceiver.amountReceived,
-        "bitcoin_amount"          -> bitcoinReceiver.bitcoinAmount,
-        "bitcoin_amount_received" -> bitcoinReceiver.bitcoinAmountReceived,
-        "bitcoin_uri"             -> bitcoinReceiver.bitcoinUri,
-        "created"                 -> Json.toJson(bitcoinReceiver.created)(stripeDateTimeWrites),
-        "currency"                -> bitcoinReceiver.currency,
-        "customer"                -> bitcoinReceiver.customer,
-        "description"             -> bitcoinReceiver.description,
-        "email"                   -> bitcoinReceiver.email,
-        "filled"                  -> bitcoinReceiver.filled,
-        "inbound_address"         -> bitcoinReceiver.inboundAddress,
-        "livemode"                -> bitcoinReceiver.livemode,
-        "metadata"                -> bitcoinReceiver.metadata,
-        "payment"                 -> bitcoinReceiver.payment,
-        "refund_address"          -> bitcoinReceiver.refundAddress,
-        "transactions"            -> bitcoinReceiver.transactions,
-        "uncaptured_funds"        -> bitcoinReceiver.uncapturedFunds,
-        "used_for_payment"        -> bitcoinReceiver.usedForPayment
+  implicit val bitcoinReceiverEncoder: Encoder[BitcoinReceiver] = Encoder.forProduct22(
+    "id",
+    "object",
+    "active",
+    "amount",
+    "amount_received",
+    "bitcoin_amount",
+    "bitcoin_amount_received",
+    "bitcoin_uri",
+    "created",
+    "currency",
+    "customer",
+    "description",
+    "email",
+    "filled",
+    "inbound_address",
+    "livemode",
+    "metadata",
+    "payment",
+    "refund_address",
+    "transactions",
+    "uncaptured_funds",
+    "used_for_payment"
+  )(
+    x =>
+      (
+        x.id,
+        "bitcoin_receiver",
+        x.active,
+        x.amount,
+        x.amountReceived,
+        x.bitcoinAmount,
+        x.bitcoinAmountReceived,
+        x.bitcoinUri,
+        x.created,
+        x.currency,
+        x.customer,
+        x.description,
+        x.email,
+        x.filled,
+        x.inboundAddress,
+        x.livemode,
+        x.metadata,
+        x.payment,
+        x.refundAddress,
+        x.transactions,
+        x.uncapturedFunds,
+        x.usedForPayment
     ))
 
   /**
@@ -1096,42 +1241,39 @@ object BitcoinReceivers extends LazyLogging {
     )
   }
 
-  implicit val bitcoinReceiverInputReads: Reads[BitcoinReceiverInput] = (
-    (__ \ "amount").read[BigDecimal] ~
-      (__ \ "currency").read[Currency] ~
-      (__ \ "email").read[String] ~
-      (__ \ "description").readNullable[String] ~
-      (__ \ "metadata").readNullableOrEmptyJsObject[Map[String, String]] ~
-      (__ \ "refund_mispayments").readNullable[Boolean]
-  ).tupled.map((BitcoinReceiverInput.apply _).tupled)
+  implicit val bitcoinReceiverInputDecoder: Decoder[BitcoinReceiverInput] = Decoder.forProduct6(
+    "amount",
+    "currency",
+    "email",
+    "description",
+    "metadata",
+    "refund_mispayments"
+  )(BitcoinReceiverInput.apply)
 
-  implicit val bitcoinReceiverInputWrites: Writes[BitcoinReceiverInput] =
-    Writes(
-      (bitcoinReceiverInput: BitcoinReceiverInput) =>
-        Json.obj(
-          "amount"             -> bitcoinReceiverInput.amount,
-          "currency"           -> bitcoinReceiverInput.currency,
-          "email"              -> bitcoinReceiverInput.email,
-          "description"        -> bitcoinReceiverInput.description,
-          "metadata"           -> bitcoinReceiverInput.metadata,
-          "refund_mispayments" -> bitcoinReceiverInput.refundMispayments
-      ))
+  implicit val bitcoinReceiverInputEncoder: Encoder[BitcoinReceiverInput] = Encoder.forProduct6(
+    "amount",
+    "currency",
+    "email",
+    "description",
+    "metadata",
+    "refund_mispayments"
+  )(x => BitcoinReceiverInput.unapply(x).get)
 
   def create(bitcoinReceiverInput: BitcoinReceiverInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[BitcoinReceiver]] = {
 
-    val postFormParameters: Map[String, String] = {
+    val postFormParameters = PostParams.flatten(
       Map(
         "amount"             -> Option(bitcoinReceiverInput.amount.toString()),
         "currency"           -> Option(bitcoinReceiverInput.currency.iso.toLowerCase()),
         "email"              -> Option(bitcoinReceiverInput.email),
         "description"        -> bitcoinReceiverInput.description,
         "refund_mispayments" -> Option(bitcoinReceiverInput.refundMispayments.toString)
-      ).collect {
-        case (k, Some(v)) => (k, v)
-      }
-    } ++ mapToPostParams(bitcoinReceiverInput.metadata, "metadata")
+      )) ++ mapToPostParams(bitcoinReceiverInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -1140,7 +1282,11 @@ object BitcoinReceivers extends LazyLogging {
     createRequestPOST[BitcoinReceiver](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey, endpoint: Endpoint): Future[Try[BitcoinReceiver]] = {
+  def get(id: String)(implicit apiKey: ApiKey,
+                      endpoint: Endpoint,
+                      client: HttpExt,
+                      materializer: Materializer,
+                      executionContext: ExecutionContext): Future[Try[BitcoinReceiver]] = {
     val finalUrl = endpoint.url + s"/v1/bitcoin/receivers/$id"
 
     createRequestGET[BitcoinReceiver](finalUrl, logger)
@@ -1191,17 +1337,20 @@ object BitcoinReceivers extends LazyLogging {
       extends Collections.List[BitcoinReceiver](url, hasMore, data, totalCount)
 
   object BitcoinReceiverList extends Collections.ListJsonMappers[BitcoinReceiver] {
-    implicit val cardListReads: Reads[BitcoinReceiverList] =
-      listReads.tupled.map((BitcoinReceiverList.apply _).tupled)
+    implicit val bitcoinReceiverListDecoder: Decoder[BitcoinReceiverList] =
+      listDecoder(implicitly)(BitcoinReceiverList.apply)
 
-    implicit val cardListWrites: Writes[BitcoinReceiverList] = listWrites
+    implicit val bitcoinReceiverListEncoder: Encoder[BitcoinReceiverList] =
+      listEncoder[BitcoinReceiverList]
   }
 
   def list(bitcoinReceiverListInput: BitcoinReceiverListInput, includeTotalCount: Boolean)(
       implicit apiKey: ApiKey,
-      endpoint: Endpoint): Future[Try[BitcoinReceiverList]] = {
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext): Future[Try[BitcoinReceiverList]] = {
     val finalUrl = {
-      import com.netaporter.uri.dsl._
       val totalCountUrl =
         if (includeTotalCount)
           "/include[]=total_count"
@@ -1210,13 +1359,17 @@ object BitcoinReceivers extends LazyLogging {
 
       val baseUrl = endpoint.url + s"/v1/bitcoin/receivers$totalCountUrl"
 
-      (baseUrl ?
-        ("active"           -> bitcoinReceiverListInput.active) ?
-        ("ending_before"    -> bitcoinReceiverListInput.endingBefore) ?
-        ("filled"           -> bitcoinReceiverListInput.filled) ?
-        ("limit"            -> bitcoinReceiverListInput.limit.map(_.toString)) ?
-        ("starting_after"   -> bitcoinReceiverListInput.startingAfter) ?
-        ("uncaptured_funds" -> bitcoinReceiverListInput.uncapturedFunds)).toString()
+      val queries = PostParams.flatten(
+        Map(
+          "active"           -> bitcoinReceiverListInput.active.map(_.toString),
+          "ending_before"    -> bitcoinReceiverListInput.endingBefore,
+          "filled"           -> bitcoinReceiverListInput.filled.map(_.toString),
+          "limit"            -> bitcoinReceiverListInput.limit.map(_.toString),
+          "starting_after"   -> bitcoinReceiverListInput.startingAfter,
+          "uncaptured_funds" -> bitcoinReceiverListInput.uncapturedFunds.map(_.toString)
+        ))
+
+      Uri(baseUrl).withQuery(Query(queries))
     }
 
     createRequestGET[BitcoinReceiverList](finalUrl, logger)

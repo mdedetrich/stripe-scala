@@ -1,7 +1,7 @@
 package org.mdedetrich.stripe
 
-import play.api.data.validation.ValidationError
-import play.api.libs.json.{JsPath, JsValue}
+import akka.http.scaladsl.model.Uri
+import io.circe.{DecodingFailure, Json}
 
 /**
   * This exception is thrown when there is an error in converting the JSON to a case class
@@ -10,14 +10,14 @@ import play.api.libs.json.{JsPath, JsValue}
   * @param postParameters The POST body as form parameters
   * @param postJson       The POST body as JSON
   * @param jsonResponse   The original json response
-  * @param errors         The errors as reported from play-json
+  * @param error          The error as reported from circe
   */
 case class InvalidJsonModelException(httpStatusCode: Long,
-                                     url: String,
+                                     url: Uri,
                                      postParameters: Option[Map[String, String]],
-                                     postJson: Option[JsValue],
-                                     jsonResponse: JsValue,
-                                     errors: Seq[(JsPath, Seq[ValidationError])])
+                                     postJson: Option[Json],
+                                     jsonResponse: Json,
+                                     error: DecodingFailure)
     extends Exception {
-  override def getMessage = s"Invalid JSON model, errors are $errors"
+  override def getMessage = s"Invalid JSON model, errors are $error"
 }
