@@ -7,7 +7,7 @@ import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import enumeratum._
-import io.circe.{Decoder, Encoder}
+import io.circe.{Decoder, Encoder, JsonObject}
 import org.mdedetrich.stripe.{ApiKey, Endpoint}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -96,10 +96,10 @@ object Events extends LazyLogging {
     implicit val eventTypeEncoder: Encoder[Type] = enumeratum.Circe.encoder(Type)
   }
 
-  case class Data(`object`: StripeObject)
+  case class Data(`object`: StripeObject, previousAttributes: Option[JsonObject])
 
-  implicit val eventDataDecoder: Decoder[Data] = Decoder.forProduct1("object")(Data.apply)
-  implicit val eventDataEncoder: Encoder[Data] = Encoder.forProduct1("object")(_.`object`)
+  implicit val eventDataDecoder: Decoder[Data] = Decoder.forProduct2("object", "previous_attributes")(Data.apply)
+  implicit val eventDataEncoder: Encoder[Data] = Encoder.forProduct2("object", "previous_attributes")(x => Data.unapply(x).get)
 
   case class Event(
       id: String,

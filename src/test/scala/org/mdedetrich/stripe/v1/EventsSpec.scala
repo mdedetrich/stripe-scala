@@ -1,24 +1,14 @@
 package org.mdedetrich.stripe.v1
 
-import java.io.{BufferedReader, InputStreamReader}
-import java.util.stream.Collectors
-
-import cats.syntax.either._
-import io.circe.parser.parse
 import org.mdedetrich.stripe.v1.Customers.Customer
 import org.mdedetrich.stripe.v1.Events.{Event, _}
-import org.scalatest.{Matchers, WordSpec}
 
-class EventsSpec extends WordSpec with Matchers {
+class EventsSpec extends BaseSpec {
+
   "Events" should {
 
     "parse customer.create JSON correctly" in {
-      val in = this.getClass.getResourceAsStream("/events/customer.created.json")
-      in should not be null
-
-      val string = scala.io.Source.fromInputStream(in).mkString
-      val json   = parse(string).toOption
-      val event  = json.flatMap(_.as[Event].toOption).get
+      val event = getJsonResourceAs[Event]("/events/customer.created.json")
 
       event.id should be("evt_1A9re7J6y4jvjvHhEh0DfAAv")
       event.`type` should be(Events.Type.CustomerCreated)
@@ -31,36 +21,25 @@ class EventsSpec extends WordSpec with Matchers {
     (0 to 1).foreach { index =>
       val filename = s"account.updated-$index.json"
       s"parse accounts.update from $filename" in {
-        val in = this.getClass.getResourceAsStream(s"/events/$filename")
-        in should not be null
-
-        val string = scala.io.Source.fromInputStream(in).mkString
-        val json   = parse(string).toOption
-        val event  = json.flatMap(_.as[Event].toOption).get
+        val event = getJsonResourceAs[Event](s"/events/$filename")
         event.`type` should be(Events.Type.AccountUpdated)
+        event.data.previousAttributes should not be None
       }
     }
 
-    "parse payment.created JSON correctly" in {
-      val in = this.getClass.getResourceAsStream("/events/payment.created.json")
-      in should not be null
+    s"parse previous attributes correctly" in {
+        val event = getJsonResourceAs[Event]("/events/account.updated-0.json")
+        event.`type` should be(Events.Type.AccountUpdated)
+        event.data.previousAttributes.get.toMap("transfers_enabled").asBoolean should contain (false)
+      }
 
-      val string = new BufferedReader(new InputStreamReader(in))
-        .lines()
-        .collect(Collectors.joining("\n"))
-      val json  = parse(string).toOption
-      val event = json.flatMap(_.as[Event].toOption).get
+    "parse payment.created JSON correctly" in {
+      val event = getJsonResourceAs[Event]("/events/payment.created.json")
       event.`type` should be(Events.Type.PaymentCreated)
     }
 
     "parse event list" in {
-      val in = this.getClass.getResourceAsStream("/events/event-list.json")
-
-      val string = new BufferedReader(new InputStreamReader(in))
-        .lines()
-        .collect(Collectors.joining("\n"))
-      val json      = parse(string).toOption
-      val eventList = json.flatMap(_.as[EventList].toOption).get
+      val eventList = getJsonResourceAs[EventList]("/events/event-list.json")
       eventList.data.size should be(100)
     }
   }
