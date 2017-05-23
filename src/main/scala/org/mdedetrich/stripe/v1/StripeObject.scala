@@ -19,7 +19,6 @@ object StripeObject {
       case "coupon"            => implicitly[Decoder[Coupons.Coupon]].apply(c)
       case "discount"          => implicitly[Decoder[Discounts.Discount]].apply(c)
       case "dispute"           => implicitly[Decoder[Disputes.Dispute]].apply(c)
-      case "card"              => implicitly[Decoder[Cards.Card]].apply(c)
       case "bitcoin_receiver"  => implicitly[Decoder[BitcoinReceivers.BitcoinReceiver]].apply(c)
       case "transfer_reversal" => implicitly[Decoder[TransferReversals.TransferReversal]].apply(c)
       case _                   => Left(DecodingFailure("Unknown Stripe Object", c.history))
@@ -28,7 +27,6 @@ object StripeObject {
 
   implicit val stripeObjectEncoder: Encoder[StripeObject] = Encoder.instance[StripeObject] {
     case obj: Customers.Customer                 => implicitly[Encoder[Customers.Customer]].apply(obj)
-    case obj: Cards.Card                         => implicitly[Encoder[Cards.Card]].apply(obj)
     case obj: Transfers.Transfer                 => implicitly[Encoder[Transfers.Transfer]].apply(obj)
     case obj: Balances.Balance                   => implicitly[Encoder[Balances.Balance]].apply(obj)
     case obj: Charges.Charge                     => implicitly[Encoder[Charges.Charge]].apply(obj)
