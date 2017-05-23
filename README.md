@@ -28,7 +28,7 @@ It has been deployed to Maven Central, so to install it add the following to you
 
 ```scala
 libraryDependencies ++= Seq(
-  "org.mdedetrich" %% "stripe-scala" % "0.2.0-SNAPSHOT"
+  "org.mdedetrich" %% "stripe-scala" % "0.2.1"
 )
 ```
 
