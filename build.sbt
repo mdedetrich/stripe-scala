@@ -2,13 +2,13 @@ import ReleaseTransformations._
 
 name := "stripe-scala"
 
-val currentScalaVersion = "2.11.11"
-val scala212Version     = "2.12.2"
+val currentScalaVersion = "2.12.2"
+val scala211Version     = "2.11.11"
 val circeVersion        = "0.8.0"
 
 scalaVersion := currentScalaVersion
 
-crossScalaVersions := Seq(currentScalaVersion, scala212Version)
+crossScalaVersions := Seq(currentScalaVersion, scala211Version)
 
 organization := "org.mdedetrich"
 
