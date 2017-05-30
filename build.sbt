@@ -4,7 +4,7 @@ name := "stripe-scala"
 
 val currentScalaVersion = "2.11.11"
 val scala212Version     = "2.12.2"
-val circeVersion        = "0.7.1"
+val circeVersion        = "0.8.0"
 
 scalaVersion := currentScalaVersion
 
@@ -33,11 +33,11 @@ Defaults.itSettings
 configs(IntegrationTest)
 
 val enumeratumVersion      = "1.5.12"
-val enumeratumCirceVersion = "1.5.13"
+val enumeratumCirceVersion = "1.5.14"
 val akkaStreamJson         = "3.3.0"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"          %% "akka-http"         % "10.0.6",
+  "com.typesafe.akka"          %% "akka-http"         % "10.0.7",
   "de.knutwalker"              %% "akka-stream-circe" % akkaStreamJson,
   "de.knutwalker"              %% "akka-http-circe"   % akkaStreamJson,
   "io.circe"                   %% "circe-core"        % circeVersion,
@@ -47,8 +47,8 @@ libraryDependencies ++= Seq(
   "com.beachape"               %% "enumeratum-circe"  % enumeratumCirceVersion,
   "com.iheart"                 %% "ficus"             % "1.4.0",
   "com.typesafe.scala-logging" %% "scala-logging"     % "3.5.0",
-  "org.scalatest"              %% "scalatest"         % "3.0.0" % "test, it",
-  "ch.qos.logback"             % "logback-classic"    % "1.1.7" % "test, it"
+  "org.scalatest"              %% "scalatest"         % "3.0.3" % "test, it",
+  "ch.qos.logback"             % "logback-classic"    % "1.2.3" % "test, it"
 )
 
 homepage := Some(url("https://github.com/mdedetrich/stripe-scala"))
