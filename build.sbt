@@ -37,7 +37,7 @@ val enumeratumCirceVersion = "1.5.13"
 val akkaStreamJson         = "3.3.0"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"          %% "akka-http"         % "10.0.6",
+  "com.typesafe.akka"          %% "akka-http"         % "10.0.7",
   "de.knutwalker"              %% "akka-stream-circe" % akkaStreamJson,
   "de.knutwalker"              %% "akka-http-circe"   % akkaStreamJson,
   "io.circe"                   %% "circe-core"        % circeVersion,
