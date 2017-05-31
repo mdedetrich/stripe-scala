@@ -1,0 +1,36 @@
+{
+  "id": "evt_HGQH8ZDEpeQnOzNr",
+  "object": "event",
+  "account": "acct_3itc1T5KSo2GauOn",
+  "api_version": "2016-07-06",
+  "created": 1496231285,
+  "data": {
+    "object": {
+      "object": "balance",
+      "available": [
+        {
+          "currency": "eur",
+          "amount": 10200,
+          "source_types": {
+            "card": 10200
+          }
+        }
+      ],
+      "livemode": true,
+      "pending": [
+        {
+          "currency": "eur",
+          "amount": 0,
+          "source_types": {
+            "card": 0
+          }
+        }
+      ]
+    }
+  },
+  "livemode": true,
+  "pending_webhooks": 1,
+  "request": null,
+  "type": "balance.available",
+  "user_id": "acct_3itc1T5KSo2GauOn"
+}

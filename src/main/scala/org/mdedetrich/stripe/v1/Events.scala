@@ -99,7 +99,8 @@ object Events extends LazyLogging {
   case class Data(`object`: StripeObject, previousAttributes: Option[JsonObject])
 
   implicit val eventDataDecoder: Decoder[Data] = Decoder.forProduct2("object", "previous_attributes")(Data.apply)
-  implicit val eventDataEncoder: Encoder[Data] = Encoder.forProduct2("object", "previous_attributes")(x => Data.unapply(x).get)
+  implicit val eventDataEncoder: Encoder[Data] =
+    Encoder.forProduct2("object", "previous_attributes")(x => Data.unapply(x).get)
 
   case class Event(
       id: String,
@@ -109,10 +110,12 @@ object Events extends LazyLogging {
       livemode: Boolean,
       pendingWebhooks: Long,
       request: Option[String],
-      `type`: Type
+      `type`: Type,
+      userId: Option[String],
+      account: Option[String]
   )
 
-  implicit val eventDecoder: Decoder[Event] = Decoder.forProduct8(
+  implicit val eventDecoder: Decoder[Event] = Decoder.forProduct10(
     "id",
     "api_version",
     "created",
@@ -120,10 +123,12 @@ object Events extends LazyLogging {
     "livemode",
     "pending_webhooks",
     "request",
-    "type"
+    "type",
+    "user_id",
+    "account"
   )(Event.apply)
 
-  implicit val eventEncoder: Encoder[Event] = Encoder.forProduct8(
+  implicit val eventEncoder: Encoder[Event] = Encoder.forProduct10(
     "id",
     "api_version",
     "created",
@@ -131,7 +136,9 @@ object Events extends LazyLogging {
     "livemode",
     "pending_webhooks",
     "request",
-    "type"
+    "type",
+    "user_id",
+    "account"
   )(x => Event.unapply(x).get)
 
   case class EventList(override val url: String,

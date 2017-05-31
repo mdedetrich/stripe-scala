@@ -1,5 +1,7 @@
 package org.mdedetrich.stripe.v1
 
+import org.mdedetrich.stripe.v1.Balances.{Balance, BalanceFund, SourceTypes}
+import org.mdedetrich.stripe.v1.Currency.`Euro`
 import org.mdedetrich.stripe.v1.Customers.Customer
 import org.mdedetrich.stripe.v1.Events.{Event, _}
 
@@ -28,10 +30,10 @@ class EventsSpec extends BaseSpec {
     }
 
     s"parse previous attributes correctly" in {
-        val event = getJsonResourceAs[Event]("/events/account.updated-0.json")
-        event.`type` should be(Events.Type.AccountUpdated)
-        event.data.previousAttributes.get.toMap("transfers_enabled").asBoolean should contain (false)
-      }
+      val event = getJsonResourceAs[Event]("/events/account.updated-0.json")
+      event.`type` should be(Events.Type.AccountUpdated)
+      event.data.previousAttributes.get.toMap("transfers_enabled").asBoolean should contain(false)
+    }
 
     "parse payment.created JSON correctly" in {
       val event = getJsonResourceAs[Event]("/events/payment.created.json")
@@ -41,6 +43,19 @@ class EventsSpec extends BaseSpec {
     "parse event list" in {
       val eventList = getJsonResourceAs[EventList]("/events/event-list.json")
       eventList.data.size should be(100)
+    }
+
+    "parse balance.available" in {
+      val evt = getJsonResourceAs[Event]("/events/balance.available.json")
+
+      evt.data.`object` should be(
+        Balance(List(BalanceFund(Euro, 10200, SourceTypes(Some(10200), None, None))),
+                true,
+                List(BalanceFund(Euro, 0, SourceTypes(Some(0), None, None)))))
+
+      evt.account should contain("acct_3itc1T5KSo2GauOn")
+      evt.userId should contain("acct_3itc1T5KSo2GauOn")
+
     }
   }
 
