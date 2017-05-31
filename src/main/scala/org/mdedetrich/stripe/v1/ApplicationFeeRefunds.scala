@@ -47,15 +47,9 @@ object ApplicationFeeRefunds extends LazyLogging {
     "balance_transaction"
   )(x => (x.id, "fee_refund", x.amount, x.metadata, x.created, x.currency, x.fee, x.balanceTransaction))
 
-  case class ApplicationFeeRefundInput(id: String, amount: Option[BigDecimal], metadata: Map[String, String])
-
-  object ApplicationFeeRefundInput {
-    def default(id: String) = ApplicationFeeRefundInput(
-      id,
-      None,
-      Map.empty
-    )
-  }
+  case class ApplicationFeeRefundInput(id: String,
+                                       amount: Option[BigDecimal] = None,
+                                       metadata: Map[String, String] = Map.empty)
 
   implicit val refundInputPostParams = PostParams.params[ApplicationFeeRefundInput] { refundInput =>
     val optional = Map(

@@ -347,12 +347,12 @@ object Transfers extends LazyLogging {
   case class TransferInput(amount: BigDecimal,
                            currency: Currency,
                            destination: String,
-                           description: Option[String],
-                           metadata: Option[Map[String, String]],
-                           sourceTransaction: Option[String],
-                           statementDescriptor: Option[String],
-                           stripeAccount: Option[String],
-                           sourceType: Option[SourceType]) {
+                           description: Option[String] = None,
+                           metadata: Option[Map[String, String]] = None,
+                           sourceTransaction: Option[String] = None,
+                           statementDescriptor: Option[String] = None,
+                           stripeAccount: Option[String] = None,
+                           sourceType: Option[SourceType] = None) {
     statementDescriptor match {
       case Some(sD) if sD.length > 22 =>
         throw StatementDescriptorTooLong(sD.length)
@@ -366,28 +366,6 @@ object Transfers extends LazyLogging {
         throw StatementDescriptorInvalidCharacter("\'")
       case _ =>
     }
-  }
-
-  object TransferInput {
-    def default(amount: BigDecimal,
-                currency: Currency,
-                destination: String,
-                description: Option[String] = None,
-                metadata: Option[Map[String, String]] = None,
-                sourceTransaction: Option[String] = None,
-                statementDescriptor: Option[String] = None,
-                stripeAccount: Option[String] = None,
-                sourceType: Option[SourceType] = None) =
-      TransferInput(amount,
-                    currency,
-                    destination,
-                    description,
-                    metadata,
-                    sourceTransaction,
-                    statementDescriptor,
-                    stripeAccount,
-                    sourceType)
-
   }
 
   def create(transferInput: TransferInput)(idempotencyKey: Option[IdempotencyKey] = None)(
@@ -428,27 +406,14 @@ object Transfers extends LazyLogging {
     createRequestGET[Transfer](finalUrl, logger)
   }
 
-  case class TransferListInput(created: Option[ListFilterInput],
-                               date: Option[ListFilterInput],
-                               destination: Option[String],
-                               endingBefore: Option[String],
-                               limit: Option[String],
-                               recipient: Option[String],
-                               startingAfter: Option[String],
-                               status: Option[Status])
-
-  object TransferListInput {
-    def default: TransferListInput = TransferListInput(
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None
-    )
-  }
+  case class TransferListInput(created: Option[ListFilterInput] = None,
+                               date: Option[ListFilterInput] = None,
+                               destination: Option[String] = None,
+                               endingBefore: Option[String] = None,
+                               limit: Option[String] = None,
+                               recipient: Option[String] = None,
+                               startingAfter: Option[String] = None,
+                               status: Option[Status] = None)
 
   case class TransferList(override val url: String,
                           override val hasMore: Boolean,

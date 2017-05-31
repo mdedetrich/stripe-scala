@@ -384,19 +384,10 @@ object Disputes extends LazyLogging {
     createRequestPOST[Dispute](finalUrl, Map.empty, idempotencyKey, logger)
   }
 
-  case class DisputeListInput(created: Option[ListFilterInput],
-                              endingBefore: Option[String],
-                              limit: Option[String],
-                              startingAfter: Option[String])
-
-  object DisputeListInput {
-    def default: DisputeListInput = DisputeListInput(
-      None,
-      None,
-      None,
-      None
-    )
-  }
+  case class DisputeListInput(created: Option[ListFilterInput] = None,
+                              endingBefore: Option[String] = None,
+                              limit: Option[String] = None,
+                              startingAfter: Option[String] = None)
 
   case class DisputeList(override val url: String,
                          override val hasMore: Boolean,

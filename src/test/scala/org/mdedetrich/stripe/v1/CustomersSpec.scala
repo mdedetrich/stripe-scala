@@ -40,14 +40,14 @@ class CustomersSpec extends WordSpec with Matchers {
 
     "convert payment source" in {
       val token      = "radiohead"
-      val update     = CustomerUpdate.default.copy(paymentSource = Some(Token(token)))
+      val update     = CustomerUpdate(paymentSource = Option(Token(token)))
       val postParams = PostParams.toPostParams(update)
       postParams should be(Map("source" -> token))
     }
 
     "convert default source" in {
       val id         = "georgio-moroder"
-      val update     = CustomerUpdate.default.copy(defaultSource = Some(id))
+      val update     = CustomerUpdate(defaultSource = Option(id))
       val postParams = PostParams.toPostParams(update)
       postParams should be(Map("default_source" -> id))
     }

@@ -5,7 +5,7 @@ import io.circe.Json
 import io.circe.parser.parse
 import org.scalatest.{Matchers, WordSpecLike}
 
-trait BaseSpec extends Matchers with WordSpecLike{
+trait BaseSpec extends Matchers with WordSpecLike {
 
   def getJsonResource(path: String): Json = {
     val in = this.getClass.getResourceAsStream(path)

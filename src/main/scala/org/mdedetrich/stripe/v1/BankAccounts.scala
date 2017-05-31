@@ -167,22 +167,10 @@ object BankAccounts extends LazyLogging {
       case class Object(accountNumber: String,
                         country: String,
                         currency: Currency,
-                        accountHolderName: Option[String],
-                        accountHolderType: Option[AccountHolderType],
-                        routingNumber: Option[String])
+                        accountHolderName: Option[String] = None,
+                        accountHolderType: Option[AccountHolderType] = None,
+                        routingNumber: Option[String] = None)
           extends Source
-
-      object Object {
-
-        def default(accountNumber: String, country: String, currency: Currency): Object = Object(
-          accountNumber,
-          country,
-          currency,
-          None,
-          None,
-          None
-        )
-      }
 
       implicit val sourceObjectDecoder: Decoder[Object] = Decoder.forProduct6(
         "account_number",
@@ -235,21 +223,10 @@ object BankAccounts extends LazyLogging {
       case class Object(accountNumber: String,
                         country: String,
                         currency: Currency,
-                        accountHolderName: Option[String],
-                        accountHolderType: Option[AccountHolderType],
-                        routingNumber: Option[String])
+                        accountHolderName: Option[String] = None,
+                        accountHolderType: Option[AccountHolderType] = None,
+                        routingNumber: Option[String] = None)
           extends ExternalAccount
-
-      object Object {
-        def default(accountNumber: String, country: String, currency: Currency): Object = Object(
-          accountNumber,
-          country,
-          currency,
-          None,
-          None,
-          None
-        )
-      }
 
       implicit val externalAccountObjectDecoder: Decoder[Object] = Decoder.forProduct6(
         "account_number",
@@ -385,15 +362,9 @@ object BankAccounts extends LazyLogging {
     *                      subsequent call can include [[startingAfter]]=obj_foo in order
     *                      to fetch the next page of the list.
     */
-  case class BankAccountListInput(endingBefore: Option[String], limit: Option[Long], startingAfter: Option[String])
-
-  object BankAccountListInput {
-    def default: BankAccountListInput = BankAccountListInput(
-      None,
-      None,
-      None
-    )
-  }
+  case class BankAccountListInput(endingBefore: Option[String] = None,
+                                  limit: Option[Long] = None,
+                                  startingAfter: Option[String] = None)
 
   case class BankAccountList(override val url: String,
                              override val hasMore: Boolean,

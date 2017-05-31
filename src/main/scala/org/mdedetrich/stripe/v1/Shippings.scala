@@ -13,16 +13,12 @@ object Shippings {
     * @param postalCode Zip/Postal Code
     * @param state      State/Province/County
     */
-  case class Address(city: Option[String],
-                     country: Option[String],
-                     line1: Option[String],
-                     line2: Option[String],
-                     postalCode: Option[String],
-                     state: Option[String])
-
-  object Address {
-    def default: Address = Address(None, None, None, None, None, None)
-  }
+  case class Address(city: Option[String] = None,
+                     country: Option[String] = None,
+                     line1: Option[String] = None,
+                     line2: Option[String] = None,
+                     postalCode: Option[String] = None,
+                     state: Option[String] = None)
 
   implicit val addressDecoder: Decoder[Address] = Decoder.forProduct6(
     "city",

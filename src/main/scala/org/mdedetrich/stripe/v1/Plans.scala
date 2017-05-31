@@ -64,10 +64,10 @@ object Plans extends LazyLogging {
     *                            \[[interval]]=[[Interval.Month]] and [[intervalCount]]=3
     *                            bills every 3 months.
     * @param livemode
+    * @param name                Display name of the plan
     * @param metadata            A set of key/value pairs that you can attach to a plan object.
     *                            It can be useful for storing additional information about the
     *                            plan in a structured format.
-    * @param name                Display name of the plan
     * @param statementDescriptor Extra information about a charge for the customer’s
     *                            credit card statement.
     * @param trialPeriodDays     Number of trial period days granted when
@@ -81,33 +81,10 @@ object Plans extends LazyLogging {
                   interval: Interval,
                   intervalCount: Long,
                   livemode: Boolean,
-                  metadata: Option[Map[String, String]],
                   name: String,
-                  statementDescriptor: Option[String],
-                  trialPeriodDays: Option[Long])
-
-  object Plan {
-    def default(id: String,
-                amount: BigDecimal,
-                created: OffsetDateTime,
-                currency: Currency,
-                interval: Interval,
-                intervalCount: Long,
-                livemode: Boolean,
-                name: String): Plan = Plan(
-      id,
-      amount,
-      created,
-      currency,
-      interval,
-      intervalCount,
-      livemode,
-      None,
-      name,
-      None,
-      None
-    )
-  }
+                  metadata: Option[Map[String, String]] = None,
+                  statementDescriptor: Option[String] = None,
+                  trialPeriodDays: Option[Long] = None)
 
   implicit val planDecoder: Decoder[Plan] = Decoder.forProduct11(
     "id",
@@ -117,8 +94,8 @@ object Plans extends LazyLogging {
     "interval",
     "interval_count",
     "livemode",
-    "metadata",
     "name",
+    "metadata",
     "statement_descriptor",
     "trial_period_days"
   )(Plan.apply)
@@ -132,8 +109,8 @@ object Plans extends LazyLogging {
     "interval",
     "interval_count",
     "livemode",
-    "metadata",
     "name",
+    "metadata",
     "statement_descriptor",
     "trial_period_days"
   )(
@@ -195,10 +172,10 @@ object Plans extends LazyLogging {
                        currency: Currency,
                        interval: Interval,
                        name: String,
-                       intervalCount: Option[Long],
-                       metadata: Option[Map[String, String]],
-                       statementDescriptor: Option[String],
-                       trialPeriodDays: Option[Long]) {
+                       intervalCount: Option[Long] = None,
+                       metadata: Option[Map[String, String]] = None,
+                       statementDescriptor: Option[String] = None,
+                       trialPeriodDays: Option[Long] = None) {
     statementDescriptor match {
       case Some(sD) if sD.length > 22 =>
         throw StatementDescriptorTooLong(sD.length)
@@ -212,21 +189,6 @@ object Plans extends LazyLogging {
         throw StatementDescriptorInvalidCharacter("\'")
       case _ =>
     }
-  }
-
-  object PlanInput {
-    def default(id: String, amount: BigDecimal, currency: Currency, interval: Interval, name: String): PlanInput =
-      PlanInput(
-        id,
-        amount,
-        currency,
-        interval,
-        name,
-        None,
-        None,
-        None,
-        None
-      )
   }
 
   implicit val planInputDecoder: Decoder[PlanInput] = Decoder.forProduct9(
@@ -320,19 +282,10 @@ object Plans extends LazyLogging {
     *                      can include [[startingAfter]]=obj_foo in order to
     *                      fetch the next page of the list.
     */
-  case class PlanListInput(created: Option[ListFilterInput],
-                           endingBefore: Option[String],
-                           limit: Option[Long],
-                           startingAfter: Option[String])
-
-  object PlanListInput {
-    def default: PlanListInput = PlanListInput(
-      None,
-      None,
-      None,
-      None
-    )
-  }
+  case class PlanListInput(created: Option[ListFilterInput] = None,
+                           endingBefore: Option[String] = None,
+                           limit: Option[Long] = None,
+                           startingAfter: Option[String] = None)
 
   case class PlanList(override val url: String,
                       override val hasMore: Boolean,

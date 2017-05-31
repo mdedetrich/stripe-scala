@@ -26,60 +26,34 @@ object Customers extends LazyLogging {
   case class Customer(id: String,
                       accountBalance: BigDecimal,
                       created: OffsetDateTime,
-                      currency: Option[Currency],
-                      defaultSource: Option[String],
-                      delinquent: Boolean,
-                      description: Option[String],
-                      discount: Option[Discount],
-                      email: Option[String],
                       livemode: Boolean,
-                      metadata: Option[Map[String, String]],
-                      shipping: Option[Shipping],
+                      delinquent: Boolean,
                       sources: PaymentSourceList,
-                      subscriptions: SubscriptionList)
+                      subscriptions: SubscriptionList,
+                      currency: Option[Currency] = None,
+                      defaultSource: Option[String] = None,
+                      description: Option[String] = None,
+                      discount: Option[Discount] = None,
+                      email: Option[String] = None,
+                      metadata: Option[Map[String, String]] = None,
+                      shipping: Option[Shipping] = None)
       extends StripeObject
-
-  object Customer {
-    def default(id: String,
-                accountBalance: BigDecimal,
-                created: OffsetDateTime,
-                currency: Currency,
-                delinquent: Boolean,
-                livemode: Boolean,
-                sources: PaymentSourceList,
-                subscriptions: SubscriptionList): Customer = Customer(
-      id,
-      accountBalance,
-      created,
-      None,
-      None,
-      delinquent,
-      None,
-      None,
-      None,
-      livemode,
-      None,
-      None,
-      sources,
-      subscriptions
-    )
-  }
 
   implicit val customerDecoder: Decoder[Customer] = Decoder.forProduct14(
     "id",
     "account_balance",
     "created",
+    "livemode",
+    "delinquent",
+    "sources",
+    "subscriptions",
     "currency",
     "default_source",
-    "delinquent",
     "description",
     "discount",
     "email",
-    "livemode",
     "metadata",
-    "shipping",
-    "sources",
-    "subscriptions"
+    "shipping"
   )(Customer.apply)
 
   implicit val customerEncoder: Encoder[Customer] = Encoder.forProduct15(
@@ -87,17 +61,17 @@ object Customers extends LazyLogging {
     "object",
     "account_balance",
     "created",
+    "livemode",
+    "delinquent",
+    "sources",
+    "subscriptions",
     "currency",
     "default_source",
-    "delinquent",
     "description",
     "discount",
     "email",
-    "livemode",
     "metadata",
-    "shipping",
-    "sources",
-    "subscriptions"
+    "shipping"
   )(
     x =>
       (
@@ -127,38 +101,19 @@ object Customers extends LazyLogging {
     case class Card(expMonth: Int,
                     expYear: Int,
                     number: String,
-                    addressCity: Option[String],
-                    addressCountry: Option[String],
-                    addressLine1: Option[String],
-                    addressLine2: Option[String],
-                    addressState: Option[String],
-                    addressZip: Option[String],
-                    currency: Option[Currency],
-                    cvc: Option[String],
-                    defaultForCurrency: Option[Boolean],
-                    metadata: Option[Map[String, String]],
-                    name: Option[String])
+                    addressCity: Option[String] = None,
+                    addressCountry: Option[String] = None,
+                    addressLine1: Option[String] = None,
+                    addressLine2: Option[String] = None,
+                    addressState: Option[String] = None,
+                    addressZip: Option[String] = None,
+                    currency: Option[Currency] = None,
+                    cvc: Option[String] = None,
+                    defaultForCurrency: Option[Boolean] = None,
+                    metadata: Option[Map[String, String]] = None,
+                    name: Option[String] = None)
         extends Source
         with NumberCardSource
-
-    object Card {
-      def default(expMonth: Int, expYear: Int, number: String): Card = Card(
-        expMonth,
-        expYear,
-        number,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None
-      )
-    }
   }
 
   implicit val sourceDecoder: Decoder[Source] = Decoder.instance[Source] { c =>
@@ -208,33 +163,17 @@ object Customers extends LazyLogging {
       encoder.apply(card)
   }
 
-  case class CustomerInput(accountBalance: Option[BigDecimal],
-                           coupon: Option[String],
-                           description: Option[String],
-                           email: Option[String],
-                           metadata: Map[String, String],
-                           plan: Option[String],
-                           quantity: Option[Long],
-                           shipping: Option[Shipping],
-                           source: Option[Source],
-                           taxPercent: Option[BigDecimal],
-                           trialEnd: Option[OffsetDateTime])
-
-  object CustomerInput {
-    def default: CustomerInput = CustomerInput(
-      None,
-      None,
-      None,
-      None,
-      Map.empty,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None
-    )
-  }
+  case class CustomerInput(accountBalance: Option[BigDecimal] = None,
+                           coupon: Option[String] = None,
+                           description: Option[String] = None,
+                           email: Option[String] = None,
+                           metadata: Map[String, String] = Map.empty,
+                           plan: Option[String] = None,
+                           quantity: Option[Long] = None,
+                           shipping: Option[Shipping] = None,
+                           source: Option[Source] = None,
+                           taxPercent: Option[BigDecimal] = None,
+                           trialEnd: Option[OffsetDateTime] = None)
 
   implicit val customerInputDecoder: Decoder[CustomerInput] = Decoder.forProduct11(
     "account_balance",
@@ -265,13 +204,9 @@ object Customers extends LazyLogging {
   )(x => CustomerInput.unapply(x).get)
 
   case class CustomerUpdate(
-      paymentSource: Option[Token],
-      defaultSource: Option[String]
+      paymentSource: Option[Token] = None,
+      defaultSource: Option[String] = None
   )
-
-  object CustomerUpdate {
-    def default: CustomerUpdate = CustomerUpdate(None, None)
-  }
 
   implicit val customerUpdatePostParams: PostParams[CustomerUpdate] = PostParams.params[CustomerUpdate] { t =>
     val params = Map(
@@ -407,19 +342,10 @@ object Customers extends LazyLogging {
     createRequestDELETE(finalUrl, idempotencyKey, logger)
   }
 
-  case class CustomerListInput(created: Option[ListFilterInput],
-                               endingBefore: Option[String],
-                               limit: Option[Long],
-                               startingAfter: Option[String])
-
-  object CustomerListInput {
-    def default: CustomerListInput = CustomerListInput(
-      None,
-      None,
-      None,
-      None
-    )
-  }
+  case class CustomerListInput(created: Option[ListFilterInput] = None,
+                               endingBefore: Option[String] = None,
+                               limit: Option[Long] = None,
+                               startingAfter: Option[String] = None)
 
   case class CustomerList(override val url: String,
                           override val hasMore: Boolean,

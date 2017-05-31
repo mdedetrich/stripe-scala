@@ -95,20 +95,10 @@ object TransferReversals extends LazyLogging {
     *                             to the amount of the transfer reversed.
     */
   case class TransferReversalInput(id: String,
-                                   amount: Option[BigDecimal],
-                                   description: Option[String],
-                                   metadata: Option[Map[String, String]],
-                                   refundApplicationFee: Option[Boolean])
-
-  object TransferReversalInput {
-    def default(id: String): TransferReversalInput = TransferReversalInput(
-      id,
-      None,
-      None,
-      None,
-      None
-    )
-  }
+                                   amount: Option[BigDecimal] = None,
+                                   description: Option[String] = None,
+                                   metadata: Option[Map[String, String]] = None,
+                                   refundApplicationFee: Option[Boolean] = None)
 
   implicit val transferReversalInputDecoder: Decoder[TransferReversalInput] = Decoder.forProduct5(
     "id",
@@ -178,19 +168,9 @@ object TransferReversals extends LazyLogging {
     *                      in order to fetch the next page of the list.
     */
   case class TransferReversalListInput(id: String,
-                                       endingBefore: Option[String],
-                                       limit: Option[Long],
-                                       startingAfter: Option[String])
-
-  object TransferReversalListInput {
-    def default(id: String): TransferReversalListInput =
-      TransferReversalListInput(
-        id,
-        None,
-        None,
-        None
-      )
-  }
+                                       endingBefore: Option[String] = None,
+                                       limit: Option[Long] = None,
+                                       startingAfter: Option[String] = None)
 
   case class TransferReversalList(override val url: String,
                                   override val hasMore: Boolean,
