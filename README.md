@@ -2,7 +2,7 @@
 # stripe-scala, API for Stripe Using Scala
 
 [![Build Status](https://travis-ci.org/mdedetrich/stripe-scala.svg?branch=master)](https://travis-ci.org/mdedetrich/stripe-scala)
-[![Maven Central Version](https://img.shields.io/maven-central/v/org.mdedetrich/stripe-scala_2.11.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mdedetrich%22%20AND%20a%3A%22stripe-scala_2.11%22)
+[![Maven Central Version](https://img.shields.io/maven-central/v/org.mdedetrich/stripe-scala_2.12.svg)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mdedetrich%22%20AND%20a%3A%22stripe-scala_2.12%22)
 [![Join the chat at https://gitter.im/mdedetrich/stripe-scala](https://badges.gitter.im/mdedetrich/stripe-scala.svg)](https://gitter.im/mdedetrich/stripe-scala?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 
