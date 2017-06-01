@@ -226,18 +226,19 @@ object Balances extends LazyLogging {
 
   /**
     * @see https://stripe.com/docs/api#retrieve_balance
+    * @param stripeAccount ID of the Stripe Connect managed account that you want to retrieve the balance for. If None, the platform account balance is retrieved.
     * @param apiKey
     * @param endpoint
     * @return
     */
-  def get(implicit apiKey: ApiKey,
+  def get(stripeAccount: Option[String] = None)(implicit apiKey: ApiKey,
           endpoint: Endpoint,
           client: HttpExt,
           materializer: Materializer,
           executionContext: ExecutionContext): Future[Try[Balance]] = {
     val finalUrl = endpoint.url + s"/v1/balance"
 
-    createRequestGET[Balance](finalUrl, logger)
+    createRequestGET[Balance](finalUrl, logger, stripeAccount)
   }
 
   /**
