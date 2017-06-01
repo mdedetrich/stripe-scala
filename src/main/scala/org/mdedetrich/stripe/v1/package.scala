@@ -49,18 +49,10 @@ package object v1 {
       materializer: Materializer,
       executionContext: ExecutionContext,
       apiKey: ApiKey): Future[Try[DeleteResponse]] = {
-    val authorization = Authorization(BasicHttpCredentials(apiKey.apiKey, ""))
 
-    val req = {
-      val h = idempotencyKey match {
-        case Some(key) =>
-          List(authorization, RawHeader(idempotencyKeyHeader, key.key))
-        case None =>
-          List(authorization)
-      }
+    val headers = buildHeaders(apiKey, None, idempotencyKey)
 
-      HttpRequest(uri = finalUrl, method = HttpMethods.DELETE, headers = h)
-    }
+    val req = HttpRequest(uri = finalUrl, method = HttpMethods.DELETE, headers = headers)
 
     for {
       response <- client.singleRequest(req)
@@ -92,16 +84,10 @@ package object v1 {
       executionContext: ExecutionContext,
       decoder: Decoder[M],
       apiKey: ApiKey): Future[Try[M]] = {
-    val baseHeaders = stripeAccount
-      .map { header =>
-        List(RawHeader(stripeAccountHeader, header))
-      }
-      .getOrElse(List.empty)
 
+    val headers = buildHeaders(apiKey, stripeAccount, None)
     val req =
-      HttpRequest(uri = finalUrl,
-                  method = HttpMethods.GET,
-                  headers = List(Authorization(BasicHttpCredentials(apiKey.apiKey, ""))) ++ baseHeaders)
+      HttpRequest(uri = finalUrl, method = HttpMethods.GET, headers = headers)
 
     for {
       response <- client.singleRequest(req)
@@ -139,31 +125,14 @@ package object v1 {
                                                                              decoder: Decoder[M],
                                                                              apiKey: ApiKey): Future[Try[M]] = {
 
-    val req = {
+    val headers = buildHeaders(apiKey, stripeAccount, idempotencyKey)
 
-      val authorization = Authorization(BasicHttpCredentials(apiKey.apiKey, ""))
-
-      val headers = {
-        val id = idempotencyKey match {
-          case Some(key) =>
-            List(authorization, RawHeader(idempotencyKeyHeader, key.key))
-          case None =>
-            List(authorization)
-        }
-        stripeAccount match {
-          case Some(account) => id ++ List(RawHeader(stripeAccountHeader, account))
-          case None          => id
-        }
-
-      }
-
-      HttpRequest(
-        uri = finalUrl,
-        entity = FormData(postFormParameters).toEntity,
-        method = HttpMethods.POST,
-        headers = headers
-      )
-    }
+    val req = HttpRequest(
+      uri = finalUrl,
+      entity = FormData(postFormParameters).toEntity,
+      method = HttpMethods.POST,
+      headers = headers
+    )
 
     for {
       response <- client.singleRequest(req)
@@ -306,6 +275,20 @@ package object v1 {
     * Header to specify on behalf of which stripe account this API call should be executed.
     */
   private[v1] val stripeAccountHeader = "Stripe-Account"
+
+  /**
+    * Which version of the API this call is for.
+    */
+  private[v1] val stripeVersionHeader = "Stripe-Version"
+
+  private def buildHeaders(apiKey: ApiKey,
+                           stripeAccount: Option[String],
+                           idempotencyKey: Option[IdempotencyKey]): List[HttpHeader] =
+    List(
+      stripeAccount.map(a => RawHeader(stripeAccountHeader, a)),
+      Some(Authorization(BasicHttpCredentials(apiKey.apiKey, ""))),
+      idempotencyKey.map(i => RawHeader(idempotencyKeyHeader, i.key))
+    ).flatten
 
   /**
     * Parses a response from dispatch and attempts to do error process handling for specific stripe errors
