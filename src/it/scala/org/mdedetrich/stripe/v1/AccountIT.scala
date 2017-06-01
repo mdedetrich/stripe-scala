@@ -6,11 +6,10 @@ import org.mdedetrich.stripe.Config._
 import org.mdedetrich.stripe.v1.Accounts.LegalEntityType.Individual
 import org.mdedetrich.stripe.v1.Accounts.{Account, LegalEntity, TosAcceptance, TransferInterval, TransferSchedule}
 import org.mdedetrich.stripe.v1.BankAccounts.BankAccountData
-import org.scalatest.ParallelTestExecution
 
 import scala.concurrent.Future
 
-class AccountIT extends IntegrationTest with ParallelTestExecution {
+class AccountIT extends IntegrationTest {
 
   "Account" should {
     "create managed account with non-ascii character" in {
