@@ -36,58 +36,45 @@ object Tokens extends LazyLogging {
   /**
     * @see https://stripe.com/docs/api#retrieve_token
     * @param id
-    * @param bankAccount Hash describing the bank account
-    * @param card        Hash describing the card used to make the charge
-    * @param clientIp    IP address of the client that generated the token
     * @param created
     * @param livemode
     * @param `type`      Type of the token: [[Type.Card]] or [[Type.BankAccount]]
     * @param used        Whether or not this token has already
     *                    been used (tokens can be used only once)
+    * @param bankAccount Hash describing the bank account
+    * @param card        Hash describing the card used to make the charge
+    * @param clientIp    IP address of the client that generated the token
     */
   case class Token(id: String,
-                   bankAccount: Option[BankAccounts.BankAccount],
-                   card: Option[Cards.Card],
-                   clientIp: Option[String],
                    created: OffsetDateTime,
                    livemode: Boolean,
                    `type`: Type,
-                   used: Boolean)
-
-  object Token {
-    def default(id: String, created: OffsetDateTime, livemode: Boolean, `type`: Type, used: Boolean): Token = Token(
-      id,
-      None,
-      None,
-      None,
-      created,
-      livemode,
-      `type`,
-      used
-    )
-  }
+                   used: Boolean,
+                   bankAccount: Option[BankAccounts.BankAccount] = None,
+                   card: Option[Cards.Card] = None,
+                   clientIp: Option[String] = None)
 
   implicit val tokenDecoder: Decoder[Token] = Decoder.forProduct8(
     "id",
-    "bank_account",
-    "card",
-    "client_ip",
     "created",
     "livemode",
     "type",
-    "used"
+    "used",
+    "bank_account",
+    "card",
+    "client_ip"
   )(Token.apply)
 
   implicit val tokenEncoder: Encoder[Token] = Encoder.forProduct9(
     "id",
     "object",
-    "bank_account",
-    "card",
-    "client_ip",
     "created",
     "livemode",
     "type",
-    "used"
+    "used",
+    "bank_account",
+    "card",
+    "client_ip"
   )(
     x =>
       (
@@ -140,33 +127,16 @@ object Tokens extends LazyLogging {
     case class Card(expMonth: Int,
                     expYear: Int,
                     number: String,
-                    addressCity: Option[String],
-                    addressCountry: Option[String],
-                    addressLine1: Option[String],
-                    addressLine2: Option[String],
-                    addressState: Option[String],
-                    addressZip: Option[String],
-                    currency: Option[Currency],
-                    cvc: Option[String],
-                    name: Option[String])
+                    addressCity: Option[String] = None,
+                    addressCountry: Option[String] = None,
+                    addressLine1: Option[String] = None,
+                    addressLine2: Option[String] = None,
+                    addressState: Option[String] = None,
+                    addressZip: Option[String] = None,
+                    currency: Option[Currency] = None,
+                    cvc: Option[String] = None,
+                    name: Option[String] = None)
         extends TokenData
-
-    object Card {
-      def default(expMonth: Int, expYear: Int, number: String): Card = Card(
-        expMonth,
-        expYear,
-        number,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None
-      )
-    }
 
     implicit val cardDecoder: Decoder[Card] = Decoder.forProduct12(
       "exp_month",
@@ -243,21 +213,10 @@ object Tokens extends LazyLogging {
     case class BankAccount(accountNumber: String,
                            country: String,
                            currency: Currency,
-                           routingNumber: Option[String],
-                           accountHolderName: Option[String],
-                           accountHolderType: Option[BankAccounts.AccountHolderType])
+                           routingNumber: Option[String] = None,
+                           accountHolderName: Option[String] = None,
+                           accountHolderType: Option[BankAccounts.AccountHolderType] = None)
         extends TokenData
-
-    object BankAccount {
-      def default(accountNumber: String, country: String, currency: Currency): BankAccount = BankAccount(
-        accountNumber,
-        country,
-        currency,
-        None,
-        None,
-        None
-      )
-    }
 
     implicit val bankAccountDecoder: Decoder[BankAccount] = Decoder.forProduct6(
       "account_number",
@@ -283,34 +242,20 @@ object Tokens extends LazyLogging {
       * tokens can only be used once.
       *
       * @see https://stripe.com/docs/api#create_pii_token
-      * @param pii              The PII this token will represent.
       * @param personalIdNumber The [[personalIdNumber]] for PII
       *                         in string form.
+      * @param pii              The PII this token will represent.
       */
-    case class PII(pii: Option[String], personalIdNumber: String) extends TokenData
-
-    object PII {
-      def default(personalIdNumber: String): PII = PII(
-        None,
-        personalIdNumber
-      )
-    }
+    case class PII(personalIdNumber: String, pii: Option[String]) extends TokenData
 
     implicit val PIIDecoder: Decoder[PII] =
-      Decoder.forProduct2("pii", "personal_id_number")(PII.apply)
+      Decoder.forProduct2("personal_id_number", "pii")(PII.apply)
 
     implicit val PIIEncoder: Encoder[PII] =
-      Encoder.forProduct2("pii", "personal_id_number")(x => (x.pii, x.personalIdNumber))
+      Encoder.forProduct2("personal_id_number", "pii")(x => PII.unapply(x).get)
   }
 
-  case class TokenInput(tokenData: TokenData, customer: Option[String])
-
-  object TokenInput {
-    def default(tokenData: TokenData): TokenInput = TokenInput(
-      tokenData,
-      None
-    )
-  }
+  case class TokenInput(tokenData: TokenData, customer: Option[String] = None)
 
   def create(tokenInput: TokenInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,

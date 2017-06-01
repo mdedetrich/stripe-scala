@@ -141,20 +141,10 @@ object Refunds extends LazyLogging {
     */
   case class RefundInput(charge: String,
                          reason: Reason,
-                         amount: Option[BigDecimal],
-                         metadata: Map[String, String],
-                         refundApplicationFee: Option[Boolean],
-                         reverseTransfer: Option[Boolean])
-  object RefundInput {
-    def default(charge: String, reason: Reason) = RefundInput(
-      charge,
-      reason,
-      None,
-      Map.empty,
-      None,
-      None
-    )
-  }
+                         amount: Option[BigDecimal] = None,
+                         metadata: Map[String, String] = Map.empty,
+                         refundApplicationFee: Option[Boolean] = None,
+                         reverseTransfer: Option[Boolean] = None)
 
   implicit val refundInputDecoder: Decoder[RefundInput] = Decoder.forProduct6(
     "charge",
@@ -232,19 +222,10 @@ object Refunds extends LazyLogging {
     *                      [[startingAfter]]=obj_foo in order to fetch the
     *                      next page of the list.
     */
-  case class RefundListInput(charge: Option[String],
-                             endingBefore: Option[String],
-                             limit: Option[Long],
-                             startingAfter: Option[String])
-
-  object RefundListInput {
-    def default: RefundListInput = RefundListInput(
-      None,
-      None,
-      None,
-      None
-    )
-  }
+  case class RefundListInput(charge: Option[String] = None,
+                             endingBefore: Option[String] = None,
+                             limit: Option[Long] = None,
+                             startingAfter: Option[String] = None)
 
   case class RefundList(override val url: String,
                         override val hasMore: Boolean,

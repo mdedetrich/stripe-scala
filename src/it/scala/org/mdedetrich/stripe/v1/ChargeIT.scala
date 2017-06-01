@@ -35,9 +35,12 @@ class ChargeIT extends IntegrationTest {
 
 object ChargeIT {
   def chargeInput(customer: Customer): ChargeInput                      = chargeInput(None, customer).copy(applicationFee = None)
-  def chargeInput(destination: String, customer: Customer): ChargeInput = chargeInput(Some(destination), customer)
+  def chargeInput(destination: String, customer: Customer): ChargeInput = chargeInput(Option(destination), customer)
   def chargeInput(destination: Option[String], customer: Customer): ChargeInput =
-    Charges.ChargeInput
-      .default(1500, Currency.`Euro`, capture = true, customer)
-      .copy(applicationFee = Some(100), destination = destination)
+    Charges.ChargeInput(amount = BigDecimal(1500),
+                        Currency.`Euro`,
+                        capture = true,
+                        customer = Option(customer),
+                        applicationFee = Option(BigDecimal(100)),
+                        destination = destination)
 }

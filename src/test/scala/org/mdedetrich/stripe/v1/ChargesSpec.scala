@@ -16,7 +16,7 @@ class ChargesSpec extends WordSpec with Matchers {
       val charge = json.flatMap(_.as[Charge].toOption).get
 
       charge.id should be("ch_194UQpJ4y4jIjvHhJji6ElAp")
-      charge.applicationFee should be(Some("fee_9OKMRHcB2CcVPD"))
+      charge.applicationFee should be(Option("fee_9OKMRHcB2CcVPD"))
       val source = charge.source.asInstanceOf[Charges.Source.MaskedCard]
       source.expYear should be(2018)
     }
@@ -31,7 +31,10 @@ class ChargesSpec extends WordSpec with Matchers {
 
       // must be here for the next line to not throw an NPE
       Currency.lowerCaseNamesToValuesMap
-      val input  = Charges.ChargeInput.default(100, Currency.`Euro`, capture = true, customerSource)
+      val input = Charges.ChargeInput(amount = BigDecimal(100),
+                                      Currency.`Euro`,
+                                      capture = true,
+                                      customer = Option(customerSource))
       val params = PostParams.toPostParams(input)
 
       params("customer") should be(customerId)

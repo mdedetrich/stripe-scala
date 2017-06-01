@@ -285,29 +285,15 @@ object Balances extends LazyLogging {
     *                      One of: [[Type.Charge]], [[Type.Adjustment]], [[Type.ApplicationFee]],
     *                      [[Type.ApplicationFeeRefund]], [[Type.Transfer]], or [[Type.TransferFailure]]
     */
-  case class BalanceHistoryListInput(availableOn: Option[ListFilterInput],
-                                     created: Option[ListFilterInput],
-                                     currency: Option[Currency],
-                                     endingBefore: Option[String],
-                                     limit: Option[Long],
-                                     source: Option[String],
-                                     startingAfter: Option[String],
-                                     transfer: Option[Boolean],
-                                     `type`: Option[Type])
-
-  object BalanceHistoryListInput {
-    def default: BalanceHistoryListInput = BalanceHistoryListInput(
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None
-    )
-  }
+  case class BalanceHistoryListInput(availableOn: Option[ListFilterInput] = None,
+                                     created: Option[ListFilterInput] = None,
+                                     currency: Option[Currency] = None,
+                                     endingBefore: Option[String] = None,
+                                     limit: Option[Long] = None,
+                                     source: Option[String] = None,
+                                     startingAfter: Option[String] = None,
+                                     transfer: Option[Boolean] = None,
+                                     `type`: Option[Type] = None)
 
   case class BalanceTransactionList(override val url: String,
                                     override val hasMore: Boolean,

@@ -603,14 +603,14 @@ object Charges extends LazyLogging {
     *                            or 1 to charge ¥1, a 0-decimal currency) representing how much to charge the card.
     *                            The minimum amount is $0.50 (or equivalent in charge currency).
     * @param currency            3-letter ISO code for currency.
+    * @param capture             Whether or not to immediately capture the charge. When false, the charge issues
+    *                            an authorization (or pre-authorization), and will need to be captured later.
+    *                            Uncaptured charges expire in 7 days. For more information, see authorizing charges and settling later.
     * @param applicationFee      A fee in cents that will be applied to the charge and transferred to
     *                            the application owner's Stripe account. To use an application fee,
     *                            the request must be made on behalf of another account, using the
     *                            Stripe-Account header, an OAuth key, or the [[Charge.destination]] parameter.
     *                            For more information, see the application fees documentation.
-    * @param capture             Whether or not to immediately capture the charge. When false, the charge issues
-    *                            an authorization (or pre-authorization), and will need to be captured later.
-    *                            Uncaptured charges expire in 7 days. For more information, see authorizing charges and settling later.
     * @param description         An arbitrary string which you can attach to a charge object.
     *                            It is displayed when in the web interface alongside the charge.
     *                            Note that if you use Stripe to send automatic email receipts to your customers,
@@ -649,16 +649,16 @@ object Charges extends LazyLogging {
     */
   case class ChargeInput(amount: BigDecimal,
                          currency: Currency,
-                         applicationFee: Option[BigDecimal],
                          capture: Boolean,
-                         description: Option[String],
-                         destination: Option[String],
-                         metadata: Map[String, String],
-                         receiptEmail: Option[String],
-                         shipping: Option[Shipping],
-                         customer: Option[SourceInput.Customer],
-                         source: Option[SourceInput.Card],
-                         statementDescriptor: Option[String])
+                         applicationFee: Option[BigDecimal] = None,
+                         description: Option[String] = None,
+                         destination: Option[String] = None,
+                         metadata: Map[String, String] = Map.empty,
+                         receiptEmail: Option[String] = None,
+                         shipping: Option[Shipping] = None,
+                         customer: Option[SourceInput.Customer] = None,
+                         source: Option[SourceInput.Card] = None,
+                         statementDescriptor: Option[String] = None)
       extends StripeObject {
     statementDescriptor match {
       case Some(sD) if sD.length > 22 =>
@@ -675,50 +675,11 @@ object Charges extends LazyLogging {
     }
   }
 
-  // ChargeInput
-
-  object ChargeInput {
-    def default(amount: BigDecimal, currency: Currency, capture: Boolean, source: SourceInput.Card): ChargeInput =
-      ChargeInput(
-        amount,
-        currency,
-        None,
-        capture,
-        None,
-        None,
-        Map.empty,
-        None,
-        None,
-        None,
-        Some(source),
-        None
-      )
-
-    def default(amount: BigDecimal,
-                currency: Currency,
-                capture: Boolean,
-                customer: SourceInput.Customer): ChargeInput =
-      ChargeInput(
-        amount,
-        currency,
-        None,
-        capture,
-        None,
-        None,
-        Map.empty,
-        None,
-        None,
-        Some(customer),
-        None,
-        None
-      )
-  }
-
   implicit val chargeInputDecoder: Decoder[ChargeInput] = Decoder.forProduct12(
     "amount",
     "currency",
-    "application_fee",
     "capture",
+    "application_fee",
     "description",
     "destination",
     "metadata",
@@ -734,8 +695,8 @@ object Charges extends LazyLogging {
       Map(
         "amount"               -> Option(chargeInput.amount.toString),
         "currency"             -> Option(chargeInput.currency.iso.toLowerCase),
-        "application_fee"      -> chargeInput.applicationFee.map(_.toString),
         "capture"              -> Option(chargeInput.capture.toString),
+        "application_fee"      -> chargeInput.applicationFee.map(_.toString),
         "description"          -> chargeInput.description,
         "destination"          -> chargeInput.destination,
         "receipt_email"        -> chargeInput.receiptEmail,

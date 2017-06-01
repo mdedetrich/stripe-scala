@@ -43,14 +43,13 @@ object CustomerIT {
       materializer: Materializer,
       executionContext: ExecutionContext): Future[Customer] = {
     val in2years   = OffsetDateTime.now.plusYears(2)
-    val cardData   = TokenData.Card.default(in2years.getMonthValue, in2years.getYear, cardNumber).copy(cvc = Some("123"))
-    val tokenInput = TokenInput.default(cardData)
+    val cardData   = TokenData.Card(in2years.getMonthValue, in2years.getYear, cardNumber).copy(cvc = Option("123"))
+    val tokenInput = TokenInput(cardData)
 
     for {
       token       <- handle(Tokens.create(tokenInput)())
-      newCustomer <- handle(Customers.create(CustomerInput.default)())
-      updated <- handle(
-        Customers.update(newCustomer.id, CustomerUpdate.default.copy(paymentSource = Some(Token(token.id))))())
+      newCustomer <- handle(Customers.create(CustomerInput())())
+      updated     <- handle(Customers.update(newCustomer.id, CustomerUpdate(paymentSource = Option(Token(token.id))))())
     } yield updated
 
   }

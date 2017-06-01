@@ -43,10 +43,6 @@ object Subscriptions extends LazyLogging {
   /**
     * @see https://stripe.com/docs/api#subscription_object
     * @param id
-    * @param applicationFeePercent A positive decimal that represents the fee
-    *                              percentage of the subscription invoice amount
-    *                              that will be transferred to the application
-    *                              owner’s Stripe account each billing period.
     * @param cancelAtPeriodEnd     If the subscription has been canceled with the
     *                              at_period_end flag set to true,
     *                              [[cancelAtPeriodEnd]] on the subscription will
@@ -54,12 +50,6 @@ object Subscriptions extends LazyLogging {
     *                              whether a subscription that has a status of
     *                              active is scheduled to be canceled at the end
     *                              of the current period.
-    * @param canceledAt            If the subscription has been canceled, the date
-    *                              of that cancellation. If the subscription was
-    *                              canceled with [[cancelAtPeriodEnd]], [[canceledAt]]
-    *                              will still reflect the date of the initial cancellation
-    *                              request, not the end of the subscription period when
-    *                              the subscription is automatically moved to a canceled state.
     * @param currentPeriodEnd      End of the current period that the
     *                              subscription has been invoiced for.
     *                              At the end of this period, a new
@@ -67,20 +57,6 @@ object Subscriptions extends LazyLogging {
     * @param currentPeriodStart    Start of the current period that the
     *                              subscription has been invoiced for
     * @param customer
-    * @param discount              Describes the current discount applied
-    *                              to this subscription, if there is one. When
-    *                              billing, a discount applied to a subscription
-    *                              overrides a discount applied on a customer-wide
-    *                              basis.
-    * @param endedAt               If the subscription has ended (either because
-    *                              it was canceled or because the customer was
-    *                              switched to a subscription to a new plan), the date
-    *                              the subscription ended
-    * @param metadata              A set of key/value pairs that you can
-    *                              attach to a subscription object. It
-    *                              can be useful for storing additional
-    *                              information about the subscription in
-    *                              a structured format.
     * @param plan                  Hash describing the plan the customer is subscribed to
     * @param quantity
     * @param start                 Date the subscription started
@@ -99,6 +75,31 @@ object Subscriptions extends LazyLogging {
     *                              not lead to Stripe retrying the latest invoice.). After
     *                              receiving updated card details from a customer,
     *                              you may choose to reopen and pay their closed invoices.
+    * @param applicationFeePercent A positive decimal that represents the fee
+    *                              percentage of the subscription invoice amount
+    *                              that will be transferred to the application
+    *                              owner’s Stripe account each billing period.
+
+    * @param canceledAt            If the subscription has been canceled, the date
+    *                              of that cancellation. If the subscription was
+    *                              canceled with [[cancelAtPeriodEnd]], [[canceledAt]]
+    *                              will still reflect the date of the initial cancellation
+    *                              request, not the end of the subscription period when
+    *                              the subscription is automatically moved to a canceled state.
+    * @param discount              Describes the current discount applied
+    *                              to this subscription, if there is one. When
+    *                              billing, a discount applied to a subscription
+    *                              overrides a discount applied on a customer-wide
+    *                              basis.
+    * @param endedAt               If the subscription has ended (either because
+    *                              it was canceled or because the customer was
+    *                              switched to a subscription to a new plan), the date
+    *                              the subscription ended
+    * @param metadata              A set of key/value pairs that you can
+    *                              attach to a subscription object. It
+    *                              can be useful for storing additional
+    *                              information about the subscription in
+    *                              a structured format.
     * @param taxPercent            If provided, each invoice created by this
     *                              subscription will apply the tax rate,
     *                              increasing the amount billed to the customer.
@@ -108,68 +109,38 @@ object Subscriptions extends LazyLogging {
     *                              the beginning of that trial.
     */
   case class Subscription(id: String,
-                          applicationFeePercent: Option[BigDecimal],
                           cancelAtPeriodEnd: Boolean,
-                          canceledAt: Option[OffsetDateTime],
                           currentPeriodEnd: OffsetDateTime,
                           currentPeriodStart: OffsetDateTime,
                           customer: String,
-                          discount: Option[Discount],
-                          endedAt: Option[OffsetDateTime],
-                          metadata: Option[Map[String, String]],
                           plan: Plan,
                           quantity: Long,
                           start: OffsetDateTime,
                           status: Status,
-                          taxPercent: Option[BigDecimal],
-                          trialEnd: Option[OffsetDateTime],
-                          trialStart: Option[OffsetDateTime])
-
-  object Subscription {
-    def default(id: String,
-                cancelAtPeriod: Boolean,
-                customer: String,
-                currentPeriodEnd: OffsetDateTime,
-                currentPeriodStart: OffsetDateTime,
-                plan: Plan,
-                quantity: Long,
-                start: OffsetDateTime,
-                status: Status) = Subscription(
-      id,
-      None,
-      cancelAtPeriod,
-      None,
-      currentPeriodEnd,
-      currentPeriodStart,
-      customer,
-      None,
-      None,
-      None,
-      plan,
-      quantity,
-      start,
-      status,
-      None,
-      None,
-      None
-    )
-  }
+                          applicationFeePercent: Option[BigDecimal] = None,
+                          canceledAt: Option[OffsetDateTime] = None,
+                          discount: Option[Discount] = None,
+                          endedAt: Option[OffsetDateTime] = None,
+                          metadata: Option[Map[String, String]] = None,
+                          taxPercent: Option[BigDecimal] = None,
+                          trialEnd: Option[OffsetDateTime] = None,
+                          trialStart: Option[OffsetDateTime] = None)
 
   implicit val subscriptionDecoder: Decoder[Subscription] = Decoder.forProduct17(
     "id",
-    "application_fee_percent",
     "cancel_at_period_end",
-    "canceled_at",
     "current_period_end",
     "current_period_start",
     "customer",
-    "discount",
-    "ended_at",
-    "metadata",
     "plan",
     "quantity",
     "start",
     "status",
+    "application_fee_percent",
+    "canceled_at",
+    "discount",
+    "ended_at",
+    "metadata",
     "tax_percent",
     "trial_end",
     "trial_start"
@@ -178,19 +149,19 @@ object Subscriptions extends LazyLogging {
   implicit val subscriptionEncoder: Encoder[Subscription] = Encoder.forProduct18(
     "id",
     "object",
-    "application_fee_percent",
     "cancel_at_period_end",
-    "canceled_at",
     "current_period_end",
     "current_period_start",
     "customer",
-    "discount",
-    "ended_at",
-    "metadata",
     "plan",
     "quantity",
     "start",
     "status",
+    "application_fee_percent",
+    "canceled_at",
+    "discount",
+    "ended_at",
+    "metadata",
     "tax_percent",
     "trial_end",
     "trial_start"
@@ -303,6 +274,8 @@ object Subscriptions extends LazyLogging {
 
   /**
     * @see https://stripe.com/docs/api#create_subscription-source
+    * @param plan                  The identifier of the plan
+    *                              to subscribe the customer to.
     * @param applicationFeePercent A positive decimal (with
     *                              at most two decimal places) between
     *                              1 and 100. This represents the percentage
@@ -318,8 +291,6 @@ object Subscriptions extends LazyLogging {
     *                              a subscription will only affect
     *                              invoices created for that particular
     *                              subscription.
-    * @param plan                  The identifier of the plan
-    *                              to subscribe the customer to.
     * @param source                The source can either be a token, like the ones
     *                              returned by our Stripe.js, or a dictionary
     *                              containing a user's credit card details
@@ -377,27 +348,14 @@ object Subscriptions extends LazyLogging {
     *                              can be provided to end the customer's
     *                              trial immediately.
     */
-  case class SubscriptionInput(applicationFeePercent: Option[BigDecimal],
-                               coupon: Option[String],
-                               plan: String,
-                               source: Option[Source],
-                               quantity: Option[Long],
-                               metadata: Option[Map[String, String]],
-                               taxPercent: Option[BigDecimal],
-                               trialEnd: Option[OffsetDateTime])
-
-  object SubscriptionInput {
-    def default(plan: String): SubscriptionInput = SubscriptionInput(
-      None,
-      None,
-      plan,
-      None,
-      None,
-      None,
-      None,
-      None
-    )
-  }
+  case class SubscriptionInput(plan: String,
+                               applicationFeePercent: Option[BigDecimal] = None,
+                               coupon: Option[String] = None,
+                               source: Option[Source] = None,
+                               quantity: Option[Long] = None,
+                               metadata: Option[Map[String, String]] = None,
+                               taxPercent: Option[BigDecimal] = None,
+                               trialEnd: Option[OffsetDateTime] = None)
 
   case class SubscriptionList(override val url: String,
                               override val hasMore: Boolean,

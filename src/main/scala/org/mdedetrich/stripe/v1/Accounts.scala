@@ -114,18 +114,14 @@ object Accounts extends LazyLogging {
 
   // Legal entity
   case class LegalEntity(
-      address: Address,
-      `type`: Option[LegalEntityType],
-      businessName: Option[String],
-      firstName: Option[String],
-      lastName: Option[String],
-      dob: Option[LocalDate],
-      tosAcceptance: Option[TosAcceptance]
+      address: Address = Address(),
+      `type`: Option[LegalEntityType] = None,
+      businessName: Option[String] = None,
+      firstName: Option[String] = None,
+      lastName: Option[String] = None,
+      dob: Option[LocalDate] = None,
+      tosAcceptance: Option[TosAcceptance] = None
   )
-
-  object LegalEntity {
-    def default = LegalEntity(Address.default, None, None, None, None, None, None)
-  }
 
   implicit val legalEntityDecoder: Decoder[LegalEntity] = Decoder.forProduct7(
     "address",
@@ -312,22 +308,12 @@ object Accounts extends LazyLogging {
   // Account input
   //
   case class AccountInput(
-      managed: Boolean,
-      metadata: Map[String, String],
-      legalEntity: Option[LegalEntity],
-      transferSchedule: Option[TransferSchedule],
-      tosAcceptance: Option[TosAcceptance]
+      managed: Boolean = false,
+      metadata: Map[String, String] = Map.empty,
+      legalEntity: Option[LegalEntity] = None,
+      transferSchedule: Option[TransferSchedule] = None,
+      tosAcceptance: Option[TosAcceptance] = None
   )
-
-  object AccountInput {
-    def default: AccountInput = AccountInput(
-      false,
-      Map.empty,
-      None,
-      None,
-      None
-    )
-  }
 
   implicit val accountInputPostParams: PostParams[AccountInput] = PostParams.params[AccountInput] { update =>
     Map(
@@ -343,16 +329,12 @@ object Accounts extends LazyLogging {
   // Account update
   //
   case class AccountUpdate(
-      legalEntity: Option[LegalEntity],
-      externalAccount: Option[BankAccountData.Source],
-      defaultCurrency: Option[Currency],
-      tosAcceptance: Option[TosAcceptance],
-      transferSchedule: Option[TransferSchedule]
+      legalEntity: Option[LegalEntity] = None,
+      externalAccount: Option[BankAccountData.Source] = None,
+      defaultCurrency: Option[Currency] = None,
+      tosAcceptance: Option[TosAcceptance] = None,
+      transferSchedule: Option[TransferSchedule] = None
   )
-
-  object AccountUpdate {
-    def default = AccountUpdate(None, None, None, None, None)
-  }
 
   implicit val accountUpdatePostParams: PostParams[AccountUpdate] = PostParams.params[AccountUpdate] { update =>
     val defaultCurrency = Map("default_currency" -> update.defaultCurrency.map(_.iso))

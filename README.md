@@ -41,7 +41,6 @@ To get the latest version please check the [Maven repository search](http://sear
 - [ ] Document Stripe API with ScalaDoc
 - [x] Figure out how to deal with list collections
 - [x] Figure out how to deal with error handling
-- [x] Provide default methods for models so that building them is nicer
 - [x] Implement a single instance of all operation types to figure out if there are any potential issues
   - [x] get
   - [x] create
@@ -74,6 +73,7 @@ fails due to going over the retry limit, `handle`/`handleIdempotent` will also r
 
 ```scala
 import org.mdedetrich.stripe.v1.{Customers, handleIdempotent}
+import scala.concurrent.Future
 
 val customerInput: Customers.CustomerInput = ??? // Some customer input
 val response: Future[Customers.Customer] = handleIdempotent(Customers.create(customerInput))
@@ -82,8 +82,8 @@ val response: Future[Customers.Customer] = handleIdempotent(Customers.create(cus
 For the most part you will want to use `handleIdempotent`/`handle` however if you want
 more fine grained control over potential errors then you can use the various `.create`/`.get` methods
 
-### Default methods
-The stripe object models in stripe-scala provide a `.default` method on the companion object which simplifies creating
+### Building case classes
+The stripe object models in stripe-scala have named parameters set to default values which simplifies creating
 the stripe models
 
 ```scala
@@ -112,12 +112,13 @@ val source = Source.Card(expMonth,
                       )
 
 // Efficient way
-val source2 = Source.Card
-  .default(expMonth,expYear,cardNumber)
-  .copy(cvc = Option(cvc))
+val source2 = Source.Card(
+  expMonth = expMonth,
+  expYear = expYear,
+  number = cardNumber,
+  cvc = Option(cvc)
+)
 ```
-The `.default` methods create an instance of the model with all of the `Optional` fields filled as `None`. Models
-that have no `Optional` fields do not have a `.default` method.
 
 ### metadata
 
@@ -141,7 +142,7 @@ are Play related methods)
 
 ```scala
 
-import org.mdedetrich.stripe.v1.Cards._
+import org.mdedetrich.stripe.v1.Cards
 import org.mdedetrich.stripe.v1.Errors._
 import org.mdedetrich.stripe.v1.{handleIdempotent,transformParam}
 
@@ -154,16 +155,19 @@ val cvc = "536"
 
 val stripeCustomerId: String = ??? // Some stripe customer Id
 
-val cardData = Cards.CardData.SourceObject
-  .default(expMonth, expYear, cardNumber)
-  .copy(cvc = Option(cvc))
+val cardData = Cards.CardData.Source.Object(
+  expMonth = expMonth,
+  expYear = expYear,
+  number = cardNumber,
+  cvc = Option(cvc)
+)
 
-val cardInput = Cards.CardInput.default(cardData)
+val cardInput = Cards.CardInput(cardData)
 
 val futureResponse = handleIdempotent(Cards.create(stripeCustomerId, cardInput)).recover {
   case Errors.Error.RequestFailed(CardError, _, Some(message), Some(param)) =>
     // We have a parameter, this usually means one of our fields is incorrect such as an invalid CVC
-    BadRequest(Json.obj("message" -> List((transformParam(param), List(message))))
+    BadRequest(Json.obj("message" -> List((transformParam(param), List(message)))))
   case Errors.Error.RequestFailed(CardError, _, Some(message), None) =>
     // No parameter, usually means a more general error, such as a declined card
     BadRequest(Json.obj("message" -> message))

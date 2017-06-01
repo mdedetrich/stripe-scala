@@ -35,15 +35,19 @@ object Coupons extends LazyLogging {
   /**
     * @see https://stripe.com/docs/api#coupons
     * @param id
-    * @param amountOff        Amount (in the currency specified) that will be taken
-    *                         off the subtotal of any invoices for this customer.
     * @param created
-    * @param currency         If [[amountOff]] has been set, the currency of the amount to take off.
     * @param duration         One of [[Duration.Forever]], [[Duration.Once]], and [[Duration.Repeating]].
     *                         Describes how long a customer who applies this coupon will get the discount.
+    * @param livemode
+    * @param timesRedeemed    Number of times this coupon has been applied to a customer.
+    * @param valid            Taking account of the above properties,
+    *                         whether this coupon can still be applied to a customer
+    * @param amountOff        Amount (in the currency specified) that will be taken
+    *                         off the subtotal of any invoices for this customer.
+    * @param currency         If [[amountOff]] has been set, the currency of the amount to take off.
+
     * @param durationInMonths If duration is repeating, the number of months the coupon applies.
     *                         [[None]] if coupon duration is forever or once.
-    * @param livemode
     * @param maxRedemptions   Maximum number of times this coupon can be redeemed,
     *                         in total, before it is no longer valid.
     * @param metadata         A set of key/value pairs that you can attach to a coupon object.
@@ -53,79 +57,54 @@ object Coupons extends LazyLogging {
     *                         customer for the duration of the coupon. For example, a coupon with
     *                         [[percentOff]] of 50 will make a $100 invoice $50 instead.
     * @param redeemBy         Date after which the coupon can no longer be redeemed
-    * @param timesRedeemed    Number of times this coupon has been applied to a customer.
-    * @param valid            Taking account of the above properties,
-    *                         whether this coupon can still be applied to a customer
+
     */
   case class Coupon(id: String,
-                    amountOff: Option[Long],
                     created: OffsetDateTime,
-                    currency: Option[Currency],
                     duration: Duration,
-                    durationInMonths: Option[Long],
                     livemode: Boolean,
-                    maxRedemptions: Option[Long],
-                    metadata: Option[Map[String, String]],
-                    percentOff: Option[BigDecimal],
-                    redeemBy: Option[OffsetDateTime],
                     timesRedeemed: Long,
-                    valid: Boolean)
+                    valid: Boolean,
+                    amountOff: Option[Long] = None,
+                    currency: Option[Currency] = None,
+                    durationInMonths: Option[Long] = None,
+                    maxRedemptions: Option[Long] = None,
+                    metadata: Option[Map[String, String]] = None,
+                    percentOff: Option[BigDecimal] = None,
+                    redeemBy: Option[OffsetDateTime] = None)
       extends StripeObject
-
-  object Coupon {
-    def default(id: String,
-                created: OffsetDateTime,
-                duration: Duration,
-                livemode: Boolean,
-                timesRedeemed: Long,
-                valid: Boolean) = Coupon(
-      id,
-      None,
-      created,
-      None,
-      duration,
-      None,
-      livemode,
-      None,
-      None,
-      None,
-      None,
-      timesRedeemed,
-      valid
-    )
-  }
 
   implicit val couponDecoder: Decoder[Coupon] = Decoder.forProduct13(
     "id",
-    "amount_off",
     "created",
-    "currency",
     "duration",
-    "duration_in_months",
     "livemode",
+    "times_redeemed",
+    "valid",
+    "amount_off",
+    "currency",
+    "duration_in_months",
     "max_redemptions",
     "metadata",
     "percent_off",
-    "redeem_by",
-    "times_redeemed",
-    "valid"
+    "redeem_by"
   )(Coupon.apply)
 
   implicit val couponEncoder: Encoder[Coupon] = Encoder.forProduct14(
     "id",
     "object",
-    "amount_off",
     "created",
-    "currency",
     "duration",
-    "duration_in_months",
     "livemode",
+    "times_redeemed",
+    "valid",
+    "amount_off",
+    "currency",
+    "duration_in_months",
     "max_redemptions",
     "metadata",
     "percent_off",
-    "redeem_by",
-    "times_redeemed",
-    "valid"
+    "redeem_by"
   )(
     x =>
       (x.id,
@@ -145,14 +124,14 @@ object Coupons extends LazyLogging {
 
   /**
     * @see https://stripe.com/docs/api#create_coupon
+    * @param duration         Specifies how long the discount will be in effect.
+    *                         Can be [[Duration.Forever]], [[Duration.Once]],
+    *                         or [[Duration.Repeating]].
     * @param id               Unique string of your choice that will be used to identify this
     *                         coupon when applying it to a customer. This is often a specific
     *                         code you’ll give to your customer to use when signing up
     *                         (e.g. FALL25OFF). If you don’t want to specify a particular code,
     *                         you can leave the ID blank and we’ll generate a random code for you.
-    * @param duration         Specifies how long the discount will be in effect.
-    *                         Can be [[Duration.Forever]], [[Duration.Once]],
-    *                         or [[Duration.Repeating]].
     * @param amountOff        A positive integer representing the amount to subtract
     *                         from an invoice total (required if [[percentOff]] is not passed)
     * @param currency         Currency of the [[amountOff]] parameter
@@ -174,33 +153,19 @@ object Coupons extends LazyLogging {
     *                         the coupon can be redeemed. After the [[redeemBy]] date, the
     *                         coupon can no longer be applied to new customers.
     */
-  case class CouponInput(id: Option[String],
-                         duration: Duration,
-                         amountOff: Option[Long],
-                         currency: Option[Currency],
-                         durationInMonths: Option[Long],
-                         maxRedemptions: Option[Long],
-                         metadata: Option[Map[String, String]],
-                         percentOff: Option[BigDecimal],
-                         redeemBy: Option[OffsetDateTime])
-
-  object CouponInput {
-    def default(duration: Duration): CouponInput = CouponInput(
-      None,
-      duration,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None
-    )
-  }
+  case class CouponInput(duration: Duration,
+                         id: Option[String] = None,
+                         amountOff: Option[Long] = None,
+                         currency: Option[Currency] = None,
+                         durationInMonths: Option[Long] = None,
+                         maxRedemptions: Option[Long] = None,
+                         metadata: Option[Map[String, String]] = None,
+                         percentOff: Option[BigDecimal] = None,
+                         redeemBy: Option[OffsetDateTime] = None)
 
   implicit val couponInputDecoder: Decoder[CouponInput] = Decoder.forProduct9(
-    "id",
     "duration",
+    "id",
     "amount_off",
     "currency",
     "duration_in_months",
@@ -211,8 +176,8 @@ object Coupons extends LazyLogging {
   )(CouponInput.apply)
 
   implicit val couponInputEncoder: Encoder[CouponInput] = Encoder.forProduct9(
-    "id",
     "duration",
+    "id",
     "amount_off",
     "currency",
     "duration_in_months",
@@ -288,19 +253,10 @@ object Coupons extends LazyLogging {
     *                      subsequent call can include [[startingAfter]]=obj_foo
     *                      in order to fetch the next page of the list.
     */
-  case class CouponListInput(created: Option[ListFilterInput],
-                             endingBefore: Option[String],
-                             limit: Option[Long],
-                             startingAfter: Option[String])
-
-  object CouponListInput {
-    def default: CouponListInput = CouponListInput(
-      None,
-      None,
-      None,
-      None
-    )
-  }
+  case class CouponListInput(created: Option[ListFilterInput] = None,
+                             endingBefore: Option[String] = None,
+                             limit: Option[Long] = None,
+                             startingAfter: Option[String] = None)
 
   case class CouponList(override val url: String,
                         override val hasMore: Boolean,

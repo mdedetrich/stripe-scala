@@ -17,11 +17,13 @@ class AccountIT extends IntegrationTest with ParallelTestExecution {
       val dob       = LocalDate.now().minusYears(30)
       val firstName = "Gaspard"
       val lastName  = "Augé"
-      val legalEntity = Some(
-        LegalEntity.default
-          .copy(`type` = Some(Individual), firstName = Some(firstName), lastName = Some(lastName), dob = Some(dob)))
+      val legalEntity = Option(
+        LegalEntity(`type` = Option(Individual),
+                    firstName = Option(firstName),
+                    lastName = Option(lastName),
+                    dob = Option(dob)))
 
-      val accountInput = Accounts.AccountInput.default.copy(managed = true, legalEntity = legalEntity)
+      val accountInput = Accounts.AccountInput(managed = true, legalEntity = legalEntity)
       handleIdempotent(Accounts.create(accountInput)).map({ account =>
         account.legalEntity.firstName.get should be(firstName)
         account.legalEntity.lastName.get should be(lastName)
@@ -47,20 +49,22 @@ object AccountIT extends DefaultDependencies {
 
   def createManagedAccountWithBankAccount: Future[Account] = {
     val dob           = LocalDate.now().minusYears(30)
-    val tosAcceptance = Some(TosAcceptance(Some(OffsetDateTime.now()), Some("62.96.204.171")))
-    val legalEntity = Some(
-      LegalEntity.default
-        .copy(`type` = Some(Individual), firstName = Some("Horst"), lastName = Some("Kasuppke"), dob = Some(dob)))
+    val tosAcceptance = Option(TosAcceptance(Option(OffsetDateTime.now()), Option("62.96.204.171")))
+    val legalEntity = Option(
+      LegalEntity(`type` = Option(Individual),
+                  firstName = Option("Horst"),
+                  lastName = Option("Kasuppke"),
+                  dob = Option(dob)))
 
-    val transferSchedule = Some(TransferSchedule(Some(TransferInterval.Manual), None, None))
+    val transferSchedule = Option(TransferSchedule(Option(TransferInterval.Manual), None, None))
 
     // weirdly, this needs to be here in order for the following line not to throw a NullPointerException
     Currency.lowerCaseNamesToValuesMap
-    val ba = Some(BankAccountData.Source.Object.default("DE89370400440532013000", "DE", Currency.`Euro`))
+    val ba = Option(BankAccountData.Source.Object("DE89370400440532013000", "DE", Currency.`Euro`))
 
     val accountInput =
-      Accounts.AccountInput.default.copy(managed = true, metadata = meta, transferSchedule = transferSchedule)
-    val accountUpdate = Accounts.AccountUpdate.default.copy(
+      Accounts.AccountInput(managed = true, metadata = meta, transferSchedule = transferSchedule)
+    val accountUpdate = Accounts.AccountUpdate(
       tosAcceptance = tosAcceptance,
       legalEntity = legalEntity,
       externalAccount = ba,

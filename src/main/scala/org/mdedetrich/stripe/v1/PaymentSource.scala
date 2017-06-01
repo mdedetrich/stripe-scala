@@ -141,6 +141,15 @@ object Cards extends LazyLogging {
   /**
     * @see https://stripe.com/docs/api#card_object
     * @param id                 ID of card (used in conjunction with a customer or recipient ID)
+    * @param brand              Card brand. Can be [[Brand.Visa]], [[Brand.`American Express`]],
+    *                           [[Brand.MasterCard]], [[Brand.Discover]],
+    *                           [[Brand.JCB]], [[Brand.`Diners Club`]], or [[Brand.Unknown]]
+    * @param expMonth
+    * @param expYear
+    * @param funding            Card funding type. Can be [[Funding.Credit]],
+    *                           [[Funding.Debit]], [[Funding.Prepaid]], or
+    *                           [[Funding.Unknown]]
+    * @param last4
     * @param account            The account this card belongs to. This attribute will not be in the
     *                           card object if the card belongs to a customer or recipient instead.
     * @param addressCity
@@ -155,9 +164,6 @@ object Cards extends LazyLogging {
     * @param addressZipCheck    If [[addressZip]] was provided, results of the check:
     *                           [[Check.Pass]], [[Check.Fail]], [[Check.Unavailable]],
     *                           or [[Check.Unchecked]].
-    * @param brand              Card brand. Can be [[Brand.Visa]], [[Brand.`American Express`]],
-    *                           [[Brand.MasterCard]], [[Brand.Discover]],
-    *                           [[Brand.JCB]], [[Brand.`Diners Club`]], or [[Brand.Unknown]]
     * @param country            Two-letter ISO code representing the country of the card.
     *                           You could use this attribute to get a sense of the international
     *                           breakdown of cards you’ve collected.
@@ -170,16 +176,10 @@ object Cards extends LazyLogging {
     * @param defaultForCurrency Only applicable on accounts (not customers or recipients). This indicates
     *                           whether or not this card is the default external account for its currency.
     * @param dynamicLast4       (For tokenized numbers only.) The last four digits of the device account number.
-    * @param expMonth
-    * @param expYear
     * @param fingerprint        Uniquely identifies this particular card number.
     *                           You can use this attribute to check whether two
     *                           customers who’ve signed up with you are using the
     *                           same card number, for example.
-    * @param funding            Card funding type. Can be [[Funding.Credit]],
-    *                           [[Funding.Debit]], [[Funding.Prepaid]], or
-    *                           [[Funding.Unknown]]
-    * @param last4
     * @param metadata           A set of key/value pairs that you can attach
     *                           to a card object. It can be useful for storing
     *                           additional information about the card in a
@@ -193,67 +193,41 @@ object Cards extends LazyLogging {
     *                           or [[TokenizationMethod.AndroidPay]].
     */
   case class Card(id: String,
-                  account: Option[String],
-                  addressCity: Option[String],
-                  addressCountry: Option[String],
-                  addressLine1: Option[String],
-                  addressLine1Check: Option[Check],
-                  addressLine2: Option[String],
-                  addressState: Option[String],
-                  addressZip: Option[String],
-                  addressZipCheck: Option[Check],
                   brand: Brand,
-                  country: Option[String],
-                  currency: Option[Currency],
-                  customer: Option[String],
-                  cvcCheck: Option[Check],
-                  defaultForCurrency: Option[Boolean],
-                  dynamicLast4: Option[String],
                   expMonth: Int,
                   expYear: Int,
-                  fingerprint: Option[String],
                   funding: Funding,
                   last4: String,
-                  metadata: Option[Map[String, String]],
-                  name: Option[String],
-                  recipient: Option[String],
-                  tokenizationMethod: Option[TokenizationMethod])
+                  account: Option[String] = None,
+                  addressCity: Option[String] = None,
+                  addressCountry: Option[String] = None,
+                  addressLine1: Option[String] = None,
+                  addressLine1Check: Option[Check] = None,
+                  addressLine2: Option[String] = None,
+                  addressState: Option[String] = None,
+                  addressZip: Option[String] = None,
+                  addressZipCheck: Option[Check] = None,
+                  country: Option[String] = None,
+                  currency: Option[Currency] = None,
+                  customer: Option[String] = None,
+                  cvcCheck: Option[Check] = None,
+                  defaultForCurrency: Option[Boolean] = None,
+                  dynamicLast4: Option[String] = None,
+                  fingerprint: Option[String] = None,
+                  metadata: Option[Map[String, String]] = None,
+                  name: Option[String] = None,
+                  recipient: Option[String] = None,
+                  tokenizationMethod: Option[TokenizationMethod] = None)
       extends StripeObject
       with PaymentSource
 
-  object Card {
-    def default(id: String, brand: Brand, expMonth: Int, expYear: Int, funding: Funding, last4: String): Card = Card(
-      id,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      brand,
-      None,
-      None,
-      None,
-      None,
-      None,
-      None,
-      expMonth,
-      expYear,
-      None,
-      funding,
-      last4,
-      None,
-      None,
-      None,
-      None
-    )
-  }
-
   private val cardDecoderOne = Decoder.forProduct22(
     "id",
+    "brand",
+    "exp_month",
+    "exp_year",
+    "funding",
+    "last4",
     "account",
     "address_city",
     "address_country",
@@ -263,20 +237,20 @@ object Cards extends LazyLogging {
     "address_state",
     "address_zip",
     "address_zip_check",
-    "brand",
     "country",
     "currency",
     "customer",
     "cvc_check",
     "default_for_currency",
     "dynamic_last4",
-    "exp_month",
-    "exp_year",
-    "fingerprint",
-    "funding",
-    "last4"
+    "fingerprint"
   )(
     Tuple22.apply(
+      _: String,
+      _: Brand,
+      _: Int,
+      _: Int,
+      _: Funding,
       _: String,
       _: Option[String],
       _: Option[String],
@@ -287,18 +261,13 @@ object Cards extends LazyLogging {
       _: Option[String],
       _: Option[String],
       _: Option[Check],
-      _: Brand,
       _: Option[String],
       _: Option[Currency],
       _: Option[String],
       _: Option[Check],
       _: Option[Boolean],
       _: Option[String],
-      _: Int,
-      _: Int,
-      _: Option[String],
-      _: Funding,
-      _: String
+      _: Option[String]
     ))
 
   private val cardDecoderTwo = Decoder.forProduct4(
@@ -320,6 +289,11 @@ object Cards extends LazyLogging {
       two <- cardDecoderTwo(c)
     } yield {
       val (id,
+           brand,
+           expMonth,
+           expYear,
+           funding,
+           last4,
            account,
            addressCity,
            addressCountry,
@@ -329,21 +303,21 @@ object Cards extends LazyLogging {
            addressState,
            addressZip,
            addressZipCheck,
-           brand,
            country,
            currency,
            customer,
            cvcCheck,
            defaultForCurrency,
            dynamicLast4,
-           expMonth,
-           expYear,
-           fingerprint,
-           funding,
-           last4)                                         = one
+           fingerprint)                                   = one
       val (metadata, name, recipient, tokenizationMethod) = two
       Card(
         id,
+        brand,
+        expMonth,
+        expYear,
+        funding,
+        last4,
         account,
         addressCity,
         addressCountry,
@@ -353,18 +327,13 @@ object Cards extends LazyLogging {
         addressState,
         addressZip,
         addressZipCheck,
-        brand,
         country,
         currency,
         customer,
         cvcCheck,
         defaultForCurrency,
         dynamicLast4,
-        expMonth,
-        expYear,
         fingerprint,
-        funding,
-        last4,
         metadata,
         name,
         recipient,
@@ -375,7 +344,11 @@ object Cards extends LazyLogging {
 
   private val cardEncoderOne: Encoder[Card] = Encoder.forProduct22(
     "id",
-    "object",
+    "brand",
+    "exp_month",
+    "exp_year",
+    "funding",
+    "last4",
     "account",
     "address_city",
     "address_country",
@@ -385,17 +358,13 @@ object Cards extends LazyLogging {
     "address_state",
     "address_zip",
     "address_zip_check",
-    "brand",
     "country",
     "currency",
     "customer",
     "cvc_check",
     "default_for_currency",
     "dynamic_last4",
-    "exp_month",
-    "exp_year",
-    "fingerprint",
-    "funding"
+    "fingerprint"
   )(
     x =>
       (x.id,
@@ -472,33 +441,16 @@ object Cards extends LazyLogging {
       case class Object(expMonth: Int,
                         expYear: Int,
                         number: String,
-                        addressCity: Option[String],
-                        addressCountry: Option[String],
-                        addressLine1: Option[String],
-                        addressLine2: Option[String],
-                        addressState: Option[String],
-                        addressZip: Option[String],
-                        cvc: Option[String],
-                        metadata: Option[Map[String, String]],
-                        name: Option[String])
+                        addressCity: Option[String] = None,
+                        addressCountry: Option[String] = None,
+                        addressLine1: Option[String] = None,
+                        addressLine2: Option[String] = None,
+                        addressState: Option[String] = None,
+                        addressZip: Option[String] = None,
+                        cvc: Option[String] = None,
+                        metadata: Option[Map[String, String]] = None,
+                        name: Option[String] = None)
           extends Source
-
-      object Object {
-        def default(expMonth: Int, expYear: Int, number: String): Object = Object(
-          expMonth,
-          expYear,
-          number,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None
-        )
-      }
 
       implicit val sourceObjectDecoder: Decoder[Object] = Decoder.forProduct12(
         "exp_month",
@@ -593,37 +545,18 @@ object Cards extends LazyLogging {
       case class Object(expMonth: Int,
                         expYear: Int,
                         number: String,
-                        addressCity: Option[String],
-                        addressCountry: Option[String],
-                        addressLine1: Option[String],
-                        addressLine2: Option[String],
-                        addressState: Option[String],
-                        addressZip: Option[String],
-                        currency: Option[Currency],
-                        cvc: Option[String],
-                        defaultForCurrency: Option[Currency],
-                        metadata: Option[Map[String, String]],
-                        name: Option[String])
+                        addressCity: Option[String] = None,
+                        addressCountry: Option[String] = None,
+                        addressLine1: Option[String] = None,
+                        addressLine2: Option[String] = None,
+                        addressState: Option[String] = None,
+                        addressZip: Option[String] = None,
+                        currency: Option[Currency] = None,
+                        cvc: Option[String] = None,
+                        defaultForCurrency: Option[Currency] = None,
+                        metadata: Option[Map[String, String]] = None,
+                        name: Option[String] = None)
           extends ExternalAccount
-
-      object Object {
-        def default(expMonth: Int, expYear: Int, number: String): Object = Object(
-          expMonth,
-          expYear,
-          number,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None,
-          None
-        )
-      }
 
       implicit val externalAccountObjectDecoder: Decoder[Object] =
         Decoder.forProduct14(
@@ -709,15 +642,9 @@ object Cards extends LazyLogging {
     *                           information about the card in a structured format.
     * @param defaultForCurrency Only applicable on accounts (not customers or recipients). If you set this to true (or if this is the first external account being added in this currency) this card will become the default external account for its currency.
     */
-  case class CardInput(cardData: CardData, metadata: Option[Map[String, String]], defaultForCurrency: Option[Boolean])
-
-  object CardInput {
-    def default(cardData: CardData): CardInput = CardInput(
-      cardData,
-      None,
-      None
-    )
-  }
+  case class CardInput(cardData: CardData,
+                       metadata: Option[Map[String, String]] = None,
+                       defaultForCurrency: Option[Boolean] = None)
 
   implicit val cardInputEncoder: Encoder[CardInput] = Encoder.instance[CardInput] { cardInput =>
     val cardData = cardInput.cardData match {
@@ -874,15 +801,9 @@ object Cards extends LazyLogging {
     *                      ending with obj_foo, your subsequent call can include [[startingAfter]]=obj_foo
     *                      in order to fetch the next page of the list.
     */
-  case class CardListInput(endingBefore: Option[String], limit: Option[Long], startingAfter: Option[String])
-
-  object CardListInput {
-    def default: CardListInput = CardListInput(
-      None,
-      None,
-      None
-    )
-  }
+  case class CardListInput(endingBefore: Option[String] = None,
+                           limit: Option[Long] = None,
+                           startingAfter: Option[String] = None)
 
   case class CardList(override val url: String,
                       override val hasMore: Boolean,
@@ -1050,6 +971,9 @@ object BitcoinReceivers extends LazyLogging {
     *                              The customer can send bitcoin to this address to
     *                              fill the receiver.
     * @param livemode
+    * @param uncapturedFunds       This receiver contains uncaptured funds that
+    *                              can be used for a payment or refunded.
+    * @param usedForPayment
     * @param metadata              A set of key/value pairs that you can attach to a
     *                              customer object. It can be useful for storing additional
     *                              information about the customer in a structured format.
@@ -1060,9 +984,6 @@ object BitcoinReceivers extends LazyLogging {
     * @param transactions          A list with one entry for each time that the
     *                              customer sent bitcoin to the receiver. Hidden when
     *                              viewing the receiver with a publishable key.
-    * @param uncapturedFunds       This receiver contains uncaptured funds that
-    *                              can be used for a payment or refunded.
-    * @param usedForPayment
     */
   case class BitcoinReceiver(id: String,
                              active: Boolean,
@@ -1079,56 +1000,14 @@ object BitcoinReceivers extends LazyLogging {
                              filled: Boolean,
                              inboundAddress: String,
                              livemode: Boolean,
-                             metadata: Option[Map[String, String]],
-                             payment: Option[String],
-                             refundAddress: Option[String],
-                             transactions: Option[TransactionList],
                              uncapturedFunds: Boolean,
-                             usedForPayment: Boolean)
+                             usedForPayment: Boolean,
+                             metadata: Option[Map[String, String]] = None,
+                             payment: Option[String] = None,
+                             refundAddress: Option[String] = None,
+                             transactions: Option[TransactionList] = None)
       extends StripeObject
       with PaymentSource
-
-  object BitcoinReceiver {
-    def default(id: String,
-                active: Boolean,
-                amount: BigDecimal,
-                amountReceived: BigDecimal,
-                bitcoinAmount: BigDecimal,
-                bitcoinAmountReceived: BigDecimal,
-                bitcoinUri: String,
-                created: OffsetDateTime,
-                currency: Currency,
-                customer: String,
-                description: String,
-                email: String,
-                filled: Boolean,
-                inboundAddress: String,
-                livemode: Boolean,
-                uncapturedFunds: Boolean,
-                usedForPayment: Boolean): BitcoinReceiver = BitcoinReceiver(
-      id,
-      active,
-      amount,
-      amountReceived,
-      bitcoinAmount,
-      bitcoinAmountReceived,
-      bitcoinUri,
-      created,
-      currency,
-      customer,
-      description,
-      email,
-      filled,
-      inboundAddress,
-      livemode,
-      None,
-      None,
-      None,
-      None,
-      uncapturedFunds,
-      usedForPayment
-    )
-  }
 
   implicit val bitcoinReceiverDecoder: Decoder[BitcoinReceiver] = Decoder.forProduct21(
     "id",
@@ -1146,12 +1025,12 @@ object BitcoinReceivers extends LazyLogging {
     "filled",
     "inbound_address",
     "livemode",
+    "uncaptured_funds",
+    "used_for_payment",
     "metadata",
     "payment",
     "refund_address",
-    "transactions",
-    "uncaptured_funds",
-    "used_for_payment"
+    "transactions"
   )(BitcoinReceiver.apply)
 
   implicit val bitcoinReceiverEncoder: Encoder[BitcoinReceiver] = Encoder.forProduct22(
@@ -1171,12 +1050,12 @@ object BitcoinReceivers extends LazyLogging {
     "filled",
     "inbound_address",
     "livemode",
+    "uncaptured_funds",
+    "used_for_payment",
     "metadata",
     "payment",
     "refund_address",
-    "transactions",
-    "uncaptured_funds",
-    "used_for_payment"
+    "transactions"
   )(
     x =>
       (
@@ -1226,20 +1105,9 @@ object BitcoinReceivers extends LazyLogging {
   case class BitcoinReceiverInput(amount: BigDecimal,
                                   currency: Currency,
                                   email: String,
-                                  description: Option[String],
-                                  metadata: Option[Map[String, String]],
-                                  refundMispayments: Option[Boolean])
-
-  object BitcoinReceiverInput {
-    def default(amount: BigDecimal, currency: Currency, email: String): BitcoinReceiverInput = BitcoinReceiverInput(
-      amount,
-      currency,
-      email,
-      None,
-      None,
-      None
-    )
-  }
+                                  description: Option[String] = None,
+                                  metadata: Option[Map[String, String]] = None,
+                                  refundMispayments: Option[Boolean] = None)
 
   implicit val bitcoinReceiverInputDecoder: Decoder[BitcoinReceiverInput] = Decoder.forProduct6(
     "amount",
@@ -1312,23 +1180,12 @@ object BitcoinReceivers extends LazyLogging {
     *                        next page of the list.
     * @param uncapturedFunds Filter for receivers with uncaptured funds.
     */
-  case class BitcoinReceiverListInput(active: Option[Boolean],
-                                      endingBefore: Option[String],
-                                      filled: Option[Boolean],
-                                      limit: Option[Long],
-                                      startingAfter: Option[String],
-                                      uncapturedFunds: Option[Boolean])
-
-  object BitcoinReceiverListInput {
-    def default: BitcoinReceiverListInput = BitcoinReceiverListInput(
-      None,
-      None,
-      None,
-      None,
-      None,
-      None
-    )
-  }
+  case class BitcoinReceiverListInput(active: Option[Boolean] = None,
+                                      endingBefore: Option[String] = None,
+                                      filled: Option[Boolean] = None,
+                                      limit: Option[Long] = None,
+                                      startingAfter: Option[String] = None,
+                                      uncapturedFunds: Option[Boolean] = None)
 
   case class BitcoinReceiverList(override val url: String,
                                  override val hasMore: Boolean,
