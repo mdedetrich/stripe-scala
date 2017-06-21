@@ -65,6 +65,8 @@ licenses += ("BSD 3 Clause", url("https://opensource.org/licenses/BSD-3-Clause")
 
 pomIncludeRepository := (_ => false)
 
+releaseCrossBuild := true
+
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
