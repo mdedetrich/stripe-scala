@@ -34,10 +34,10 @@ configs(IntegrationTest)
 
 val enumeratumVersion      = "1.5.12"
 val enumeratumCirceVersion = "1.5.14"
-val akkaStreamJson         = "3.3.0"
+val akkaStreamJson         = "3.4.0"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"          %% "akka-http"         % "10.0.7",
+  "com.typesafe.akka"          %% "akka-http"         % "10.0.9",
   "de.knutwalker"              %% "akka-stream-circe" % akkaStreamJson,
   "de.knutwalker"              %% "akka-http-circe"   % akkaStreamJson,
   "io.circe"                   %% "circe-core"        % circeVersion,
@@ -45,8 +45,8 @@ libraryDependencies ++= Seq(
   "io.circe"                   %% "circe-parser"      % circeVersion,
   "com.beachape"               %% "enumeratum"        % enumeratumVersion,
   "com.beachape"               %% "enumeratum-circe"  % enumeratumCirceVersion,
-  "com.iheart"                 %% "ficus"             % "1.4.0",
-  "com.typesafe.scala-logging" %% "scala-logging"     % "3.5.0",
+  "com.iheart"                 %% "ficus"             % "1.4.1",
+  "com.typesafe.scala-logging" %% "scala-logging"     % "3.7.2",
   "org.scalatest"              %% "scalatest"         % "3.0.3" % "test, it",
   "ch.qos.logback"             % "logback-classic"    % "1.2.3" % "test, it"
 )
