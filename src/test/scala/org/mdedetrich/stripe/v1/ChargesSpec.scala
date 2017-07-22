@@ -41,6 +41,41 @@ class ChargesSpec extends WordSpec with Matchers {
       params should not contain key("source")
     }
 
+    "put token in charge params" in {
+      val token = "tok_4I1pWcGhJbyTLyau"
+
+      val tokenSource = Charges.SourceInput.Token(token)
+
+      val input =
+        Charges.ChargeInput(amount = BigDecimal(100), Currency.`Euro`, capture = true, source = Option(tokenSource))
+      val params = PostParams.toPostParams(input)
+
+      params("source") should be(token)
+      params should not contain key("customer")
+    }
+
+    "put card in charge params" ignore {
+      val token = "tok_4I1pWcGhJbyTLyau"
+
+      val tokenSource = Charges.SourceInput.Card(expMonth = 1,
+                                                 expYear = 2030,
+                                                 number = "4111111111111111",
+                                                 cvc = Some("123"),
+                                                 None,
+                                                 None,
+                                                 None,
+                                                 None,
+                                                 None,
+                                                 None,
+                                                 None)
+
+      val input =
+        Charges.ChargeInput(amount = BigDecimal(100), Currency.`Euro`, capture = true, source = Option(tokenSource))
+      val params = PostParams.toPostParams(input)
+
+      params("source") should be(token)
+      params should not contain key("customer")
+    }
   }
 
 }
