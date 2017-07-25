@@ -7,6 +7,9 @@ trait PostParams[T] {
 }
 
 object PostParams {
+  def toPostParams[T](optionOfT: Option[T])(implicit postParams: PostParams[T]): Map[String, String] =
+    optionOfT.map(postParams.toMap).getOrElse(Map.empty)
+
   def toPostParams[T](t: T)(implicit postParams: PostParams[T]): Map[String, String] = postParams.toMap(t)
 
   def toPostParams[T](prefix: String, input: Option[T])(implicit postParams: PostParams[T]): Map[String, String] =

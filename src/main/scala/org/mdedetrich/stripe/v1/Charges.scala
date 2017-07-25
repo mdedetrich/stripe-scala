@@ -105,6 +105,8 @@ object Charges extends LazyLogging {
                     addressZip: Option[String])
         extends SourceInput
         with NumberCardSource
+
+    case class Token(id: String) extends SourceInput
   }
 
   implicit val sourceInputCustomerDecoder: Decoder[SourceInput.Customer] = Decoder[String].map(SourceInput.Customer)
@@ -141,6 +143,9 @@ object Charges extends LazyLogging {
   implicit val chargeSourceInputCustomerEncoder: Encoder[SourceInput.Customer] =
     Encoder.instance[SourceInput.Customer](_.id.asJson)
 
+  implicit val chargeSourceInputTokenEncoder =
+    Encoder.instance[SourceInput.Token](_.id.asJson)
+
   implicit val chargeSourceInputCustomerCard: Encoder[SourceInput.Card] = Encoder.forProduct12(
     "exp_month",
     "exp_year",
@@ -172,6 +177,7 @@ object Charges extends LazyLogging {
   implicit val chargeSourceInputEncoder: Encoder[SourceInput] = Encoder.instance[SourceInput] {
     case s: SourceInput.Customer => implicitly[Encoder[SourceInput.Customer]].apply(s)
     case s: SourceInput.Card     => implicitly[Encoder[SourceInput.Card]].apply(s)
+    case s: SourceInput.Token    => implicitly[Encoder[SourceInput.Token]].apply(s)
   }
 
   implicit val cardPostParams: PostParams[SourceInput.Card] = PostParams.params[SourceInput.Card] { t =>
@@ -191,6 +197,12 @@ object Charges extends LazyLogging {
       "address_zip"     -> t.addressZip
     )
     mandatory ++ flatten(optional)
+  }
+
+  implicit val sourceInputPostParams = PostParams.params[SourceInput] {
+    case t: SourceInput.Token           => Map("source" -> t.id)
+    case customer: SourceInput.Customer => Map("customer" -> customer.id)
+    case card: SourceInput.Card         => PostParams.toPostParams(card)
   }
 
   sealed abstract class Source
@@ -657,7 +669,7 @@ object Charges extends LazyLogging {
                          receiptEmail: Option[String] = None,
                          shipping: Option[Shipping] = None,
                          customer: Option[SourceInput.Customer] = None,
-                         source: Option[SourceInput.Card] = None,
+                         source: Option[SourceInput] = None,
                          statementDescriptor: Option[String] = None)
       extends StripeObject {
     statementDescriptor match {
@@ -704,7 +716,7 @@ object Charges extends LazyLogging {
         "statement_descriptor" -> chargeInput.statementDescriptor
       )) ++
       PostParams.toPostParams("metadata", chargeInput.metadata) ++
-      PostParams.toPostParams("source", chargeInput.source)
+      PostParams.toPostParams(chargeInput.source)
   }
 
   // CRUD methods

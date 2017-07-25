@@ -34,7 +34,7 @@ libraryDependencies ++= Seq(
 
 To get the latest version please check the [Maven repository search](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.mdedetrich%22%20AND%20a%3A%22stripe-scala_2.11%22).
 
-## TODO for release
+## TODO for 1.0 release
 - [ ] Add all operations for all endpoints
 - [x] Add tests
 - [ ] Shade jawn/enumeratum if possible. These dependencies don't need to be exposed to users
@@ -48,7 +48,17 @@ To get the latest version please check the [Maven repository search](http://sear
   - [x] list
   - [x] delete
 - [ ] Clean up/refactor code (still a lot of duplication)
-- [ ] Webhooks/Events
+- [x] Webhooks/Events
+
+## Examples
+
+There are integration tests that show how the library is intended to be used.
+
+- [Create token for a credit card and charge it](https://github.com/mdedetrich/stripe-scala/blob/token-input/src/it/scala/org/mdedetrich/stripe/v1/ChargeIT.scala#L15)
+- [Create a customer, add token and charge it](https://github.com/mdedetrich/stripe-scala/blob/master/src/it/scala/org/mdedetrich/stripe/v1/CustomerIT.scala#L18)
+- [Create managed/connected account and payout money to it](https://github.com/mdedetrich/stripe-scala/blob/master/src/it/scala/org/mdedetrich/stripe/v1/AccountIT.scala#L32)
+- [Payout money to a connected account](https://github.com/mdedetrich/stripe-scala/blob/master/src/it/scala/org/mdedetrich/stripe/v1/TransferIT.scala#L11)
+- [Refund a charge](https://github.com/mdedetrich/stripe-scala/blob/master/src/it/scala/org/mdedetrich/stripe/v1/RefundIT.scala#L10)
 
 ## Usage
 Stripe Api key and url endpoint are provided implicitly by using the `org.mdedetrich.stripe.ApiKey` and `org.mdedetrich.stripe.Endpoint`
@@ -83,8 +93,8 @@ For the most part you will want to use `handleIdempotent`/`handle` however if yo
 more fine grained control over potential errors then you can use the various `.create`/`.get` methods
 
 ### Building case classes
-The stripe object models in stripe-scala have named parameters set to default values which simplifies creating
-the stripe models
+The Stripe object models in stripe-scala have named parameters set to default values which simplifies creating
+the Stripe models
 
 ```scala
 import org.mdedetrich.stripe.v1.Customers._
