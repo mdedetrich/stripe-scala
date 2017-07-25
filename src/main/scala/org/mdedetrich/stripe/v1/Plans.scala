@@ -72,7 +72,7 @@ object Plans extends LazyLogging {
     *                            credit card statement.
     * @param trialPeriodDays     Number of trial period days granted when
     *                            subscribing a customer to this plan.
-    *                            [[None]] if the plan has no trial period.
+    *                            [[scala.None]] if the plan has no trial period.
     */
   case class Plan(id: String,
                   amount: BigDecimal,

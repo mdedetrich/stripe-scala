@@ -82,4 +82,27 @@ releaseProcess := Seq[ReleaseStep](
   pushChanges
 )
 
+val flagsFor11 = Seq(
+  "-Xlint:_",
+  "-Yconst-opt",
+  "-Ywarn-infer-any",
+  "-Yclosure-elim",
+  "-Ydead-code"
+)
+
+val flagsFor12 = Seq(
+  "-Xlint:_",
+  "-Ywarn-infer-any",
+  "-opt:l:project"
+)
+
+scalacOptions ++= {
+  CrossVersion.partialVersion(scalaVersion.value) match {
+    case Some((2, n)) if n >= 12 =>
+      flagsFor12
+    case Some((2, n)) if n == 11 =>
+      flagsFor11
+  }
+}
+
 parallelExecution in IntegrationTest := false
