@@ -47,7 +47,7 @@ object Coupons extends LazyLogging {
     * @param currency         If [[amountOff]] has been set, the currency of the amount to take off.
 
     * @param durationInMonths If duration is repeating, the number of months the coupon applies.
-    *                         [[None]] if coupon duration is forever or once.
+    *                         [[scala.None]] if coupon duration is forever or once.
     * @param maxRedemptions   Maximum number of times this coupon can be redeemed,
     *                         in total, before it is no longer valid.
     * @param metadata         A set of key/value pairs that you can attach to a coupon object.
@@ -55,7 +55,7 @@ object Coupons extends LazyLogging {
     *                         about the coupon in a structured format.
     * @param percentOff       Percent that will be taken off the subtotal of any invoices for this
     *                         customer for the duration of the coupon. For example, a coupon with
-    *                         [[percentOff]] of 50 will make a $100 invoice $50 instead.
+    *                         [[percentOff]] of 50 will make a \$100 invoice \$50 instead.
     * @param redeemBy         Date after which the coupon can no longer be redeemed
 
     */

@@ -311,10 +311,10 @@ object Subscriptions extends LazyLogging {
     *                              will automatically validate the card.
     * @param quantity              The quantity you'd like to apply to
     *                              the subscription you're creating.
-    *                              For example, if your plan is $10/user/month,
+    *                              For example, if your plan is \$10/user/month,
     *                              and your customer has 5 users, you could pass
     *                              5 as the quantity to have the customer
-    *                              charged $50 (5 x $10) monthly. If you
+    *                              charged \$50 (5 x \$10) monthly. If you
     *                              update a subscription but don't change
     *                              the plan ID (e.g. changing only the trial_end),
     *                              the subscription will inherit the old
@@ -336,8 +336,8 @@ object Subscriptions extends LazyLogging {
     *                              will be calculated and added as tax to
     *                              the final amount each billing period.
     *                              For example, a plan which charges
-    *                              $10/month with a [[taxPercent]] of 20.0
-    *                              will charge $12 per invoice.
+    *                              \$10/month with a [[taxPercent]] of 20.0
+    *                              will charge \$12 per invoice.
     * @param trialEnd              Unix timestamp representing the end
     *                              of the trial period the customer
     *                              will get before being charged for

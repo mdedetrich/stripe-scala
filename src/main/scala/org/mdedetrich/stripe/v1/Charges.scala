@@ -599,9 +599,9 @@ object Charges extends LazyLogging {
 
   /**
     * @see https://stripe.com/docs/api#create_charge
-    * @param amount              A positive integer in the smallest currency unit (e.g 100 cents to charge $1.00,
+    * @param amount              A positive integer in the smallest currency unit (e.g 100 cents to charge \$1.00,
     *                            or 1 to charge ¥1, a 0-decimal currency) representing how much to charge the card.
-    *                            The minimum amount is $0.50 (or equivalent in charge currency).
+    *                            The minimum amount is \$0.50 (or equivalent in charge currency).
     * @param currency            3-letter ISO code for currency.
     * @param capture             Whether or not to immediately capture the charge. When false, the charge issues
     *                            an authorization (or pre-authorization), and will need to be captured later.

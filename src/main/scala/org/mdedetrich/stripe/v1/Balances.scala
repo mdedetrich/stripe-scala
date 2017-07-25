@@ -232,10 +232,10 @@ object Balances extends LazyLogging {
     * @return
     */
   def get(stripeAccount: Option[String] = None)(implicit apiKey: ApiKey,
-          endpoint: Endpoint,
-          client: HttpExt,
-          materializer: Materializer,
-          executionContext: ExecutionContext): Future[Try[Balance]] = {
+                                                endpoint: Endpoint,
+                                                client: HttpExt,
+                                                materializer: Materializer,
+                                                executionContext: ExecutionContext): Future[Try[Balance]] = {
     val finalUrl = endpoint.url + s"/v1/balance"
 
     createRequestGET[Balance](finalUrl, logger, stripeAccount)
