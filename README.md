@@ -54,7 +54,7 @@ To get the latest version please check the [Maven repository search](http://sear
 
 There are integration tests that show how the library is intended to be used.
 
-- [Create token for a credit card and charge it](https://github.com/mdedetrich/stripe-scala/blob/token-input/src/it/scala/org/mdedetrich/stripe/v1/ChargeIT.scala#L15)
+- [Create token for a credit card and charge it](https://github.com/mdedetrich/stripe-scala/blob/master/src/it/scala/org/mdedetrich/stripe/v1/ChargeIT.scala#L15)
 - [Create a customer, add token and charge it](https://github.com/mdedetrich/stripe-scala/blob/master/src/it/scala/org/mdedetrich/stripe/v1/CustomerIT.scala#L18)
 - [Create managed/connected account and payout money to it](https://github.com/mdedetrich/stripe-scala/blob/master/src/it/scala/org/mdedetrich/stripe/v1/AccountIT.scala#L32)
 - [Payout money to a connected account](https://github.com/mdedetrich/stripe-scala/blob/master/src/it/scala/org/mdedetrich/stripe/v1/TransferIT.scala#L11)
