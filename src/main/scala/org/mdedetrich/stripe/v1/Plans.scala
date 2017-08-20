@@ -314,7 +314,7 @@ object Plans extends LazyLogging {
         else
           ""
 
-      val baseUrl = endpoint.url + s"/v1/customers$totalCountUrl"
+      val baseUrl = endpoint.url + s"/v1/plans$totalCountUrl"
 
       val created: Uri = planListInput.created match {
         case Some(createdInput) =>
