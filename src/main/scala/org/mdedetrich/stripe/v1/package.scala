@@ -226,11 +226,7 @@ package object v1 {
       } else {
         responseBlock.flatMap {
           case scala.util.Success(customer) =>
-            Future {
-              Success {
-                customer
-              }
-            }
+            Future.successful(Success(customer))
           case scala.util.Failure(failure) =>
             failure match {
               case Errors.Error.RequestFailed(error, _, _, _) =>
@@ -241,16 +237,12 @@ package object v1 {
                   case Errors.Type.ApiConnectionError =>
                     responseBlockWithRetries(currentRetryCount + 1)
                   case _ =>
-                    Future.failed {
-                      failure
-                    }
+                    Future.failed(failure)
                 }
               case Errors.Error.TooManyRequests(_, _, _, _) =>
                 responseBlockWithRetries(currentRetryCount + 1)
               case _ =>
-                Future.failed {
-                  failure
-                }
+                Future.failed(failure)
             }
         }
       }
@@ -258,9 +250,7 @@ package object v1 {
 
     responseBlockWithRetries(0).flatMap {
       case Success(success) =>
-        Future {
-          success
-        }
+        Future.successful(success)
       case Failure(throwable) =>
         Future.failed(throwable)
     }
@@ -383,8 +373,10 @@ package object v1 {
                   }
                 }
             case 500 | 502 | 503 | 504 =>
+              response.discardEntityBytes()
               throw StripeServerError(response)
             case _ =>
+              response.discardEntityBytes()
               throw UnhandledServerError(response)
           }
         }

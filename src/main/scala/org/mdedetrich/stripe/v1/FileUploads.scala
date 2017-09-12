@@ -12,7 +12,7 @@ import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import enumeratum.{Enum, EnumEntry}
 import io.circe.{Decoder, Encoder}
-import org.mdedetrich.stripe.{ApiKey, FileUploadEndpoint, InvalidJsonModelException}
+import org.mdedetrich.stripe.{ApiKey, FileUploadEndpoint}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
@@ -66,7 +66,7 @@ object FileUploads extends LazyLogging {
   )(x => FileUpload.unapply(x).get)
 
   def upload(purpose: Purpose, fileName: String, inputStream: InputStream)(
-      implicit client: HttpExt,
+      implicit http: HttpExt,
       materializer: Materializer,
       apiKey: ApiKey,
       fileUploadChunkTimeout: FileUploadChunkTimeout,
@@ -101,7 +101,7 @@ object FileUploads extends LazyLogging {
 
     for {
       req      <- eventualReq
-      response <- client.singleRequest(req)
+      response <- http.singleRequest(req)
       parsed   <- parseStripeServerError[FileUpload](response, finalUrl, None, None, logger)
       result = parsed match {
         case Right(triedJsValue) =>
