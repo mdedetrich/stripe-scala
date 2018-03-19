@@ -53,18 +53,19 @@ object Plans extends LazyLogging {
   /**
     * @see https://stripe.com/docs/api#plan_object
     * @param id
-    * @param amount              The amount in cents to be charged on the interval specified
+    * @param amount              The amount in cents to be charged on the interval specified.
     * @param created
     * @param currency            Currency in which subscription will be charged
     * @param interval            One of [[Interval.Day]], [[Interval.Week]], [[Interval.Month]] or
-    *                            [[Interval.Year]]. The frequency with which a subscription
-    *                            should be billed.
+    *                            [[Interval.Year]]. The frequency with which a subscription should
+    *                            be billed.
     * @param intervalCount       The number of intervals (specified in the [[interval]]
     *                            property) between each subscription billing. For example,
     *                            \[[interval]]=[[Interval.Month]] and [[intervalCount]]=3
     *                            bills every 3 months.
     * @param livemode
-    * @param name                Display name of the plan
+    * @param nickname            A brief description of the plan, hidden from customers.
+    * @param product             The product whose pricing this plan determines (not expanded).
     * @param metadata            A set of key/value pairs that you can attach to a plan object.
     *                            It can be useful for storing additional information about the
     *                            plan in a structured format.
@@ -81,12 +82,13 @@ object Plans extends LazyLogging {
                   interval: Interval,
                   intervalCount: Long,
                   livemode: Boolean,
-                  name: String,
+                  nickname: Option[String],
+                  product: String,
                   metadata: Option[Map[String, String]] = None,
                   statementDescriptor: Option[String] = None,
                   trialPeriodDays: Option[Long] = None)
 
-  implicit val planDecoder: Decoder[Plan] = Decoder.forProduct11(
+  implicit val planDecoder: Decoder[Plan] = Decoder.forProduct12(
     "id",
     "amount",
     "created",
@@ -94,13 +96,14 @@ object Plans extends LazyLogging {
     "interval",
     "interval_count",
     "livemode",
-    "name",
+    "nickname",
+    "product",
     "metadata",
     "statement_descriptor",
     "trial_period_days"
   )(Plan.apply)
 
-  implicit val planEncoder: Encoder[Plan] = Encoder.forProduct12(
+  implicit val planEncoder: Encoder[Plan] = Encoder.forProduct13(
     "id",
     "object",
     "amount",
@@ -109,7 +112,8 @@ object Plans extends LazyLogging {
     "interval",
     "interval_count",
     "livemode",
-    "name",
+    "nickname",
+    "product",
     "metadata",
     "statement_descriptor",
     "trial_period_days"
@@ -124,7 +128,8 @@ object Plans extends LazyLogging {
        x.intervalCount,
        x.livemode,
        x.metadata,
-       x.name,
+       x.nickname,
+       x.product,
        x.statementDescriptor,
        x.trialPeriodDays))
 
