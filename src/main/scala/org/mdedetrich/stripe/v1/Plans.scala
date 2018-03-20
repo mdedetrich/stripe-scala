@@ -5,6 +5,7 @@ import java.time.OffsetDateTime
 import akka.http.scaladsl.HttpExt
 import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
+import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import enumeratum._
@@ -132,6 +133,84 @@ object Plans extends LazyLogging {
        x.product,
        x.statementDescriptor,
        x.trialPeriodDays))
+
+  sealed abstract class Product
+
+  object Product {
+    import io.circe._
+    import io.circe.syntax._
+
+    case class ProductId(id: String) extends Product
+
+    /**
+      * @see https://stripe.com/docs/api#create_plan
+      * @param id                  The identifier for the product.
+      *                            Must be unique. If not provided, an identifier will be randomly
+      *                            generated.
+      * @param name                The product’s name, meant to be displayable to the customer.
+      * @param metadata
+      * @param statementDescriptor An arbitrary string to be displayed on your
+      *                            customer’s credit card statement. This may be up to 22
+      *                            characters. As an example, if your website is RunClub and the
+      *                            item you’re charging for is your Silver Plan, you may want to
+      *                            specify a [[statementDescriptor]] of RunClub Silver Plan. The
+      *                            statement description may not include `<>"'` characters, and will
+      *                            appear on your customer’s statement in capital letters. Non-ASCII
+      *                            characters are automatically stripped.  While most banks display
+      *                            this information consistently, some may display it incorrectly or
+      *                            not at all.
+      *
+      * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
+      * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
+      */
+    case class ServiceProduct(
+        id: Option[String],
+        name: String,
+        metadata: Option[Map[String, String]],
+        statementDescriptor: Option[String]
+    ) extends Product {
+      statementDescriptor match {
+        case Some(sD) if sD.length > 22 =>
+          throw StatementDescriptorTooLong(sD.length)
+        case Some(sD) if sD.contains("<") =>
+          throw StatementDescriptorInvalidCharacter("<")
+        case Some(sD) if sD.contains(">") =>
+          throw StatementDescriptorInvalidCharacter(">")
+        case Some(sD) if sD.contains("\"") =>
+          throw StatementDescriptorInvalidCharacter("\"")
+        case Some(sD) if sD.contains("\'") =>
+          throw StatementDescriptorInvalidCharacter("\'")
+        case _ =>
+      }
+    }
+
+    implicit val planProductDecoder: Decoder[Product] = Decoder.instance[Product] { p =>
+      p.as[JsonObject] match {
+        case Left(_) =>
+          p.as[String].map(ProductId.apply)
+        case Right(_) =>
+          val decoder: Decoder[ServiceProduct] = Decoder.forProduct4(
+            "id",
+            "name",
+            "metadata",
+            "statement_descriptor"
+          )(ServiceProduct.apply)
+          decoder.apply(p)
+      }
+    }
+
+    implicit val planProductEncoder: Encoder[Product] = Encoder.instance[Product] {
+      case ProductId(id) => id.asJson
+      case service: ServiceProduct =>
+        val encoder: Encoder[ServiceProduct] = Encoder.forProduct4(
+          "id",
+          "name",
+          "metadata",
+          "statement_descriptor"
+        )(x => ServiceProduct.unapply(x).get)
+        encoder.apply(service)
+    }
+  }
 
   /**
     * @see https://stripe.com/docs/api#create_plan
