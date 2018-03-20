@@ -224,88 +224,54 @@ object Plans extends LazyLogging {
     * @param currency            3-letter ISO code for currency.
     * @param interval            Specifies billing frequency. Either [[Interval.Day]],
     *                            [[Interval.Week]], [[Interval.Month]] or [[Interval.Year]].
-    * 
     * @param intervalCount       The number of intervals between each subscription
     *                            billing. For example, [[interval]]=[[Interval.Month]]
     *                            and [[intervalCount]]=3 bills every 3 months. Maximum of
     *                            one year interval allowed (1 year, 12 months, or 52 weeks).
+    * @param product             The product whose pricing the created plan will represent.
+    *                            This can either be the ID of an existing product, or a dictionary
+    *                            containing fields used to create a service product.
     * @param metadata            A set of key/value pairs that you can attach to a plan object.
     *                            It can be useful for storing additional information about
     *                            the plan in a structured format. This will be unset if you
     *                            POST an empty value.
     * @param nickname            A brief description of the plan, hidden from customers.
-    * 
-    * The following parameters belong on the [[product]] child object:
-    * 
-    * @param name                Name of the plan, to be displayed on invoices and in
-    *                            the web interface.
-    * @param statementDescriptor An arbitrary string to be displayed on your
-    *                            customer’s credit card statement. This may be up to
-    *                            22 characters. As an example, if your website is
-    *                            RunClub and the item you’re charging for is your
-    *                            Silver Plan, you may want to specify a [[statementDescriptor]]
-    *                            of RunClub Silver Plan. The statement description may not include `<>"'`
-    *                            characters, and will appear on your customer’s statement in
-    *                            capital letters. Non-ASCII characters are automatically stripped.
-    *                            While most banks display this information consistently,
-    *                            some may display it incorrectly or not at all.
+    *
     * @param trialPeriodDays     Specifies a trial period in (an integer number of)
     *                            days. If you include a trial period, the customer
     *                            won’t be billed for the first time until the trial period ends.
     *                            If the customer cancels before the trial period is over,
     *                            she’ll never be billed at all.
-    * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
-    * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
     */
   case class PlanInput(id: String,
                        amount: BigDecimal,
                        currency: Currency,
                        interval: Interval,
-                       name: String,
+                       product: Product,
                        intervalCount: Option[Long] = None,
                        metadata: Option[Map[String, String]] = None,
-                       nickname: Option[String] = None,
-                       statementDescriptor: Option[String] = None,
-                       trialPeriodDays: Option[Long] = None) {
-    statementDescriptor match {
-      case Some(sD) if sD.length > 22 =>
-        throw StatementDescriptorTooLong(sD.length)
-      case Some(sD) if sD.contains("<") =>
-        throw StatementDescriptorInvalidCharacter("<")
-      case Some(sD) if sD.contains(">") =>
-        throw StatementDescriptorInvalidCharacter(">")
-      case Some(sD) if sD.contains("\"") =>
-        throw StatementDescriptorInvalidCharacter("\"")
-      case Some(sD) if sD.contains("\'") =>
-        throw StatementDescriptorInvalidCharacter("\'")
-      case _ =>
-    }
-  }
+                       nickname: Option[String] = None)
 
-  implicit val planInputDecoder: Decoder[PlanInput] = Decoder.forProduct10(
+  implicit val planInputDecoder: Decoder[PlanInput] = Decoder.forProduct8(
     "id",
     "amount",
     "currency",
     "interval",
-    "name",
+    "product",
     "interval_count",
     "metadata",
-    "nickname",
-    "statement_descriptor",
-    "trial_period_days" // TODO: does not belong here
+    "nickname"
   )(PlanInput.apply)
 
-  implicit val planInputEncoder: Encoder[PlanInput] = Encoder.forProduct10(
+  implicit val planInputEncoder: Encoder[PlanInput] = Encoder.forProduct8(
     "id",
     "amount",
     "currency",
     "interval",
-    "name", // TODO: belongs on child
+    "product",
     "interval_count",
     "metadata",
-    "nickname",
-    "statement_descriptor", // TODO: belongs on child
-    "trial_period_days" // TODO: does not belong here
+    "nickname"
   )(x => PlanInput.unapply(x).get)
 
   def create(planInput: PlanInput)(idempotencyKey: Option[IdempotencyKey] = None)(
@@ -316,15 +282,26 @@ object Plans extends LazyLogging {
       executionContext: ExecutionContext): Future[Try[Plan]] = {
     val postFormParameters = PostParams.flatten(
       Map(
-        "id"                   -> Option(planInput.id.toString),
-        "amount"               -> Option(planInput.amount.toString()),
-        "currency"             -> Option(planInput.currency.iso.toLowerCase),
-        "interval"             -> Option(planInput.interval.id.toString),
-        "name"                 -> Option(planInput.name),
-        "interval_count"       -> planInput.intervalCount.map(_.toString),
-        "statement_descriptor" -> planInput.statementDescriptor,
-        "trial_period_days"    -> planInput.trialPeriodDays.map(_.toString)
-      )) ++ mapToPostParams(planInput.metadata, "metadata")
+        "id"             -> Option(planInput.id.toString),
+        "amount"         -> Option(planInput.amount.toString()),
+        "currency"       -> Option(planInput.currency.iso.toLowerCase),
+        "interval"       -> Option(planInput.interval.id.toString),
+        "interval_count" -> planInput.intervalCount.map(_.toString),
+        "nickname"       -> planInput.nickname
+      )) ++ mapToPostParams(planInput.metadata, "metadata") ++ {
+      planInput.product match {
+        case service: Product.ServiceProduct =>
+          val params = PostParams.flatten(
+            Map(
+              "id"                   -> service.id,
+              "name"                 -> Option(service.name),
+              "statement_descriptor" -> service.statementDescriptor
+            )
+          )
+          mapToPostParams(Option(params ++ mapToPostParams(service.metadata, "metadata")), "product")
+        case Product.ProductId(id) => Map("product" -> id)
+      }
+    }
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
