@@ -2,7 +2,7 @@ name := "stripe-scala"
 
 val currentScalaVersion = "2.12.3"
 val scala211Version     = "2.11.11"
-val circeVersion        = "0.9.2"
+val circeVersion        = "0.9.3"
 
 scalaVersion := currentScalaVersion
 
