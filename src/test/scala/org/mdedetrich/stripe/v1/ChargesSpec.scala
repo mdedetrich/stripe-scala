@@ -1,25 +1,35 @@
 package org.mdedetrich.stripe.v1
 
-import cats.syntax.either._
 import io.circe.parser.parse
 import org.mdedetrich.stripe.PostParams
-import org.mdedetrich.stripe.v1.Charges.Charge
+import org.mdedetrich.stripe.v1.Charges.{Charge, Source}
 import org.scalatest.{Matchers, WordSpec}
 
 class ChargesSpec extends WordSpec with Matchers {
 
   "Charges" should {
     "parse JSON correctly" in {
-      val in     = this.getClass.getResourceAsStream("/charge.json")
-      val string = scala.io.Source.fromInputStream(in).mkString
-      val json   = parse(string).toOption
-      val charge = json.flatMap(_.as[Charge].toOption).get
+      val charge = jsonToCharge("/charge.json")
 
       charge.id should be("ch_194UQpJ4y4jIjvHhJji6ElAp")
       charge.applicationFee should be(Option("fee_9OKMRHcB2CcVPD"))
-      val source = charge.source.asInstanceOf[Charges.Source.MaskedCard]
+      val source = charge.source.asInstanceOf[Source.MaskedCard]
       source.expYear should be(2018)
     }
+
+    "parse card's brand into MaskedCard" in {
+      val charge = jsonToCharge("/charge.json")
+
+      val card = charge.source.asInstanceOf[Source.MaskedCard]
+      card.brand should be("Visa")
+    }
+  }
+
+  private def jsonToCharge(jsonFname: String): Charge = {
+    val in = this.getClass.getResourceAsStream(jsonFname)
+    val string = scala.io.Source.fromInputStream(in).mkString
+    val json = parse(string).toOption
+    json.flatMap(_.as[Charge].toOption).get
   }
 
   "Charge create POST params" should {
