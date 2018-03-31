@@ -1,10 +1,8 @@
-import ReleaseTransformations._
-
 name := "stripe-scala"
 
 val currentScalaVersion = "2.12.3"
 val scala211Version     = "2.11.11"
-val circeVersion        = "0.8.0"
+val circeVersion        = "0.9.3"
 
 scalaVersion := currentScalaVersion
 
@@ -65,8 +63,9 @@ licenses += ("BSD 3 Clause", url("https://opensource.org/licenses/BSD-3-Clause")
 
 pomIncludeRepository := (_ => false)
 
+import ReleaseTransformations._
 releaseCrossBuild := true
-
+releasePublishArtifactsAction := PgpKeys.publishSigned.value // Use publishSigned in publishArtifacts step
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
@@ -75,10 +74,10 @@ releaseProcess := Seq[ReleaseStep](
   setReleaseVersion,
   commitReleaseVersion,
   tagRelease,
-  ReleaseStep(action = Command.process("publishSigned", _), enableCrossBuild = true),
+  publishArtifacts,
   setNextVersion,
   commitNextVersion,
-  ReleaseStep(action = Command.process("sonatypeReleaseAll", _), enableCrossBuild = true),
+  releaseStepCommand("sonatypeReleaseAll"),
   pushChanges
 )
 
