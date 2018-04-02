@@ -1,5 +1,6 @@
 package org.mdedetrich.stripe.v1
 
+import cats.syntax.either._
 import io.circe.parser.parse
 import org.mdedetrich.stripe.PostParams
 import org.mdedetrich.stripe.v1.Charges.{Charge, Source}
