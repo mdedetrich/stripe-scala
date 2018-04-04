@@ -221,13 +221,14 @@ object Charges extends LazyLogging {
         addressLine2: Option[String],
         name: Option[String],
         addressState: Option[String],
-        addressZip: Option[String]
+        addressZip: Option[String],
+        brand: String
     ) extends Source
         with MaskedCardSource
 
     case class Account(id: String, applicationName: Option[String]) extends Source
 
-    implicit val maskedCardSourceDecoder: Decoder[MaskedCard] = Decoder.forProduct11(
+    implicit val maskedCardSourceDecoder: Decoder[MaskedCard] = Decoder.forProduct12(
       "id",
       "last4",
       "exp_month",
@@ -238,7 +239,8 @@ object Charges extends LazyLogging {
       "address_line2",
       "name",
       "address_state",
-      "address_zip"
+      "address_zip",
+      "brand"
     )(MaskedCard.apply)
 
     implicit val accountSourceDecoder: Decoder[Account] = Decoder.forProduct2(
@@ -246,7 +248,7 @@ object Charges extends LazyLogging {
       "application_name"
     )(Account.apply)
 
-    implicit val maskedCardSourceEncoder: Encoder[MaskedCard] = Encoder.forProduct12(
+    implicit val maskedCardSourceEncoder: Encoder[MaskedCard] = Encoder.forProduct13(
       "id",
       "object",
       "last4",
@@ -258,7 +260,8 @@ object Charges extends LazyLogging {
       "address_line2",
       "name",
       "address_state",
-      "address_zip"
+      "address_zip",
+      "brand"
     )(
       x =>
         (
@@ -273,7 +276,8 @@ object Charges extends LazyLogging {
           x.addressLine2,
           x.name,
           x.addressState,
-          x.addressZip
+          x.addressZip,
+          x.brand
       ))
 
     implicit val accountSourceEncoder: Encoder[Account] = Encoder.forProduct3(
