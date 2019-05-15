@@ -171,9 +171,7 @@ object Balances extends LazyLogging {
        x.status,
        x.`type`))
 
-  case class SourceTypes(card: Option[BigDecimal],
-                         bankAccount: Option[BigDecimal],
-                         bitcoinReceiver: Option[BigDecimal])
+  case class SourceTypes(card: Option[BigDecimal], bankAccount: Option[BigDecimal], bitcoinReceiver: Option[BigDecimal])
 
   implicit val sourceTypesDecoder: Decoder[SourceTypes] = Decoder.forProduct3(
     "card",

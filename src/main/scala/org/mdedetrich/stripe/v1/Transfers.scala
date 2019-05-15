@@ -7,7 +7,6 @@ import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
 import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
-import defaults._
 import enumeratum._
 import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.BankAccounts._

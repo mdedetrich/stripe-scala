@@ -27,9 +27,9 @@ class ChargesSpec extends WordSpec with Matchers {
   }
 
   private def jsonToCharge(jsonFname: String): Charge = {
-    val in = this.getClass.getResourceAsStream(jsonFname)
+    val in     = this.getClass.getResourceAsStream(jsonFname)
     val string = scala.io.Source.fromInputStream(in).mkString
-    val json = parse(string).toOption
+    val json   = parse(string).toOption
     json.flatMap(_.as[Charge].toOption).get
   }
 

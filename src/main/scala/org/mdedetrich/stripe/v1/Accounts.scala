@@ -8,7 +8,6 @@ import akka.http.scaladsl.HttpExt
 import akka.stream.Materializer
 import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
-import defaults._
 import enumeratum.{Enum, EnumEntry}
 import io.circe._
 import io.circe.syntax._

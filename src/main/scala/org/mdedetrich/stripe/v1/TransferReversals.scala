@@ -7,7 +7,6 @@ import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.Uri.Query
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
-import defaults._
 import io.circe.{Decoder, Encoder}
 import org.mdedetrich.stripe.v1.defaults._
 import org.mdedetrich.stripe.{ApiKey, Endpoint, IdempotencyKey, PostParams}
