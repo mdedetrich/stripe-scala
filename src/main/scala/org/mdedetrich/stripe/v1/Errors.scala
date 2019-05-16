@@ -2,10 +2,9 @@ package org.mdedetrich.stripe.v1
 
 import akka.http.scaladsl.model.HttpResponse
 import cats.instances.either._
-import cats.syntax.cartesian._
 import cats.syntax.either._
-import defaults._
 import enumeratum._
+import io.circe.Decoder.Result
 import io.circe._
 
 object Errors {
@@ -113,34 +112,38 @@ object Errors {
         extends Error(429, `type`, code, message, param)
   }
 
-  private def errorDecoder(c: HCursor) =
-    c.downField("type").as[Type] |@|
-      c.downField("code").as[Option[Code]] |@|
-      c.downField("message").as[Option[String]] |@|
-      c.downField("param").as[Option[String]].map {
-        case Some(s) if s.isEmpty => None
-        case s                    => s
-      }
+  private def errorDecoder(
+      c: HCursor): (Result[Type], Result[Option[Code]], Result[Option[String]], Result[Option[String]]) =
+    (c.downField("type").as[Type],
+     c.downField("code").as[Option[Code]],
+     c.downField("message").as[Option[String]],
+     c.downField("param").as[Option[String]].map {
+       case Some(s) if s.isEmpty => None
+       case s                    => s
+     })
+
+  import cats.syntax.apply._
+  import cats.instances.either._
 
   implicit val badRequestDecoder: Decoder[Error.BadRequest] =
     Decoder.instance[Error.BadRequest] { c =>
-      errorDecoder(c).map(Error.BadRequest.apply)
+      errorDecoder(c).mapN(Error.BadRequest.apply)
     }
   implicit val unauthorizedDecoder: Decoder[Error.Unauthorized] =
     Decoder.instance[Error.Unauthorized] { c =>
-      errorDecoder(c).map(Error.Unauthorized.apply)
+      errorDecoder(c).mapN(Error.Unauthorized.apply)
     }
   implicit val requestFailedDecoder: Decoder[Error.RequestFailed] =
     Decoder.instance[Error.RequestFailed] { c =>
-      errorDecoder(c).map(Error.RequestFailed.apply)
+      errorDecoder(c).mapN(Error.RequestFailed.apply)
     }
   implicit val notFoundDecoder: Decoder[Error.NotFound] =
     Decoder.instance[Error.NotFound] { c =>
-      errorDecoder(c).map(Error.NotFound.apply)
+      errorDecoder(c).mapN(Error.NotFound.apply)
     }
   implicit val tooManyRequestsDecoder: Decoder[Error.TooManyRequests] =
     Decoder.instance[Error.TooManyRequests] { c =>
-      errorDecoder(c).map(Error.TooManyRequests.apply)
+      errorDecoder(c).mapN(Error.TooManyRequests.apply)
     }
 
   private def errorEncoder: Encoder[Error] =

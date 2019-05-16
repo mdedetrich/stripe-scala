@@ -1,6 +1,6 @@
 name := "stripe-scala"
 
-val currentScalaVersion = "2.12.3"
+val currentScalaVersion = "2.12.8"
 val scala211Version     = "2.11.11"
 val circeVersion        = "0.9.3"
 
@@ -11,6 +11,7 @@ crossScalaVersions := Seq(currentScalaVersion, scala211Version)
 organization := "org.mdedetrich"
 
 scalacOptions ++= Seq(
+  "-Xfatal-warnings",
   "-target:jvm-1.8",
   "-encoding",
   "UTF-8",
@@ -94,7 +95,6 @@ releaseProcess := Seq[ReleaseStep](
 )
 
 val flagsFor11 = Seq(
-  "-Xlint:_",
   "-Yconst-opt",
   "-Ywarn-infer-any",
   "-Yclosure-elim",
@@ -102,9 +102,9 @@ val flagsFor11 = Seq(
 )
 
 val flagsFor12 = Seq(
-  "-Xlint:_",
+  "-Xlint:-unused", //because 2.11 needs unused import: cats.syntax.either._
   "-Ywarn-infer-any",
-  "-opt:l:project"
+  "-opt-inline-from:<sources>"
 )
 
 scalacOptions ++= {

@@ -5,7 +5,6 @@ import akka.http.scaladsl.model.Uri
 import akka.http.scaladsl.model.Uri.Query
 import akka.stream.Materializer
 import com.typesafe.scalalogging.LazyLogging
-import defaults._
 import enumeratum._
 import io.circe._
 import io.circe.syntax._

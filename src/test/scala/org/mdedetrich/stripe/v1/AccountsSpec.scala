@@ -1,8 +1,6 @@
 package org.mdedetrich.stripe.v1
 
-import java.io.{BufferedReader, InputStreamReader}
 import java.time.{DayOfWeek, LocalDate, OffsetDateTime}
-import java.util.stream.Collectors
 
 import cats.syntax.either._
 import io.circe.Json

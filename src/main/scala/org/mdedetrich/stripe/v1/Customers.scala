@@ -6,7 +6,6 @@ import akka.http.scaladsl.HttpExt
 import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
 import cats.syntax.either._
-import defaults._
 import com.typesafe.scalalogging.LazyLogging
 import io.circe._
 import io.circe.syntax._
