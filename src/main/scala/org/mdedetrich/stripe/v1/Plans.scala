@@ -5,6 +5,7 @@ import java.time.OffsetDateTime
 import akka.http.scaladsl.HttpExt
 import akka.http.scaladsl.model.Uri
 import akka.stream.Materializer
+import cats.syntax.either._
 import com.typesafe.scalalogging.LazyLogging
 import defaults._
 import enumeratum._
@@ -53,18 +54,19 @@ object Plans extends LazyLogging {
   /**
     * @see https://stripe.com/docs/api#plan_object
     * @param id
-    * @param amount              The amount in cents to be charged on the interval specified
+    * @param amount              The amount in cents to be charged on the interval specified.
     * @param created
     * @param currency            Currency in which subscription will be charged
     * @param interval            One of [[Interval.Day]], [[Interval.Week]], [[Interval.Month]] or
-    *                            [[Interval.Year]]. The frequency with which a subscription
-    *                            should be billed.
+    *                            [[Interval.Year]]. The frequency with which a subscription should
+    *                            be billed.
     * @param intervalCount       The number of intervals (specified in the [[interval]]
     *                            property) between each subscription billing. For example,
     *                            \[[interval]]=[[Interval.Month]] and [[intervalCount]]=3
     *                            bills every 3 months.
     * @param livemode
-    * @param name                Display name of the plan
+    * @param nickname            A brief description of the plan, hidden from customers.
+    * @param product             The product whose pricing this plan determines (not expanded).
     * @param metadata            A set of key/value pairs that you can attach to a plan object.
     *                            It can be useful for storing additional information about the
     *                            plan in a structured format.
@@ -81,12 +83,13 @@ object Plans extends LazyLogging {
                   interval: Interval,
                   intervalCount: Long,
                   livemode: Boolean,
-                  name: String,
+                  nickname: Option[String],
+                  product: String,
                   metadata: Option[Map[String, String]] = None,
                   statementDescriptor: Option[String] = None,
                   trialPeriodDays: Option[Long] = None)
 
-  implicit val planDecoder: Decoder[Plan] = Decoder.forProduct11(
+  implicit val planDecoder: Decoder[Plan] = Decoder.forProduct12(
     "id",
     "amount",
     "created",
@@ -94,13 +97,14 @@ object Plans extends LazyLogging {
     "interval",
     "interval_count",
     "livemode",
-    "name",
+    "nickname",
+    "product",
     "metadata",
     "statement_descriptor",
     "trial_period_days"
   )(Plan.apply)
 
-  implicit val planEncoder: Encoder[Plan] = Encoder.forProduct12(
+  implicit val planEncoder: Encoder[Plan] = Encoder.forProduct13(
     "id",
     "object",
     "amount",
@@ -109,7 +113,8 @@ object Plans extends LazyLogging {
     "interval",
     "interval_count",
     "livemode",
-    "name",
+    "nickname",
+    "product",
     "metadata",
     "statement_descriptor",
     "trial_period_days"
@@ -124,95 +129,149 @@ object Plans extends LazyLogging {
        x.intervalCount,
        x.livemode,
        x.metadata,
-       x.name,
+       x.nickname,
+       x.product,
        x.statementDescriptor,
        x.trialPeriodDays))
 
+  sealed abstract class Product
+
+  object Product {
+    import io.circe._
+    import io.circe.syntax._
+
+    case class ProductId(id: String) extends Product
+
+    /**
+      * @see https://stripe.com/docs/api#create_plan
+      * @param id                  The identifier for the product.
+      *                            Must be unique. If not provided, an identifier will be randomly
+      *                            generated.
+      * @param name                The product’s name, meant to be displayable to the customer.
+      * @param metadata
+      * @param statementDescriptor An arbitrary string to be displayed on your
+      *                            customer’s credit card statement. This may be up to 22
+      *                            characters. As an example, if your website is RunClub and the
+      *                            item you’re charging for is your Silver Plan, you may want to
+      *                            specify a [[statementDescriptor]] of RunClub Silver Plan. The
+      *                            statement description may not include `<>"'` characters, and will
+      *                            appear on your customer’s statement in capital letters. Non-ASCII
+      *                            characters are automatically stripped.  While most banks display
+      *                            this information consistently, some may display it incorrectly or
+      *                            not at all.
+      *
+      * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
+      * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
+      */
+    case class ServiceProduct(
+        id: Option[String],
+        name: String,
+        metadata: Option[Map[String, String]],
+        statementDescriptor: Option[String]
+    ) extends Product {
+      statementDescriptor match {
+        case Some(sD) if sD.length > 22 =>
+          throw StatementDescriptorTooLong(sD.length)
+        case Some(sD) if sD.contains("<") =>
+          throw StatementDescriptorInvalidCharacter("<")
+        case Some(sD) if sD.contains(">") =>
+          throw StatementDescriptorInvalidCharacter(">")
+        case Some(sD) if sD.contains("\"") =>
+          throw StatementDescriptorInvalidCharacter("\"")
+        case Some(sD) if sD.contains("\'") =>
+          throw StatementDescriptorInvalidCharacter("\'")
+        case _ =>
+      }
+    }
+
+    implicit val planProductDecoder: Decoder[Product] = Decoder.instance[Product] { p =>
+      p.as[JsonObject] match {
+        case Left(_) =>
+          p.as[String].map(ProductId.apply)
+        case Right(_) =>
+          val decoder: Decoder[ServiceProduct] = Decoder.forProduct4(
+            "id",
+            "name",
+            "metadata",
+            "statement_descriptor"
+          )(ServiceProduct.apply)
+          decoder.apply(p)
+      }
+    }
+
+    implicit val planProductEncoder: Encoder[Product] = Encoder.instance[Product] {
+      case ProductId(id) => id.asJson
+      case service: ServiceProduct =>
+        val encoder: Encoder[ServiceProduct] = Encoder.forProduct4(
+          "id",
+          "name",
+          "metadata",
+          "statement_descriptor"
+        )(x => ServiceProduct.unapply(x).get)
+        encoder.apply(service)
+    }
+  }
+
   /**
     * @see https://stripe.com/docs/api#create_plan
-    * @param id                  Unique string of your choice that will be used
-    *                            to identify this plan when subscribing a customer.
-    *                            This could be an identifier like “gold” or a
-    *                            primary key from your own database.
+    * @param id                  An identifier randomly generated by Stripe.
+    *                            Used to identify this plan when subscribing a customer. You can
+    *                            optionally override this ID, but the ID must be unique across all
+    *                            plans in your Stripe account. You can, however, use the same plan
+    *                            ID in both live and test modes.
     * @param amount              A positive integer in cents (or 0 for a free plan)
     *                            representing how much to charge (on a recurring basis).
     * @param currency            3-letter ISO code for currency.
     * @param interval            Specifies billing frequency. Either [[Interval.Day]],
     *                            [[Interval.Week]], [[Interval.Month]] or [[Interval.Year]].
-    * @param name                Name of the plan, to be displayed on invoices and in
-    *                            the web interface.
     * @param intervalCount       The number of intervals between each subscription
     *                            billing. For example, [[interval]]=[[Interval.Month]]
     *                            and [[intervalCount]]=3 bills every 3 months. Maximum of
     *                            one year interval allowed (1 year, 12 months, or 52 weeks).
+    * @param product             The product whose pricing the created plan will represent.
+    *                            This can either be the ID of an existing product, or a dictionary
+    *                            containing fields used to create a service product.
     * @param metadata            A set of key/value pairs that you can attach to a plan object.
     *                            It can be useful for storing additional information about
     *                            the plan in a structured format. This will be unset if you
     *                            POST an empty value.
-    * @param statementDescriptor An arbitrary string to be displayed on your
-    *                            customer’s credit card statement. This may be up to
-    *                            22 characters. As an example, if your website is
-    *                            RunClub and the item you’re charging for is your
-    *                            Silver Plan, you may want to specify a [[statementDescriptor]]
-    *                            of RunClub Silver Plan. The statement description may not include `<>"'`
-    *                            characters, and will appear on your customer’s statement in
-    *                            capital letters. Non-ASCII characters are automatically stripped.
-    *                            While most banks display this information consistently,
-    *                            some may display it incorrectly or not at all.
+    * @param nickname            A brief description of the plan, hidden from customers.
+    *
     * @param trialPeriodDays     Specifies a trial period in (an integer number of)
     *                            days. If you include a trial period, the customer
     *                            won’t be billed for the first time until the trial period ends.
     *                            If the customer cancels before the trial period is over,
     *                            she’ll never be billed at all.
-    * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
-    * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
     */
   case class PlanInput(id: String,
                        amount: BigDecimal,
                        currency: Currency,
                        interval: Interval,
-                       name: String,
+                       product: Product,
                        intervalCount: Option[Long] = None,
                        metadata: Option[Map[String, String]] = None,
-                       statementDescriptor: Option[String] = None,
-                       trialPeriodDays: Option[Long] = None) {
-    statementDescriptor match {
-      case Some(sD) if sD.length > 22 =>
-        throw StatementDescriptorTooLong(sD.length)
-      case Some(sD) if sD.contains("<") =>
-        throw StatementDescriptorInvalidCharacter("<")
-      case Some(sD) if sD.contains(">") =>
-        throw StatementDescriptorInvalidCharacter(">")
-      case Some(sD) if sD.contains("\"") =>
-        throw StatementDescriptorInvalidCharacter("\"")
-      case Some(sD) if sD.contains("\'") =>
-        throw StatementDescriptorInvalidCharacter("\'")
-      case _ =>
-    }
-  }
+                       nickname: Option[String] = None)
 
-  implicit val planInputDecoder: Decoder[PlanInput] = Decoder.forProduct9(
+  implicit val planInputDecoder: Decoder[PlanInput] = Decoder.forProduct8(
     "id",
     "amount",
     "currency",
     "interval",
-    "name",
+    "product",
     "interval_count",
     "metadata",
-    "statement_descriptor",
-    "trial_period_days"
+    "nickname"
   )(PlanInput.apply)
 
-  implicit val planInputEncoder: Encoder[PlanInput] = Encoder.forProduct9(
+  implicit val planInputEncoder: Encoder[PlanInput] = Encoder.forProduct8(
     "id",
     "amount",
     "currency",
     "interval",
-    "name",
+    "product",
     "interval_count",
     "metadata",
-    "statement_descriptor",
-    "trial_period_days"
+    "nickname"
   )(x => PlanInput.unapply(x).get)
 
   def create(planInput: PlanInput)(idempotencyKey: Option[IdempotencyKey] = None)(
@@ -223,15 +282,26 @@ object Plans extends LazyLogging {
       executionContext: ExecutionContext): Future[Try[Plan]] = {
     val postFormParameters = PostParams.flatten(
       Map(
-        "id"                   -> Option(planInput.id.toString),
-        "amount"               -> Option(planInput.amount.toString()),
-        "currency"             -> Option(planInput.currency.iso.toLowerCase),
-        "interval"             -> Option(planInput.interval.id.toString),
-        "name"                 -> Option(planInput.name),
-        "interval_count"       -> planInput.intervalCount.map(_.toString),
-        "statement_descriptor" -> planInput.statementDescriptor,
-        "trial_period_days"    -> planInput.trialPeriodDays.map(_.toString)
-      )) ++ mapToPostParams(planInput.metadata, "metadata")
+        "id"             -> Option(planInput.id.toString),
+        "amount"         -> Option(planInput.amount.toString()),
+        "currency"       -> Option(planInput.currency.iso.toLowerCase),
+        "interval"       -> Option(planInput.interval.id.toString),
+        "interval_count" -> planInput.intervalCount.map(_.toString),
+        "nickname"       -> planInput.nickname
+      )) ++ mapToPostParams(planInput.metadata, "metadata") ++ {
+      planInput.product match {
+        case service: Product.ServiceProduct =>
+          val params = PostParams.flatten(
+            Map(
+              "id"                   -> service.id,
+              "name"                 -> Option(service.name),
+              "statement_descriptor" -> service.statementDescriptor
+            )
+          )
+          mapToPostParams(Option(params ++ mapToPostParams(service.metadata, "metadata")), "product")
+        case Product.ProductId(id) => Map("product" -> id)
+      }
+    }
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
