@@ -2,7 +2,7 @@ name := "stripe-scala"
 
 val currentScalaVersion = "2.12.8"
 val scala211Version     = "2.11.11"
-val circeVersion        = "0.9.3"
+val circeVersion        = "0.11.1"
 
 scalaVersion := currentScalaVersion
 
@@ -31,12 +31,13 @@ Defaults.itSettings
 
 configs(IntegrationTest)
 
-val enumeratumVersion      = "1.5.12"
-val enumeratumCirceVersion = "1.5.14"
+val enumeratumVersion      = "1.5.13"
+val enumeratumCirceVersion = "1.5.21"
 val akkaStreamJson         = "3.4.0"
 
 libraryDependencies ++= Seq(
-  "com.typesafe.akka"          %% "akka-http"         % "10.0.9",
+  "com.typesafe.akka"          %% "akka-http"         % "10.1.8",
+  "com.typesafe.akka"          %% "akka-stream"       % "2.5.22",
   "de.knutwalker"              %% "akka-stream-circe" % akkaStreamJson,
   "de.knutwalker"              %% "akka-http-circe"   % akkaStreamJson,
   "io.circe"                   %% "circe-core"        % circeVersion,
@@ -44,9 +45,9 @@ libraryDependencies ++= Seq(
   "io.circe"                   %% "circe-parser"      % circeVersion,
   "com.beachape"               %% "enumeratum"        % enumeratumVersion,
   "com.beachape"               %% "enumeratum-circe"  % enumeratumCirceVersion,
-  "com.iheart"                 %% "ficus"             % "1.4.1",
-  "com.typesafe.scala-logging" %% "scala-logging"     % "3.7.2",
-  "org.scalatest"              %% "scalatest"         % "3.0.3" % "test, it",
+  "com.iheart"                 %% "ficus"             % "1.4.6",
+  "com.typesafe.scala-logging" %% "scala-logging"     % "3.9.0",
+  "org.scalatest"              %% "scalatest"         % "3.0.7" % "test, it",
   "ch.qos.logback"             % "logback-classic"    % "1.2.3" % "test, it"
 )
 
