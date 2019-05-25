@@ -15,11 +15,12 @@ object ListFilterInput {
 
   case class Timestamp(timestamp: OffsetDateTime) extends ListFilterInput
 
-  case class Object(gt: Option[OffsetDateTime] = None,
-                    gte: Option[OffsetDateTime] = None,
-                    lt: Option[OffsetDateTime] = None,
-                    lte: Option[OffsetDateTime] = None)
-      extends ListFilterInput
+  case class Object(
+      gt: Option[OffsetDateTime] = None,
+      gte: Option[OffsetDateTime] = None,
+      lt: Option[OffsetDateTime] = None,
+      lte: Option[OffsetDateTime] = None
+  ) extends ListFilterInput
 
   implicit val timestampDecoder: Decoder[Timestamp] = stripeDateTimeDecoder.map(Timestamp)
 

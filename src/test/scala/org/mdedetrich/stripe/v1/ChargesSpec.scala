@@ -42,10 +42,12 @@ class ChargesSpec extends WordSpec with Matchers {
 
       // must be here for the next line to not throw an NPE
       Currency.lowerCaseNamesToValuesMap
-      val input = Charges.ChargeInput(amount = BigDecimal(100),
-                                      Currency.`Euro`,
-                                      capture = true,
-                                      customer = Option(customerSource))
+      val input = Charges.ChargeInput(
+        amount = BigDecimal(100),
+        Currency.`Euro`,
+        capture = true,
+        customer = Option(customerSource)
+      )
       val params = PostParams.toPostParams(input)
 
       params("customer") should be(customerId)
@@ -68,17 +70,19 @@ class ChargesSpec extends WordSpec with Matchers {
     "put card in charge params" ignore {
       val token = "tok_4I1pWcGhJbyTLyau"
 
-      val tokenSource = Charges.SourceInput.Card(expMonth = 1,
-                                                 expYear = 2030,
-                                                 number = "4111111111111111",
-                                                 cvc = Some("123"),
-                                                 None,
-                                                 None,
-                                                 None,
-                                                 None,
-                                                 None,
-                                                 None,
-                                                 None)
+      val tokenSource = Charges.SourceInput.Card(
+        expMonth = 1,
+        expYear = 2030,
+        number = "4111111111111111",
+        cvc = Some("123"),
+        None,
+        None,
+        None,
+        None,
+        None,
+        None,
+        None
+      )
 
       val input =
         Charges.ChargeInput(amount = BigDecimal(100), Currency.`Euro`, capture = true, source = Option(tokenSource))

@@ -74,7 +74,8 @@ class AccountsSpec extends WordSpec with Matchers {
 
     "convert transfer schedule" in {
       val input = AccountInput(
-        transferSchedule = Option(TransferSchedule(Option(TransferInterval.Manual), None, Option(DayOfWeek.SUNDAY))))
+        transferSchedule = Option(TransferSchedule(Option(TransferInterval.Manual), None, Option(DayOfWeek.SUNDAY)))
+      )
       val map = PostParams.toPostParams(input)
       map("transfer_schedule[interval]") should be("manual")
       map("transfer_schedule[weekly_anchor]") should be("sunday")

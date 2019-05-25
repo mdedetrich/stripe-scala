@@ -31,17 +31,19 @@ object Alipays {
     *                        the exact currency that you can create a charge for.
     *                        has ever been used for a payment.
     */
-  case class AliPay(id: String,
-                    created: OffsetDateTime,
-                    livemode: Boolean,
-                    reusable: Boolean,
-                    used: Boolean,
-                    username: String,
-                    customer: Option[String] = None,
-                    fingerprint: Option[String] = None,
-                    metadata: Option[Map[String, String]] = None,
-                    paymentAmount: Option[BigDecimal] = None,
-                    paymentCurrency: Option[Currency] = None)
+  case class AliPay(
+      id: String,
+      created: OffsetDateTime,
+      livemode: Boolean,
+      reusable: Boolean,
+      used: Boolean,
+      username: String,
+      customer: Option[String] = None,
+      fingerprint: Option[String] = None,
+      metadata: Option[Map[String, String]] = None,
+      paymentAmount: Option[BigDecimal] = None,
+      paymentCurrency: Option[Currency] = None
+  )
 
   implicit val aliPayDecoder: Decoder[AliPay] = Decoder.forProduct11(
     "id",
@@ -72,16 +74,19 @@ object Alipays {
     "payment_currency"
   )(
     x =>
-      (x.id,
-       "alipay_account",
-       x.created,
-       x.customer,
-       x.fingerprint,
-       x.livemode,
-       x.metadata,
-       x.paymentAmount,
-       x.paymentCurrency,
-       x.reusable,
-       x.used,
-       x.username))
+      (
+        x.id,
+        "alipay_account",
+        x.created,
+        x.customer,
+        x.fingerprint,
+        x.livemode,
+        x.metadata,
+        x.paymentAmount,
+        x.paymentCurrency,
+        x.reusable,
+        x.used,
+        x.username
+      )
+  )
 }

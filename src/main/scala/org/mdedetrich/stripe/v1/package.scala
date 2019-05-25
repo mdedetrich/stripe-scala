@@ -48,7 +48,8 @@ package object v1 {
       implicit client: HttpExt,
       materializer: Materializer,
       executionContext: ExecutionContext,
-      apiKey: ApiKey): Future[Try[DeleteResponse]] = {
+      apiKey: ApiKey
+  ): Future[Try[DeleteResponse]] = {
 
     val headers = buildHeaders(apiKey, None, idempotencyKey)
 
@@ -83,7 +84,8 @@ package object v1 {
       materializer: Materializer,
       executionContext: ExecutionContext,
       decoder: Decoder[M],
-      apiKey: ApiKey): Future[Try[M]] = {
+      apiKey: ApiKey
+  ): Future[Try[M]] = {
 
     val headers = buildHeaders(apiKey, stripeAccount, None)
     val req =
@@ -115,15 +117,19 @@ package object v1 {
     * @tparam M The model which this request should return
     * @return
     */
-  private[v1] def createRequestPOST[M](finalUrl: String,
-                                       postFormParameters: Map[String, String],
-                                       idempotencyKey: Option[IdempotencyKey],
-                                       logger: Logger,
-                                       stripeAccount: Option[String] = None)(implicit client: HttpExt,
-                                                                             materializer: Materializer,
-                                                                             executionContext: ExecutionContext,
-                                                                             decoder: Decoder[M],
-                                                                             apiKey: ApiKey): Future[Try[M]] = {
+  private[v1] def createRequestPOST[M](
+      finalUrl: String,
+      postFormParameters: Map[String, String],
+      idempotencyKey: Option[IdempotencyKey],
+      logger: Logger,
+      stripeAccount: Option[String] = None
+  )(
+      implicit client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext,
+      decoder: Decoder[M],
+      apiKey: ApiKey
+  ): Future[Try[M]] = {
 
     val headers = buildHeaders(apiKey, stripeAccount, idempotencyKey)
 
@@ -157,7 +163,8 @@ package object v1 {
             s"$key[gte]" -> c.gte.map(stripeDateTimeParamWrites),
             s"$key[lt]"  -> c.lt.map(stripeDateTimeParamWrites),
             s"$key[lte]" -> c.lte.map(stripeDateTimeParamWrites)
-          ))
+          )
+        )
 
         baseUrl.withQuery(Query(query))
       case c: ListFilterInput.Timestamp =>
@@ -197,7 +204,8 @@ package object v1 {
     */
   def handleIdempotent[T](
       request: => Option[IdempotencyKey] => Future[Try[T]],
-      numberOfRetries: Int = Config.numberOfRetries)(implicit executionContext: ExecutionContext): Future[T] = {
+      numberOfRetries: Int = Config.numberOfRetries
+  )(implicit executionContext: ExecutionContext): Future[T] = {
 
     val idempotencyKey = Option(IdempotencyKey(java.util.UUID.randomUUID.toString))
 
@@ -215,7 +223,8 @@ package object v1 {
     * @return
     */
   def handle[T](request: Future[Try[T]], numberOfRetries: Int = Config.numberOfRetries)(
-      implicit executionContext: ExecutionContext): Future[T] = {
+      implicit executionContext: ExecutionContext
+  ): Future[T] = {
     def responseBlock = request
 
     def responseBlockWithRetries(currentRetryCount: Int): Future[Try[T]] = {
@@ -271,9 +280,11 @@ package object v1 {
     */
   private[v1] val stripeVersionHeader = "Stripe-Version"
 
-  private def buildHeaders(apiKey: ApiKey,
-                           stripeAccount: Option[String],
-                           idempotencyKey: Option[IdempotencyKey]): List[HttpHeader] =
+  private def buildHeaders(
+      apiKey: ApiKey,
+      stripeAccount: Option[String],
+      idempotencyKey: Option[IdempotencyKey]
+  ): List[HttpHeader] =
     List(
       stripeAccount.map(a => RawHeader(stripeAccountHeader, a)),
       Some(Authorization(BasicHttpCredentials(apiKey.apiKey, ""))),
@@ -291,13 +302,17 @@ package object v1 {
     *         https://stripe.com/docs/api/curl#errors. Will return a [[Right]] if no server errors
     *         are made. Will throw an [[UnhandledServerError]] or [[StripeServerError]] for uncaught errors.
     */
-  private[v1] def parseStripeServerError[A](response: HttpResponse,
-                                            finalUrl: Uri,
-                                            postFormParameters: Option[Map[String, String]],
-                                            postJsonParameters: Option[Json],
-                                            logger: Logger)(implicit executionContext: ExecutionContext,
-                                                            materializer: Materializer,
-                                                            decoder: Decoder[A]): Future[Either[Error, Try[A]]] = {
+  private[v1] def parseStripeServerError[A](
+      response: HttpResponse,
+      finalUrl: Uri,
+      postFormParameters: Option[Map[String, String]],
+      postJsonParameters: Option[Json],
+      logger: Logger
+  )(
+      implicit executionContext: ExecutionContext,
+      materializer: Materializer,
+      decoder: Decoder[A]
+  ): Future[Either[Error, Try[A]]] = {
     val httpCode = response.status.intValue()
 
     logger.debug(s"Response status code is $httpCode")
@@ -353,12 +368,14 @@ package object v1 {
 
                     jsResult.fold(
                       error => {
-                        throw InvalidJsonModelException(httpCode,
-                                                        finalUrl,
-                                                        postFormParameters,
-                                                        postJsonParameters,
-                                                        jsValue,
-                                                        error)
+                        throw InvalidJsonModelException(
+                          httpCode,
+                          finalUrl,
+                          postFormParameters,
+                          postJsonParameters,
+                          jsValue,
+                          error
+                        )
                       },
                       error => error
                     )

@@ -22,21 +22,22 @@ import scala.util.Try
 
 object Customers extends LazyLogging {
 
-  case class Customer(id: String,
-                      accountBalance: BigDecimal,
-                      created: OffsetDateTime,
-                      livemode: Boolean,
-                      delinquent: Boolean,
-                      sources: PaymentSourceList,
-                      subscriptions: SubscriptionList,
-                      currency: Option[Currency] = None,
-                      defaultSource: Option[String] = None,
-                      description: Option[String] = None,
-                      discount: Option[Discount] = None,
-                      email: Option[String] = None,
-                      metadata: Option[Map[String, String]] = None,
-                      shipping: Option[Shipping] = None)
-      extends StripeObject
+  case class Customer(
+      id: String,
+      accountBalance: BigDecimal,
+      created: OffsetDateTime,
+      livemode: Boolean,
+      delinquent: Boolean,
+      sources: PaymentSourceList,
+      subscriptions: SubscriptionList,
+      currency: Option[Currency] = None,
+      defaultSource: Option[String] = None,
+      description: Option[String] = None,
+      discount: Option[Discount] = None,
+      email: Option[String] = None,
+      metadata: Option[Map[String, String]] = None,
+      shipping: Option[Shipping] = None
+  ) extends StripeObject
 
   implicit val customerDecoder: Decoder[Customer] = Decoder.forProduct14(
     "id",
@@ -89,7 +90,8 @@ object Customers extends LazyLogging {
         x.shipping,
         x.sources,
         x.subscriptions
-    ))
+      )
+  )
 
   sealed abstract class Source
 
@@ -97,21 +99,22 @@ object Customers extends LazyLogging {
 
     case class Token(id: String) extends Source
 
-    case class Card(expMonth: Int,
-                    expYear: Int,
-                    number: String,
-                    addressCity: Option[String] = None,
-                    addressCountry: Option[String] = None,
-                    addressLine1: Option[String] = None,
-                    addressLine2: Option[String] = None,
-                    addressState: Option[String] = None,
-                    addressZip: Option[String] = None,
-                    currency: Option[Currency] = None,
-                    cvc: Option[String] = None,
-                    defaultForCurrency: Option[Boolean] = None,
-                    metadata: Option[Map[String, String]] = None,
-                    name: Option[String] = None)
-        extends Source
+    case class Card(
+        expMonth: Int,
+        expYear: Int,
+        number: String,
+        addressCity: Option[String] = None,
+        addressCountry: Option[String] = None,
+        addressLine1: Option[String] = None,
+        addressLine2: Option[String] = None,
+        addressState: Option[String] = None,
+        addressZip: Option[String] = None,
+        currency: Option[Currency] = None,
+        cvc: Option[String] = None,
+        defaultForCurrency: Option[Boolean] = None,
+        metadata: Option[Map[String, String]] = None,
+        name: Option[String] = None
+    ) extends Source
         with NumberCardSource
   }
 
@@ -162,17 +165,19 @@ object Customers extends LazyLogging {
       encoder.apply(card)
   }
 
-  case class CustomerInput(accountBalance: Option[BigDecimal] = None,
-                           coupon: Option[String] = None,
-                           description: Option[String] = None,
-                           email: Option[String] = None,
-                           metadata: Map[String, String] = Map.empty,
-                           plan: Option[String] = None,
-                           quantity: Option[Long] = None,
-                           shipping: Option[Shipping] = None,
-                           source: Option[Source] = None,
-                           taxPercent: Option[BigDecimal] = None,
-                           trialEnd: Option[OffsetDateTime] = None)
+  case class CustomerInput(
+      accountBalance: Option[BigDecimal] = None,
+      coupon: Option[String] = None,
+      description: Option[String] = None,
+      email: Option[String] = None,
+      metadata: Map[String, String] = Map.empty,
+      plan: Option[String] = None,
+      quantity: Option[Long] = None,
+      shipping: Option[Shipping] = None,
+      source: Option[Source] = None,
+      taxPercent: Option[BigDecimal] = None,
+      trialEnd: Option[OffsetDateTime] = None
+  )
 
   implicit val customerInputDecoder: Decoder[CustomerInput] = Decoder.forProduct11(
     "account_balance",
@@ -222,7 +227,8 @@ object Customers extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Customer]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Customer]] = {
     val postFormParameters = PostParams.flatten(
       Map(
         "account_balance" -> customerInput.accountBalance.map(_.toString()),
@@ -233,7 +239,8 @@ object Customers extends LazyLogging {
         "quantity"        -> customerInput.quantity.map(_.toString),
         "tax_percent"     -> customerInput.taxPercent.map(_.toString()),
         "trial_end"       -> customerInput.trialEnd.map(stripeDateTimeParamWrites)
-      )) ++ PostParams.toPostParams("metadata", customerInput.metadata) ++ {
+      )
+    ) ++ PostParams.toPostParams("metadata", customerInput.metadata) ++ {
       customerInput.source match {
         case Some(
             Source.Card(
@@ -251,7 +258,8 @@ object Customers extends LazyLogging {
               defaultForCurrency,
               metadata,
               name
-            )) =>
+            )
+            ) =>
           /*
             TODO: metadata is missing from serialization here,
             however I don't know how to double nest objects for
@@ -273,7 +281,8 @@ object Customers extends LazyLogging {
               "cvc"                  -> cvc,
               "default_for_currency" -> defaultForCurrency.map(_.toString),
               "name"                 -> name
-            ))
+            )
+          )
           mapToPostParams(Option(map), "card")
 
         case Some(Source.Token(id)) =>
@@ -290,11 +299,13 @@ object Customers extends LazyLogging {
     createRequestPOST[Customer](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey,
-                      endpoint: Endpoint,
-                      client: HttpExt,
-                      materializer: Materializer,
-                      executionContext: ExecutionContext): Future[Try[Customer]] = {
+  def get(id: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[Customer]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
     createRequestGET[Customer](finalUrl, logger)
@@ -308,11 +319,13 @@ object Customers extends LazyLogging {
     *
     * @see https://stripe.github.io/stripe-ios/docs/Protocols/STPBackendAPIAdapter.html
     */
-  def getCustomerJson(id: String)(implicit apiKey: ApiKey,
-                                  endpoint: Endpoint,
-                                  client: HttpExt,
-                                  materializer: Materializer,
-                                  executionContext: ExecutionContext): Future[Try[Json]] = {
+  def getCustomerJson(id: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[Json]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
     createRequestGET[Json](finalUrl, logger)
@@ -323,7 +336,8 @@ object Customers extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Customer]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Customer]] = {
 
     val finalUrl   = endpoint.url + s"/v1/customers/$id"
     val postParams = PostParams.toPostParams(customerUpdate)
@@ -335,22 +349,26 @@ object Customers extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/customers/$id"
 
     createRequestDELETE(finalUrl, idempotencyKey, logger)
   }
 
-  case class CustomerListInput(created: Option[ListFilterInput] = None,
-                               endingBefore: Option[String] = None,
-                               limit: Option[Long] = None,
-                               startingAfter: Option[String] = None)
+  case class CustomerListInput(
+      created: Option[ListFilterInput] = None,
+      endingBefore: Option[String] = None,
+      limit: Option[Long] = None,
+      startingAfter: Option[String] = None
+  )
 
-  case class CustomerList(override val url: String,
-                          override val hasMore: Boolean,
-                          override val data: List[Customer],
-                          override val totalCount: Option[Long])
-      extends Collections.List[Customer](url, hasMore, data, totalCount)
+  case class CustomerList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[Customer],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[Customer](url, hasMore, data, totalCount)
 
   object CustomerList extends Collections.ListJsonMappers[Customer] {
     implicit val customerListDecoder: Decoder[CustomerList] =
@@ -365,7 +383,8 @@ object Customers extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[CustomerList]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[CustomerList]] = {
     val finalUrl = {
       val totalCountUrl =
         if (includeTotalCount)
@@ -386,7 +405,8 @@ object Customers extends LazyLogging {
           "ending_before"  -> customerListInput.endingBefore,
           "limit"          -> customerListInput.limit.map(_.toString),
           "starting_after" -> customerListInput.startingAfter
-        ))
+        )
+      )
 
       val query = queries.foldLeft(created.query())((a, b) => b +: a)
       created.withQuery(query)

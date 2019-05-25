@@ -49,9 +49,12 @@ class EventsSpec extends BaseSpec {
       val evt = getJsonResourceAs[Event]("/events/balance.available.json")
 
       evt.data.`object` should be(
-        Balance(List(BalanceFund(Euro, 10200, SourceTypes(Some(10200), None, None))),
-                true,
-                List(BalanceFund(Euro, 0, SourceTypes(Some(0), None, None)))))
+        Balance(
+          List(BalanceFund(Euro, 10200, SourceTypes(Some(10200), None, None))),
+          true,
+          List(BalanceFund(Euro, 0, SourceTypes(Some(0), None, None)))
+        )
+      )
 
       evt.account should contain("acct_3itc1T5KSo2GauOn")
       evt.userId should contain("acct_3itc1T5KSo2GauOn")

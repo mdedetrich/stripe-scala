@@ -18,34 +18,35 @@ import scala.util.Try
 
 object Disputes extends LazyLogging {
 
-  case class DisputeEvidence(accessActivityLog: Option[String],
-                             billingAddress: Option[String],
-                             cancellationPolicy: Option[String],
-                             cancellationPolicyDisclosure: Option[String],
-                             cancellationRebuttal: Option[String],
-                             customerCommunication: Option[String],
-                             customerEmailAddress: Option[String],
-                             customerName: Option[String],
-                             customerPurchaseIp: Option[String],
-                             customerSignature: Option[String],
-                             duplicateChargeDocumentation: Option[String],
-                             duplicateChargeExplanation: Option[String],
-                             duplicateChargeId: Option[String],
-                             productDescription: Option[String],
-                             receipt: Option[String],
-                             refundPolicy: Option[String],
-                             refundPolicyDisclosure: Option[String],
-                             refundRefusalExplanation: Option[String],
-                             serviceDate: Option[String],
-                             serviceDocumentation: Option[String],
-                             shippingAddress: Option[String],
-                             shippingCarrier: Option[String],
-                             shippingDate: Option[String],
-                             shippingDocumentation: Option[String],
-                             shippingTrackingNumber: Option[String],
-                             uncategorizedFile: Option[String],
-                             uncategorizedText: Option[String])
-      extends StripeObject
+  case class DisputeEvidence(
+      accessActivityLog: Option[String],
+      billingAddress: Option[String],
+      cancellationPolicy: Option[String],
+      cancellationPolicyDisclosure: Option[String],
+      cancellationRebuttal: Option[String],
+      customerCommunication: Option[String],
+      customerEmailAddress: Option[String],
+      customerName: Option[String],
+      customerPurchaseIp: Option[String],
+      customerSignature: Option[String],
+      duplicateChargeDocumentation: Option[String],
+      duplicateChargeExplanation: Option[String],
+      duplicateChargeId: Option[String],
+      productDescription: Option[String],
+      receipt: Option[String],
+      refundPolicy: Option[String],
+      refundPolicyDisclosure: Option[String],
+      refundRefusalExplanation: Option[String],
+      serviceDate: Option[String],
+      serviceDocumentation: Option[String],
+      shippingAddress: Option[String],
+      shippingCarrier: Option[String],
+      shippingDate: Option[String],
+      shippingDocumentation: Option[String],
+      shippingTrackingNumber: Option[String],
+      uncategorizedFile: Option[String],
+      uncategorizedText: Option[String]
+  ) extends StripeObject
 
   private val disputeEvidenceDecoderOne = Decoder.forProduct22(
     "access_activity_log",
@@ -94,7 +95,8 @@ object Disputes extends LazyLogging {
       _: Option[String],
       _: Option[String],
       _: Option[String]
-    ))
+    )
+  )
 
   private val disputeEvidenceDecoderTwo = Decoder.forProduct5(
     "shipping_date",
@@ -109,35 +111,38 @@ object Disputes extends LazyLogging {
       _: Option[String],
       _: Option[String],
       _: Option[String]
-    ))
+    )
+  )
 
   implicit val disputeEvidenceDecoder: Decoder[DisputeEvidence] = Decoder.instance[DisputeEvidence] { c =>
     for {
       one <- disputeEvidenceDecoderOne(c)
       two <- disputeEvidenceDecoderTwo(c)
     } yield {
-      val (accessActivityLog,
-           billingAddress,
-           cancellationPolicy,
-           cancellationPolicyDisclosure,
-           cancellationRebuttal,
-           customerCommunication,
-           customerEmailAddress,
-           customerName,
-           customerPurchaseIp,
-           customerSignature,
-           duplicateChargeDocumentation,
-           duplicateChargeExplanation,
-           duplicateChargeId,
-           productDescription,
-           receipt,
-           refundPolicy,
-           refundPolicyDisclosure,
-           refundRefusalExplanation,
-           serviceDate,
-           serviceDocumentation,
-           shippingAddress,
-           shippingCarrier)                                                                                   = one
+      val (
+        accessActivityLog,
+        billingAddress,
+        cancellationPolicy,
+        cancellationPolicyDisclosure,
+        cancellationRebuttal,
+        customerCommunication,
+        customerEmailAddress,
+        customerName,
+        customerPurchaseIp,
+        customerSignature,
+        duplicateChargeDocumentation,
+        duplicateChargeExplanation,
+        duplicateChargeId,
+        productDescription,
+        receipt,
+        refundPolicy,
+        refundPolicyDisclosure,
+        refundRefusalExplanation,
+        serviceDate,
+        serviceDocumentation,
+        shippingAddress,
+        shippingCarrier
+      )                                                                                                       = one
       val (shippingDate, shippingDocumentation, shippingTrackingNumber, uncategorizedFile, uncategorizedText) = two
 
       DisputeEvidence(
@@ -197,28 +202,31 @@ object Disputes extends LazyLogging {
     "shipping_carrier"
   )(
     x =>
-      (x.accessActivityLog,
-       x.billingAddress,
-       x.cancellationPolicy,
-       x.cancellationPolicyDisclosure,
-       x.cancellationRebuttal,
-       x.customerCommunication,
-       x.customerEmailAddress,
-       x.customerName,
-       x.customerPurchaseIp,
-       x.customerSignature,
-       x.duplicateChargeDocumentation,
-       x.duplicateChargeExplanation,
-       x.duplicateChargeId,
-       x.productDescription,
-       x.receipt,
-       x.refundPolicy,
-       x.refundPolicyDisclosure,
-       x.refundRefusalExplanation,
-       x.serviceDate,
-       x.serviceDocumentation,
-       x.shippingAddress,
-       x.shippingCarrier))
+      (
+        x.accessActivityLog,
+        x.billingAddress,
+        x.cancellationPolicy,
+        x.cancellationPolicyDisclosure,
+        x.cancellationRebuttal,
+        x.customerCommunication,
+        x.customerEmailAddress,
+        x.customerName,
+        x.customerPurchaseIp,
+        x.customerSignature,
+        x.duplicateChargeDocumentation,
+        x.duplicateChargeExplanation,
+        x.duplicateChargeId,
+        x.productDescription,
+        x.receipt,
+        x.refundPolicy,
+        x.refundPolicyDisclosure,
+        x.refundRefusalExplanation,
+        x.serviceDate,
+        x.serviceDocumentation,
+        x.shippingAddress,
+        x.shippingCarrier
+      )
+  )
 
   private val disputeEvidenceEncoderTwo: Encoder[DisputeEvidence] = Encoder.forProduct5(
     "shipping_date",
@@ -234,7 +242,8 @@ object Disputes extends LazyLogging {
         x.shippingTrackingNumber,
         x.uncategorizedFile,
         x.uncategorizedText
-    ))
+      )
+  )
 
   implicit val disputeEvidenceEncoder: Encoder[DisputeEvidence] =
     Encoder.instance[DisputeEvidence](x => disputeEvidenceEncoderOne(x).deepMerge(disputeEvidenceEncoderTwo(x)))
@@ -300,20 +309,21 @@ object Disputes extends LazyLogging {
     implicit val disputeStatusEncoder: Encoder[Status] = enumeratum.Circe.encoder(Status)
   }
 
-  case class Dispute(id: String,
-                     amount: BigDecimal,
-                     balanceTransactions: List[BalanceTransaction],
-                     charge: String,
-                     created: OffsetDateTime,
-                     currency: Currency,
-                     evidence: DisputeEvidence,
-                     evidenceDetails: EvidenceDetails,
-                     isChargeRefundable: Boolean,
-                     livemode: Boolean,
-                     metadata: Option[Map[String, String]],
-                     reason: Reason,
-                     status: Status)
-      extends StripeObject
+  case class Dispute(
+      id: String,
+      amount: BigDecimal,
+      balanceTransactions: List[BalanceTransaction],
+      charge: String,
+      created: OffsetDateTime,
+      currency: Currency,
+      evidence: DisputeEvidence,
+      evidenceDetails: EvidenceDetails,
+      isChargeRefundable: Boolean,
+      livemode: Boolean,
+      metadata: Option[Map[String, String]],
+      reason: Reason,
+      status: Status
+  ) extends StripeObject
 
   implicit val disputeDecoder: Decoder[Dispute] = Decoder.forProduct13(
     "id",
@@ -348,26 +358,31 @@ object Disputes extends LazyLogging {
     "status"
   )(
     x =>
-      (x.id,
-       "dispute",
-       x.amount,
-       x.balanceTransactions,
-       x.charge,
-       x.created,
-       x.currency,
-       x.evidence,
-       x.evidenceDetails,
-       x.isChargeRefundable,
-       x.livemode,
-       x.metadata,
-       x.reason,
-       x.status))
+      (
+        x.id,
+        "dispute",
+        x.amount,
+        x.balanceTransactions,
+        x.charge,
+        x.created,
+        x.currency,
+        x.evidence,
+        x.evidenceDetails,
+        x.isChargeRefundable,
+        x.livemode,
+        x.metadata,
+        x.reason,
+        x.status
+      )
+  )
 
-  def get(id: String)(implicit apiKey: ApiKey,
-                      endpoint: Endpoint,
-                      client: HttpExt,
-                      materializer: Materializer,
-                      executionContext: ExecutionContext): Future[Try[Dispute]] = {
+  def get(id: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[Dispute]] = {
     val finalUrl = endpoint.url + s"/v1/disputes/$id"
 
     createRequestGET[Dispute](finalUrl, logger)
@@ -378,22 +393,26 @@ object Disputes extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Dispute]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Dispute]] = {
     val finalUrl = endpoint.url + s"/v1/disputes/$id/close"
 
     createRequestPOST[Dispute](finalUrl, Map.empty, idempotencyKey, logger)
   }
 
-  case class DisputeListInput(created: Option[ListFilterInput] = None,
-                              endingBefore: Option[String] = None,
-                              limit: Option[String] = None,
-                              startingAfter: Option[String] = None)
+  case class DisputeListInput(
+      created: Option[ListFilterInput] = None,
+      endingBefore: Option[String] = None,
+      limit: Option[String] = None,
+      startingAfter: Option[String] = None
+  )
 
-  case class DisputeList(override val url: String,
-                         override val hasMore: Boolean,
-                         override val data: List[Dispute],
-                         override val totalCount: Option[Long])
-      extends Collections.List[Dispute](url, hasMore, data, totalCount)
+  case class DisputeList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[Dispute],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[Dispute](url, hasMore, data, totalCount)
 
   object DisputeList extends Collections.ListJsonMappers[Dispute] {
     implicit val disputeListDecoder: Decoder[DisputeList] =
@@ -408,7 +427,8 @@ object Disputes extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[DisputeList]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[DisputeList]] = {
     val finalUrl = {
       val totalCountUrl =
         if (includeTotalCount)
@@ -429,7 +449,8 @@ object Disputes extends LazyLogging {
           "ending_before"  -> disputeListInput.endingBefore,
           "limit"          -> disputeListInput.limit.map(_.toString),
           "starting_after" -> disputeListInput.startingAfter
-        ))
+        )
+      )
 
       val query = queries.foldLeft(created.query())((a, b) => b +: a)
       created.withQuery(query)

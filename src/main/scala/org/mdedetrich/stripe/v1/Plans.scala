@@ -74,17 +74,19 @@ object Plans extends LazyLogging {
     *                            subscribing a customer to this plan.
     *                            [[scala.None]] if the plan has no trial period.
     */
-  case class Plan(id: String,
-                  amount: BigDecimal,
-                  created: OffsetDateTime,
-                  currency: Currency,
-                  interval: Interval,
-                  intervalCount: Long,
-                  livemode: Boolean,
-                  name: String,
-                  metadata: Option[Map[String, String]] = None,
-                  statementDescriptor: Option[String] = None,
-                  trialPeriodDays: Option[Long] = None)
+  case class Plan(
+      id: String,
+      amount: BigDecimal,
+      created: OffsetDateTime,
+      currency: Currency,
+      interval: Interval,
+      intervalCount: Long,
+      livemode: Boolean,
+      name: String,
+      metadata: Option[Map[String, String]] = None,
+      statementDescriptor: Option[String] = None,
+      trialPeriodDays: Option[Long] = None
+  )
 
   implicit val planDecoder: Decoder[Plan] = Decoder.forProduct11(
     "id",
@@ -115,18 +117,21 @@ object Plans extends LazyLogging {
     "trial_period_days"
   )(
     x =>
-      (x.id,
-       "plan",
-       x.amount,
-       x.created,
-       x.currency,
-       x.interval,
-       x.intervalCount,
-       x.livemode,
-       x.metadata,
-       x.name,
-       x.statementDescriptor,
-       x.trialPeriodDays))
+      (
+        x.id,
+        "plan",
+        x.amount,
+        x.created,
+        x.currency,
+        x.interval,
+        x.intervalCount,
+        x.livemode,
+        x.metadata,
+        x.name,
+        x.statementDescriptor,
+        x.trialPeriodDays
+      )
+  )
 
   /**
     * @see https://stripe.com/docs/api#create_plan
@@ -167,15 +172,17 @@ object Plans extends LazyLogging {
     * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
     * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
     */
-  case class PlanInput(id: String,
-                       amount: BigDecimal,
-                       currency: Currency,
-                       interval: Interval,
-                       name: String,
-                       intervalCount: Option[Long] = None,
-                       metadata: Option[Map[String, String]] = None,
-                       statementDescriptor: Option[String] = None,
-                       trialPeriodDays: Option[Long] = None) {
+  case class PlanInput(
+      id: String,
+      amount: BigDecimal,
+      currency: Currency,
+      interval: Interval,
+      name: String,
+      intervalCount: Option[Long] = None,
+      metadata: Option[Map[String, String]] = None,
+      statementDescriptor: Option[String] = None,
+      trialPeriodDays: Option[Long] = None
+  ) {
     statementDescriptor match {
       case Some(sD) if sD.length > 22 =>
         throw StatementDescriptorTooLong(sD.length)
@@ -220,7 +227,8 @@ object Plans extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Plan]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Plan]] = {
     val postFormParameters = PostParams.flatten(
       Map(
         "id"                   -> Option(planInput.id.toString),
@@ -231,7 +239,8 @@ object Plans extends LazyLogging {
         "interval_count"       -> planInput.intervalCount.map(_.toString),
         "statement_descriptor" -> planInput.statementDescriptor,
         "trial_period_days"    -> planInput.trialPeriodDays.map(_.toString)
-      )) ++ mapToPostParams(planInput.metadata, "metadata")
+      )
+    ) ++ mapToPostParams(planInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -240,11 +249,13 @@ object Plans extends LazyLogging {
     createRequestPOST[Plan](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey,
-                      endpoint: Endpoint,
-                      client: HttpExt,
-                      materializer: Materializer,
-                      executionContext: ExecutionContext): Future[Try[Plan]] = {
+  def get(id: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[Plan]] = {
     val finalUrl = endpoint.url + s"/v1/plans/$id"
 
     createRequestGET[Plan](finalUrl, logger)
@@ -255,7 +266,8 @@ object Plans extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/plans/$id"
 
     createRequestDELETE(finalUrl, idempotencyKey, logger)
@@ -282,16 +294,19 @@ object Plans extends LazyLogging {
     *                      can include [[startingAfter]]=obj_foo in order to
     *                      fetch the next page of the list.
     */
-  case class PlanListInput(created: Option[ListFilterInput] = None,
-                           endingBefore: Option[String] = None,
-                           limit: Option[Long] = None,
-                           startingAfter: Option[String] = None)
+  case class PlanListInput(
+      created: Option[ListFilterInput] = None,
+      endingBefore: Option[String] = None,
+      limit: Option[Long] = None,
+      startingAfter: Option[String] = None
+  )
 
-  case class PlanList(override val url: String,
-                      override val hasMore: Boolean,
-                      override val data: List[Plan],
-                      override val totalCount: Option[Long])
-      extends Collections.List[Plan](url, hasMore, data, totalCount)
+  case class PlanList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[Plan],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[Plan](url, hasMore, data, totalCount)
 
   object PlanList extends Collections.ListJsonMappers[Plan] {
     implicit val planListDecoder: Decoder[PlanList] =
@@ -306,7 +321,8 @@ object Plans extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[PlanList]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[PlanList]] = {
     val finalUrl = {
       val totalCountUrl =
         if (includeTotalCount)
@@ -327,7 +343,8 @@ object Plans extends LazyLogging {
           "ending_before"  -> planListInput.endingBefore,
           "limit"          -> planListInput.limit.map(_.toString),
           "starting_after" -> planListInput.startingAfter
-        ))
+        )
+      )
 
       val query = queries.foldLeft(created.query())((a, b) => b +: a)
       created.withQuery(query)

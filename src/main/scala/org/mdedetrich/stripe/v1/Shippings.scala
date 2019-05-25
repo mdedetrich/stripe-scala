@@ -13,12 +13,14 @@ object Shippings {
     * @param postalCode Zip/Postal Code
     * @param state      State/Province/County
     */
-  case class Address(city: Option[String] = None,
-                     country: Option[String] = None,
-                     line1: Option[String] = None,
-                     line2: Option[String] = None,
-                     postalCode: Option[String] = None,
-                     state: Option[String] = None)
+  case class Address(
+      city: Option[String] = None,
+      country: Option[String] = None,
+      line1: Option[String] = None,
+      line2: Option[String] = None,
+      postalCode: Option[String] = None,
+      state: Option[String] = None
+  )
 
   implicit val addressDecoder: Decoder[Address] = Decoder.forProduct6(
     "city",
@@ -45,7 +47,8 @@ object Shippings {
         x.line2,
         x.postalCode,
         x.state
-    ))
+      )
+  )
 
   /**
     * @see https://stripe.com/docs/api#charge_object-shipping
@@ -60,11 +63,13 @@ object Shippings {
     *                       were generated for this purchase, please
     *                       separate them with commas.
     */
-  case class Shipping(address: Option[Address],
-                      carrier: Option[String],
-                      name: Option[String],
-                      phone: Option[String],
-                      trackingNumber: Option[String])
+  case class Shipping(
+      address: Option[Address],
+      carrier: Option[String],
+      name: Option[String],
+      phone: Option[String],
+      trackingNumber: Option[String]
+  )
 
   implicit val shippingDecoder: Decoder[Shipping] = Decoder.forProduct5(
     "address",
@@ -88,5 +93,6 @@ object Shippings {
         x.name,
         x.phone,
         x.trackingNumber
-    ))
+      )
+  )
 }

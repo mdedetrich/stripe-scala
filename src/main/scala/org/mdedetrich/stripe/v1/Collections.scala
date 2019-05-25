@@ -17,15 +17,17 @@ object Collections {
 
   trait ListJsonMappers[A] {
     protected def listDecoder[B <: List[A]](
-        implicit decoder: Decoder[A]): ((String, Boolean, scala.List[A], Option[Long]) => B) => Decoder[B] =
+        implicit decoder: Decoder[A]
+    ): ((String, Boolean, scala.List[A], Option[Long]) => B) => Decoder[B] =
       Decoder.forProduct4[String, Boolean, scala.List[A], Option[Long], B]("url", "has_more", "data", "total_count")
 
     protected def listEncoder[B <: List[A]](implicit encoder: Encoder[A]): ObjectEncoder[B] =
-      Encoder.forProduct5[String, String, Boolean, scala.List[A], Option[Long], B]("object",
-                                                                                   "url",
-                                                                                   "has_more",
-                                                                                   "data",
-                                                                                   "total_count")(x =>
-        ("list", x.url, x.hasMore, x.data, x.totalCount))
+      Encoder.forProduct5[String, String, Boolean, scala.List[A], Option[Long], B](
+        "object",
+        "url",
+        "has_more",
+        "data",
+        "total_count"
+      )(x => ("list", x.url, x.hasMore, x.data, x.totalCount))
   }
 }

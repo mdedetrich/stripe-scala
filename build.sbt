@@ -15,12 +15,12 @@ scalacOptions ++= Seq(
   "-target:jvm-1.8",
   "-encoding",
   "UTF-8",
-  "-deprecation", // warning and location for usages of deprecated APIs
-  "-feature", // warning and location for usages of features that should be imported explicitly
-  "-unchecked", // additional warnings where generated code depends on assumptions
-  "-Xlint", // recommended additional warnings
-  "-Xcheckinit", // runtime error when a val is not initialized due to trait hierarchies (instead of NPE somewhere else)
-  "-Ywarn-adapted-args", // Warn if an argument list is modified to match the receiver
+  "-deprecation",         // warning and location for usages of deprecated APIs
+  "-feature",             // warning and location for usages of features that should be imported explicitly
+  "-unchecked",           // additional warnings where generated code depends on assumptions
+  "-Xlint",               // recommended additional warnings
+  "-Xcheckinit",          // runtime error when a val is not initialized due to trait hierarchies (instead of NPE somewhere else)
+  "-Ywarn-adapted-args",  // Warn if an argument list is modified to match the receiver
   "-Ywarn-value-discard", // Warn when non-Unit expression results are unused
   "-Ywarn-inaccessible",
   "-Ywarn-dead-code",
@@ -53,7 +53,8 @@ libraryDependencies ++= Seq(
 homepage := Some(url("https://github.com/mdedetrich/stripe-scala"))
 
 scmInfo := Some(
-  ScmInfo(url("https://github.com/mdedetrich/stripe-scala"), "git@github.com:mdedetrich/stripe-scala.git"))
+  ScmInfo(url("https://github.com/mdedetrich/stripe-scala"), "git@github.com:mdedetrich/stripe-scala.git")
+)
 
 developers := List(
   Developer("mdedetrich", "Matthew de Detrich", "mdedetrich@gmail.com", url("https://github.com/mdedetrich")),

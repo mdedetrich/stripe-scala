@@ -32,14 +32,15 @@ object TransferReversals extends LazyLogging {
     *                           additional information in a structured format.
     * @param transfer           ID of the transfer that was reversed.
     */
-  case class TransferReversal(id: String,
-                              amount: BigDecimal,
-                              balanceTransaction: String,
-                              created: OffsetDateTime,
-                              currency: Currency,
-                              metadata: Option[Map[String, String]],
-                              transfer: String)
-      extends StripeObject
+  case class TransferReversal(
+      id: String,
+      amount: BigDecimal,
+      balanceTransaction: String,
+      created: OffsetDateTime,
+      currency: Currency,
+      metadata: Option[Map[String, String]],
+      transfer: String
+  ) extends StripeObject
 
   implicit val transferReversalDecoder: Decoder[TransferReversal] = Decoder.forProduct7(
     "id",
@@ -93,11 +94,13 @@ object TransferReversals extends LazyLogging {
     *                             will be refunded with an amount proportional
     *                             to the amount of the transfer reversed.
     */
-  case class TransferReversalInput(id: String,
-                                   amount: Option[BigDecimal] = None,
-                                   description: Option[String] = None,
-                                   metadata: Option[Map[String, String]] = None,
-                                   refundApplicationFee: Option[Boolean] = None)
+  case class TransferReversalInput(
+      id: String,
+      amount: Option[BigDecimal] = None,
+      description: Option[String] = None,
+      metadata: Option[Map[String, String]] = None,
+      refundApplicationFee: Option[Boolean] = None
+  )
 
   implicit val transferReversalInputDecoder: Decoder[TransferReversalInput] = Decoder.forProduct5(
     "id",
@@ -120,13 +123,15 @@ object TransferReversals extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[TransferReversal]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[TransferReversal]] = {
     val postFormParameters = PostParams.flatten(
       Map(
         "amount"                 -> transferReversalInput.amount.map(_.toString()),
         "description"            -> transferReversalInput.description,
         "refund_application_fee" -> transferReversalInput.refundApplicationFee.map(_.toString)
-      )) ++ mapToPostParams(transferReversalInput.metadata, "metadata")
+      )
+    ) ++ mapToPostParams(transferReversalInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -136,11 +141,13 @@ object TransferReversals extends LazyLogging {
     createRequestPOST[TransferReversal](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String, transferId: String)(implicit apiKey: ApiKey,
-                                          endpoint: Endpoint,
-                                          client: HttpExt,
-                                          materializer: Materializer,
-                                          executionContext: ExecutionContext): Future[Try[TransferReversal]] = {
+  def get(id: String, transferId: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[TransferReversal]] = {
     val finalUrl = endpoint.url + s"/v1/transfers/$id/reversals/$transferId"
 
     createRequestGET[TransferReversal](finalUrl, logger)
@@ -166,16 +173,19 @@ object TransferReversals extends LazyLogging {
     *                      your subsequent call can include [[startingAfter]]=obj_foo
     *                      in order to fetch the next page of the list.
     */
-  case class TransferReversalListInput(id: String,
-                                       endingBefore: Option[String] = None,
-                                       limit: Option[Long] = None,
-                                       startingAfter: Option[String] = None)
+  case class TransferReversalListInput(
+      id: String,
+      endingBefore: Option[String] = None,
+      limit: Option[Long] = None,
+      startingAfter: Option[String] = None
+  )
 
-  case class TransferReversalList(override val url: String,
-                                  override val hasMore: Boolean,
-                                  override val data: List[TransferReversal],
-                                  override val totalCount: Option[Long])
-      extends Collections.List[TransferReversal](url, hasMore, data, totalCount)
+  case class TransferReversalList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[TransferReversal],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[TransferReversal](url, hasMore, data, totalCount)
 
   object TransferReversalList extends Collections.ListJsonMappers[TransferReversal] {
     implicit val transferReversalDecoder: Decoder[TransferReversalList] =
@@ -190,7 +200,8 @@ object TransferReversals extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[TransferReversalList]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[TransferReversalList]] = {
     val finalUrl = {
       val totalCountUrl =
         if (includeTotalCount)
@@ -207,7 +218,8 @@ object TransferReversals extends LazyLogging {
           "ending_before"  -> transferReversalListInput.endingBefore,
           "limit"          -> transferReversalListInput.limit.map(_.toString),
           "starting_after" -> transferReversalListInput.startingAfter
-        ))
+        )
+      )
 
       Uri(baseUrl).withQuery(Query(queries))
     }

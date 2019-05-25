@@ -34,11 +34,13 @@ object Balances extends LazyLogging {
     implicit val feeTypeEncoder: Encoder[FeeType] = enumeratum.Circe.encoder(FeeType)
   }
 
-  case class FeeDetails(amount: BigDecimal,
-                        application: String,
-                        currency: Currency,
-                        description: String,
-                        `type`: FeeType)
+  case class FeeDetails(
+      amount: BigDecimal,
+      application: String,
+      currency: Currency,
+      description: String,
+      `type`: FeeType
+  )
 
   implicit val feeDetailsDecoder: Decoder[FeeDetails] = Decoder.forProduct5(
     "amount",
@@ -108,20 +110,21 @@ object Balances extends LazyLogging {
     *                         Either [[Status.Available]] or [[Status.Pending]].
     * @param `type`           Transaction type: [[Type]]
     */
-  case class BalanceTransaction(id: String,
-                                amount: BigDecimal,
-                                availableOn: OffsetDateTime,
-                                created: OffsetDateTime,
-                                currency: Currency,
-                                description: String,
-                                fee: BigDecimal,
-                                feeDetails: List[FeeDetails],
-                                net: BigDecimal,
-                                source: String,
-                                sourcedTransfers: TransferList,
-                                status: Option[Status],
-                                `type`: Type)
-      extends StripeObject
+  case class BalanceTransaction(
+      id: String,
+      amount: BigDecimal,
+      availableOn: OffsetDateTime,
+      created: OffsetDateTime,
+      currency: Currency,
+      description: String,
+      fee: BigDecimal,
+      feeDetails: List[FeeDetails],
+      net: BigDecimal,
+      source: String,
+      sourcedTransfers: TransferList,
+      status: Option[Status],
+      `type`: Type
+  ) extends StripeObject
 
   implicit val balanceTransactionDecoder: Decoder[BalanceTransaction] = Decoder.forProduct13(
     "id",
@@ -156,20 +159,23 @@ object Balances extends LazyLogging {
     "type"
   )(
     x =>
-      (x.id,
-       "balance_transaction",
-       x.amount,
-       x.availableOn,
-       x.created,
-       x.currency,
-       x.description,
-       x.fee,
-       x.feeDetails,
-       x.net,
-       x.source,
-       x.sourcedTransfers,
-       x.status,
-       x.`type`))
+      (
+        x.id,
+        "balance_transaction",
+        x.amount,
+        x.availableOn,
+        x.created,
+        x.currency,
+        x.description,
+        x.fee,
+        x.feeDetails,
+        x.net,
+        x.source,
+        x.sourcedTransfers,
+        x.status,
+        x.`type`
+      )
+  )
 
   case class SourceTypes(card: Option[BigDecimal], bankAccount: Option[BigDecimal], bitcoinReceiver: Option[BigDecimal])
 
@@ -229,11 +235,13 @@ object Balances extends LazyLogging {
     * @param endpoint
     * @return
     */
-  def get(stripeAccount: Option[String] = None)(implicit apiKey: ApiKey,
-                                                endpoint: Endpoint,
-                                                client: HttpExt,
-                                                materializer: Materializer,
-                                                executionContext: ExecutionContext): Future[Try[Balance]] = {
+  def get(stripeAccount: Option[String] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[Balance]] = {
     val finalUrl = endpoint.url + s"/v1/balance"
 
     createRequestGET[Balance](finalUrl, logger, stripeAccount)
@@ -246,11 +254,13 @@ object Balances extends LazyLogging {
     * @param endpoint
     * @return
     */
-  def getBalanceTransaction(id: String)(implicit apiKey: ApiKey,
-                                        endpoint: Endpoint,
-                                        client: HttpExt,
-                                        materializer: Materializer,
-                                        executionContext: ExecutionContext): Future[Try[BalanceTransaction]] = {
+  def getBalanceTransaction(id: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[BalanceTransaction]] = {
     val finalUrl = endpoint.url + s"/v1/balance/history/$id"
 
     createRequestGET[BalanceTransaction](finalUrl, logger)
@@ -284,21 +294,24 @@ object Balances extends LazyLogging {
     *                      One of: [[Type.Charge]], [[Type.Adjustment]], [[Type.ApplicationFee]],
     *                      [[Type.ApplicationFeeRefund]], [[Type.Transfer]], or [[Type.TransferFailure]]
     */
-  case class BalanceHistoryListInput(availableOn: Option[ListFilterInput] = None,
-                                     created: Option[ListFilterInput] = None,
-                                     currency: Option[Currency] = None,
-                                     endingBefore: Option[String] = None,
-                                     limit: Option[Long] = None,
-                                     source: Option[String] = None,
-                                     startingAfter: Option[String] = None,
-                                     transfer: Option[Boolean] = None,
-                                     `type`: Option[Type] = None)
+  case class BalanceHistoryListInput(
+      availableOn: Option[ListFilterInput] = None,
+      created: Option[ListFilterInput] = None,
+      currency: Option[Currency] = None,
+      endingBefore: Option[String] = None,
+      limit: Option[Long] = None,
+      source: Option[String] = None,
+      startingAfter: Option[String] = None,
+      transfer: Option[Boolean] = None,
+      `type`: Option[Type] = None
+  )
 
-  case class BalanceTransactionList(override val url: String,
-                                    override val hasMore: Boolean,
-                                    override val data: List[BalanceTransaction],
-                                    override val totalCount: Option[Long])
-      extends Collections.List[BalanceTransaction](url, hasMore, data, totalCount)
+  case class BalanceTransactionList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[BalanceTransaction],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[BalanceTransaction](url, hasMore, data, totalCount)
 
   object BalanceTransactionList extends Collections.ListJsonMappers[BalanceTransaction] {
     implicit val balanceTransactionListDecoder: Decoder[BalanceTransactionList] =
@@ -316,7 +329,8 @@ object Balances extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[BalanceTransactionList]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[BalanceTransactionList]] = {
     val finalUrl = {
       val totalCountUrl =
         if (includeTotalCount)
@@ -329,9 +343,11 @@ object Balances extends LazyLogging {
       val created: Uri =
         (balanceHistoryListInput.created, balanceHistoryListInput.availableOn) match {
           case (Some(createdInput), Some(availableOnInput)) =>
-            listFilterInputToUri(availableOnInput,
-                                 listFilterInputToUri(createdInput, baseUrl, "created"),
-                                 "available_on")
+            listFilterInputToUri(
+              availableOnInput,
+              listFilterInputToUri(createdInput, baseUrl, "created"),
+              "available_on"
+            )
           case (Some(createdInput), None) =>
             listFilterInputToUri(createdInput, baseUrl, "created")
           case (None, Some(availableInput)) =>
@@ -348,7 +364,8 @@ object Balances extends LazyLogging {
           "starting_after" -> balanceHistoryListInput.startingAfter,
           "transfer"       -> balanceHistoryListInput.transfer.map(_.toString),
           "type"           -> balanceHistoryListInput.`type`.map(_.id)
-        ))
+        )
+      )
 
       val query = queries.foldLeft(created.query())((a, b) => b +: a)
       created.withQuery(query)

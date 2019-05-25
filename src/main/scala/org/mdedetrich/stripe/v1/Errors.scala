@@ -69,58 +69,67 @@ object Errors {
     * @param message
     * @param param Note that if we get an empty String param from stripe, this will get mapped to [[None]]
     */
-  sealed abstract class Error(val httpCode: Long,
-                              val `type`: Type,
-                              val code: Option[Code],
-                              val message: Option[String],
-                              val param: Option[String])
-      extends Exception {
+  sealed abstract class Error(
+      val httpCode: Long,
+      val `type`: Type,
+      val code: Option[Code],
+      val message: Option[String],
+      val param: Option[String]
+  ) extends Exception {
     override def toString: String   = s"""Error($httpCode, ${`type`}, $code, $message, $param)"""
     override def getMessage: String = toString
   }
 
   object Error {
 
-    case class BadRequest(override val `type`: Type,
-                          override val code: Option[Code],
-                          override val message: Option[String],
-                          override val param: Option[String])
-        extends Error(400, `type`, code, message, param)
+    case class BadRequest(
+        override val `type`: Type,
+        override val code: Option[Code],
+        override val message: Option[String],
+        override val param: Option[String]
+    ) extends Error(400, `type`, code, message, param)
 
-    case class Unauthorized(override val `type`: Type,
-                            override val code: Option[Code],
-                            override val message: Option[String],
-                            override val param: Option[String])
-        extends Error(401, `type`, code, message, param)
+    case class Unauthorized(
+        override val `type`: Type,
+        override val code: Option[Code],
+        override val message: Option[String],
+        override val param: Option[String]
+    ) extends Error(401, `type`, code, message, param)
 
-    case class RequestFailed(override val `type`: Type,
-                             override val code: Option[Code],
-                             override val message: Option[String],
-                             override val param: Option[String])
-        extends Error(402, `type`, code, message, param)
+    case class RequestFailed(
+        override val `type`: Type,
+        override val code: Option[Code],
+        override val message: Option[String],
+        override val param: Option[String]
+    ) extends Error(402, `type`, code, message, param)
 
-    case class NotFound(override val `type`: Type,
-                        override val code: Option[Code],
-                        override val message: Option[String],
-                        override val param: Option[String])
-        extends Error(404, `type`, code, message, param)
+    case class NotFound(
+        override val `type`: Type,
+        override val code: Option[Code],
+        override val message: Option[String],
+        override val param: Option[String]
+    ) extends Error(404, `type`, code, message, param)
 
-    case class TooManyRequests(override val `type`: Type,
-                               override val code: Option[Code],
-                               override val message: Option[String],
-                               override val param: Option[String])
-        extends Error(429, `type`, code, message, param)
+    case class TooManyRequests(
+        override val `type`: Type,
+        override val code: Option[Code],
+        override val message: Option[String],
+        override val param: Option[String]
+    ) extends Error(429, `type`, code, message, param)
   }
 
   private def errorDecoder(
-      c: HCursor): (Result[Type], Result[Option[Code]], Result[Option[String]], Result[Option[String]]) =
-    (c.downField("type").as[Type],
-     c.downField("code").as[Option[Code]],
-     c.downField("message").as[Option[String]],
-     c.downField("param").as[Option[String]].map {
-       case Some(s) if s.isEmpty => None
-       case s                    => s
-     })
+      c: HCursor
+  ): (Result[Type], Result[Option[Code]], Result[Option[String]], Result[Option[String]]) =
+    (
+      c.downField("type").as[Type],
+      c.downField("code").as[Option[Code]],
+      c.downField("message").as[Option[String]],
+      c.downField("param").as[Option[String]].map {
+        case Some(s) if s.isEmpty => None
+        case s                    => s
+      }
+    )
 
   import cats.syntax.apply._
   import cats.instances.either._

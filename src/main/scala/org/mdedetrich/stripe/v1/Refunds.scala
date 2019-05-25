@@ -55,15 +55,17 @@ object Refunds extends LazyLogging {
     * @param receiptNumber      This is the transaction number that appears on
     *                           email receipts sent for this refund.
     */
-  case class Refund(id: String,
-                    amount: BigDecimal,
-                    balanceTransaction: String,
-                    charge: String,
-                    created: OffsetDateTime,
-                    currency: Currency,
-                    metadata: Option[Map[String, String]],
-                    reason: Reason,
-                    receiptNumber: Option[String])
+  case class Refund(
+      id: String,
+      amount: BigDecimal,
+      balanceTransaction: String,
+      charge: String,
+      created: OffsetDateTime,
+      currency: Currency,
+      metadata: Option[Map[String, String]],
+      reason: Reason,
+      receiptNumber: Option[String]
+  )
 
   implicit val refundDecoder: Decoder[Refund] = Decoder.forProduct9(
     "id",
@@ -101,7 +103,8 @@ object Refunds extends LazyLogging {
         x.metadata,
         x.reason,
         x.receiptNumber
-    ))
+      )
+  )
 
   /**
     * @see https://stripe.com/docs/api#create_refund
@@ -139,12 +142,14 @@ object Refunds extends LazyLogging {
     *                             A transfer can only be reversed by the application
     *                             that created the charge.
     */
-  case class RefundInput(charge: String,
-                         reason: Reason,
-                         amount: Option[BigDecimal] = None,
-                         metadata: Map[String, String] = Map.empty,
-                         refundApplicationFee: Option[Boolean] = None,
-                         reverseTransfer: Option[Boolean] = None)
+  case class RefundInput(
+      charge: String,
+      reason: Reason,
+      amount: Option[BigDecimal] = None,
+      metadata: Map[String, String] = Map.empty,
+      refundApplicationFee: Option[Boolean] = None,
+      reverseTransfer: Option[Boolean] = None
+  )
 
   implicit val refundInputDecoder: Decoder[RefundInput] = Decoder.forProduct6(
     "charge",
@@ -182,7 +187,8 @@ object Refunds extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Refund]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Refund]] = {
 
     val postFormParameters = toPostParams(refundInput)
     logger.debug(s"Generated POST form parameters is $postFormParameters")
@@ -192,11 +198,13 @@ object Refunds extends LazyLogging {
     createRequestPOST[Refund](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey,
-                      endpoint: Endpoint,
-                      client: HttpExt,
-                      materializer: Materializer,
-                      executionContext: ExecutionContext): Future[Try[Refund]] = {
+  def get(id: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[Refund]] = {
     val finalUrl = endpoint.url + s"/v1/refunds/$id"
 
     createRequestGET[Refund](finalUrl, logger)
@@ -222,16 +230,19 @@ object Refunds extends LazyLogging {
     *                      [[startingAfter]]=obj_foo in order to fetch the
     *                      next page of the list.
     */
-  case class RefundListInput(charge: Option[String] = None,
-                             endingBefore: Option[String] = None,
-                             limit: Option[Long] = None,
-                             startingAfter: Option[String] = None)
+  case class RefundListInput(
+      charge: Option[String] = None,
+      endingBefore: Option[String] = None,
+      limit: Option[Long] = None,
+      startingAfter: Option[String] = None
+  )
 
-  case class RefundList(override val url: String,
-                        override val hasMore: Boolean,
-                        override val data: List[Refund],
-                        override val totalCount: Option[Long])
-      extends Collections.List[Refund](
+  case class RefundList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[Refund],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[Refund](
         url,
         hasMore,
         data,
@@ -251,7 +262,8 @@ object Refunds extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[RefundList]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[RefundList]] = {
     val finalUrl = {
       val totalCountUrl =
         if (includeTotalCount)
@@ -267,7 +279,8 @@ object Refunds extends LazyLogging {
           "ending_before"  -> refundListInput.endingBefore,
           "limit"          -> refundListInput.limit.map(_.toString),
           "starting_after" -> refundListInput.startingAfter
-        ))
+        )
+      )
 
       Uri(baseUrl).withQuery(Query(query))
     }

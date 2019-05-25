@@ -38,10 +38,9 @@ object CustomerIT {
   val defaultTestCard           = "4242424242424242"
   val cardBypassingPendingCheck = "4000000000000077"
 
-  def createCustomerWithCC(cardNumber: String = defaultTestCard)(
-      implicit client: HttpExt,
-      materializer: Materializer,
-      executionContext: ExecutionContext): Future[Customer] = {
+  def createCustomerWithCC(
+      cardNumber: String = defaultTestCard
+  )(implicit client: HttpExt, materializer: Materializer, executionContext: ExecutionContext): Future[Customer] = {
     val in2years   = OffsetDateTime.now.plusYears(2)
     val cardData   = TokenData.Card(in2years.getMonthValue, in2years.getYear, cardNumber).copy(cvc = Option("123"))
     val tokenInput = TokenInput(cardData)

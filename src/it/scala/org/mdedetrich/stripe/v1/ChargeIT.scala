@@ -23,10 +23,14 @@ class ChargeIT extends IntegrationTest {
         token <- handle(Tokens.create(tokenInput)())
         charge <- handle(
           Charges.create(
-            Charges.ChargeInput(amount = BigDecimal(15000),
-                                Currency.`Euro`,
-                                capture = true,
-                                source = Some(SourceInput.Token(token.id))))())
+            Charges.ChargeInput(
+              amount = BigDecimal(15000),
+              Currency.`Euro`,
+              capture = true,
+              source = Some(SourceInput.Token(token.id))
+            )
+          )()
+        )
       } yield charge
 
       chargeF.map { charge =>
@@ -65,10 +69,12 @@ object ChargeIT {
   def chargeInput(customer: Customer): ChargeInput                      = chargeInput(None, customer).copy(applicationFee = None)
   def chargeInput(destination: String, customer: Customer): ChargeInput = chargeInput(Option(destination), customer)
   def chargeInput(destination: Option[String], customer: Customer): ChargeInput =
-    Charges.ChargeInput(amount = BigDecimal(1500),
-                        Currency.`Euro`,
-                        capture = true,
-                        customer = Option(customer),
-                        applicationFee = Option(BigDecimal(100)),
-                        destination = destination)
+    Charges.ChargeInput(
+      amount = BigDecimal(1500),
+      Currency.`Euro`,
+      capture = true,
+      customer = Option(customer),
+      applicationFee = Option(BigDecimal(100)),
+      destination = destination
+    )
 }

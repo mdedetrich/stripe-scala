@@ -72,21 +72,22 @@ object BankAccounts extends LazyLogging {
     *                           If a transfer sent to this bank account fails, we’ll set the status to errored and will
     *                           not continue to send transfers until the bank details are updated.
     */
-  case class BankAccount(id: String,
-                         account: Option[String],
-                         accountHolderName: Option[String],
-                         accountHolderType: Option[AccountHolderType],
-                         bankName: String,
-                         country: String,
-                         currency: Currency,
-                         defaultForCurrency: Option[Boolean],
-                         fingerprint: String,
-                         last4: String,
-                         metadata: Option[Map[String, String]],
-                         name: Option[String],
-                         routingNumber: String,
-                         status: Status)
-      extends StripeObject
+  case class BankAccount(
+      id: String,
+      account: Option[String],
+      accountHolderName: Option[String],
+      accountHolderType: Option[AccountHolderType],
+      bankName: String,
+      country: String,
+      currency: Currency,
+      defaultForCurrency: Option[Boolean],
+      fingerprint: String,
+      last4: String,
+      metadata: Option[Map[String, String]],
+      name: Option[String],
+      routingNumber: String,
+      status: Status
+  ) extends StripeObject
 
   implicit val bankAccountDecoder: Decoder[BankAccount] = Decoder.forProduct14(
     "id",
@@ -139,7 +140,8 @@ object BankAccounts extends LazyLogging {
         x.name,
         x.routingNumber,
         x.status
-    ))
+      )
+  )
 
   /**
     * @see https://stripe.com/docs/api#create_bank_account-source | external_account
@@ -163,13 +165,14 @@ object BankAccounts extends LazyLogging {
         *                          For US bank accounts, this is required and should be the ACH routing number, not the wire
         *                          routing number. If you are providing an IBAN for [[accountNumber]], this field is not required.
         */
-      case class Object(accountNumber: String,
-                        country: String,
-                        currency: Currency,
-                        accountHolderName: Option[String] = None,
-                        accountHolderType: Option[AccountHolderType] = None,
-                        routingNumber: Option[String] = None)
-          extends Source
+      case class Object(
+          accountNumber: String,
+          country: String,
+          currency: Currency,
+          accountHolderName: Option[String] = None,
+          accountHolderType: Option[AccountHolderType] = None,
+          routingNumber: Option[String] = None
+      ) extends Source
 
       implicit val sourceObjectDecoder: Decoder[Object] = Decoder.forProduct6(
         "account_number",
@@ -219,13 +222,14 @@ object BankAccounts extends LazyLogging {
         *                          For US bank accounts, this is required and should be the ACH routing number, not the wire
         *                          routing number. If you are providing an IBAN for [[accountNumber]], this field is not required.
         */
-      case class Object(accountNumber: String,
-                        country: String,
-                        currency: Currency,
-                        accountHolderName: Option[String] = None,
-                        accountHolderType: Option[AccountHolderType] = None,
-                        routingNumber: Option[String] = None)
-          extends ExternalAccount
+      case class Object(
+          accountNumber: String,
+          country: String,
+          currency: Currency,
+          accountHolderName: Option[String] = None,
+          accountHolderType: Option[AccountHolderType] = None,
+          routingNumber: Option[String] = None
+      ) extends ExternalAccount
 
       implicit val externalAccountObjectDecoder: Decoder[Object] = Decoder.forProduct6(
         "account_number",
@@ -272,21 +276,25 @@ object BankAccounts extends LazyLogging {
     *                           object. It can be useful for storing additional information about the
     *                           external account in a structured format.
     */
-  case class BankAccountInput(bankAccountData: BankAccountData,
-                              defaultForCurrency: Option[Currency],
-                              metadata: Option[Map[String, String]])
+  case class BankAccountInput(
+      bankAccountData: BankAccountData,
+      defaultForCurrency: Option[Currency],
+      metadata: Option[Map[String, String]]
+  )
 
   def create(customerId: String, bankAccountInput: BankAccountInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[BankAccount]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[BankAccount]] = {
     val postFormParameters =
       PostParams.flatten(
         Map(
           "default_for_currency" -> bankAccountInput.defaultForCurrency.map(_.toString)
-        )) ++ {
+        )
+      ) ++ {
         bankAccountInput.bankAccountData match {
           case BankAccountData.ExternalAccount.Token(id) =>
             Map("external_account" -> id)
@@ -301,7 +309,8 @@ object BankAccounts extends LazyLogging {
                 "account_holder_name" -> externalAccount.accountHolderName,
                 "account_holder_type" -> externalAccount.accountHolderType.map(_.id),
                 "routing_number"      -> externalAccount.routingNumber
-              ))
+              )
+            )
             mapToPostParams(Option(map), "external_account")
           case source: BankAccountData.Source.Object =>
             val map = PostParams.flatten(
@@ -312,7 +321,8 @@ object BankAccounts extends LazyLogging {
                 "account_holder_name" -> source.accountHolderName,
                 "account_holder_type" -> source.accountHolderType.map(_.id),
                 "routing_number"      -> source.routingNumber
-              ))
+              )
+            )
             mapToPostParams(Option(map), "source")
         }
       } ++ mapToPostParams(bankAccountInput.metadata, "metadata")
@@ -324,11 +334,13 @@ object BankAccounts extends LazyLogging {
     createRequestPOST[BankAccount](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(customerId: String, bankAccountId: String)(implicit apiKey: ApiKey,
-                                                     endpoint: Endpoint,
-                                                     client: HttpExt,
-                                                     materializer: Materializer,
-                                                     executionContext: ExecutionContext): Future[Try[BankAccount]] = {
+  def get(customerId: String, bankAccountId: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[BankAccount]] = {
     val finalUrl =
       endpoint.url + s"/v1/customers/$customerId/sources/$bankAccountId"
 
@@ -340,7 +352,8 @@ object BankAccounts extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[DeleteResponse]] = {
     val finalUrl =
       endpoint.url + s"/v1/customers/$customerId/sources/$bankAccountId"
 
@@ -361,15 +374,18 @@ object BankAccounts extends LazyLogging {
     *                      subsequent call can include [[startingAfter]]=obj_foo in order
     *                      to fetch the next page of the list.
     */
-  case class BankAccountListInput(endingBefore: Option[String] = None,
-                                  limit: Option[Long] = None,
-                                  startingAfter: Option[String] = None)
+  case class BankAccountListInput(
+      endingBefore: Option[String] = None,
+      limit: Option[Long] = None,
+      startingAfter: Option[String] = None
+  )
 
-  case class BankAccountList(override val url: String,
-                             override val hasMore: Boolean,
-                             override val data: List[BankAccount],
-                             override val totalCount: Option[Long])
-      extends Collections.List[BankAccount](url, hasMore, data, totalCount)
+  case class BankAccountList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[BankAccount],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[BankAccount](url, hasMore, data, totalCount)
 
   object BankAccountList extends Collections.ListJsonMappers[BankAccount] {
     implicit val bankAccountListDecoder: Decoder[BankAccountList] =
@@ -383,7 +399,8 @@ object BankAccounts extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[BankAccountList]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[BankAccountList]] = {
     val finalUrl = {
       val totalCountUrl =
         if (includeTotalCount)
@@ -400,7 +417,8 @@ object BankAccounts extends LazyLogging {
           "ending_before"  -> bankAccountListInput.endingBefore,
           "limit"          -> bankAccountListInput.limit.map(_.toString),
           "starting_after" -> bankAccountListInput.startingAfter
-        ))
+        )
+      )
 
       Uri(baseUrl).withQuery(Query(queries))
     }

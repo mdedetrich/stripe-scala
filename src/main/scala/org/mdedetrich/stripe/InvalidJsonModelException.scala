@@ -12,12 +12,13 @@ import io.circe.{DecodingFailure, Json}
   * @param jsonResponse   The original json response
   * @param error          The error as reported from circe
   */
-case class InvalidJsonModelException(httpStatusCode: Long,
-                                     url: Uri,
-                                     postParameters: Option[Map[String, String]],
-                                     postJson: Option[Json],
-                                     jsonResponse: Json,
-                                     error: DecodingFailure)
-    extends Exception {
+case class InvalidJsonModelException(
+    httpStatusCode: Long,
+    url: Uri,
+    postParameters: Option[Map[String, String]],
+    postJson: Option[Json],
+    jsonResponse: Json,
+    error: DecodingFailure
+) extends Exception {
   override def getMessage = s"Invalid JSON model, errors are $error"
 }

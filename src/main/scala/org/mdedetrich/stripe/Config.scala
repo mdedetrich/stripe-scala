@@ -15,7 +15,8 @@ object Config {
   implicit lazy val apiKey = ApiKey(conf.as[String]("stripe-scala.api-key"))
 
   implicit lazy val fileUploadChunkTimeout = FileUploadChunkTimeout(
-    conf.as[FiniteDuration]("stripe-scala.file-upload-chunk-timeout"))
+    conf.as[FiniteDuration]("stripe-scala.file-upload-chunk-timeout")
+  )
 
   val numberOfRetries = conf.as[Int]("stripe-scala.number-of-retries")
 }

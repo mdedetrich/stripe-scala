@@ -108,23 +108,25 @@ object Subscriptions extends LazyLogging {
     * @param trialStart            If the subscription has a trial,
     *                              the beginning of that trial.
     */
-  case class Subscription(id: String,
-                          cancelAtPeriodEnd: Boolean,
-                          currentPeriodEnd: OffsetDateTime,
-                          currentPeriodStart: OffsetDateTime,
-                          customer: String,
-                          plan: Plan,
-                          quantity: Long,
-                          start: OffsetDateTime,
-                          status: Status,
-                          applicationFeePercent: Option[BigDecimal] = None,
-                          canceledAt: Option[OffsetDateTime] = None,
-                          discount: Option[Discount] = None,
-                          endedAt: Option[OffsetDateTime] = None,
-                          metadata: Option[Map[String, String]] = None,
-                          taxPercent: Option[BigDecimal] = None,
-                          trialEnd: Option[OffsetDateTime] = None,
-                          trialStart: Option[OffsetDateTime] = None)
+  case class Subscription(
+      id: String,
+      cancelAtPeriodEnd: Boolean,
+      currentPeriodEnd: OffsetDateTime,
+      currentPeriodStart: OffsetDateTime,
+      customer: String,
+      plan: Plan,
+      quantity: Long,
+      start: OffsetDateTime,
+      status: Status,
+      applicationFeePercent: Option[BigDecimal] = None,
+      canceledAt: Option[OffsetDateTime] = None,
+      discount: Option[Discount] = None,
+      endedAt: Option[OffsetDateTime] = None,
+      metadata: Option[Map[String, String]] = None,
+      taxPercent: Option[BigDecimal] = None,
+      trialEnd: Option[OffsetDateTime] = None,
+      trialStart: Option[OffsetDateTime] = None
+  )
 
   implicit val subscriptionDecoder: Decoder[Subscription] = Decoder.forProduct17(
     "id",
@@ -167,24 +169,27 @@ object Subscriptions extends LazyLogging {
     "trial_start"
   )(
     x =>
-      (x.id,
-       "subscription",
-       x.applicationFeePercent,
-       x.cancelAtPeriodEnd,
-       x.canceledAt,
-       x.currentPeriodEnd,
-       x.currentPeriodStart,
-       x.customer,
-       x.discount,
-       x.endedAt,
-       x.metadata,
-       x.plan,
-       x.quantity,
-       x.start,
-       x.status,
-       x.taxPercent,
-       x.trialEnd,
-       x.trialEnd))
+      (
+        x.id,
+        "subscription",
+        x.applicationFeePercent,
+        x.cancelAtPeriodEnd,
+        x.canceledAt,
+        x.currentPeriodEnd,
+        x.currentPeriodStart,
+        x.customer,
+        x.discount,
+        x.endedAt,
+        x.metadata,
+        x.plan,
+        x.quantity,
+        x.start,
+        x.status,
+        x.taxPercent,
+        x.trialEnd,
+        x.trialEnd
+      )
+  )
 
   sealed abstract class Source
 
@@ -212,17 +217,18 @@ object Subscriptions extends LazyLogging {
       *                 this value.
       * @param name     Cardholder's full name.
       */
-    case class Card(expMonth: Int,
-                    expYear: Int,
-                    number: String,
-                    addressCountry: Option[String],
-                    addressLine1: Option[String],
-                    addressLine2: Option[String],
-                    addressState: Option[String],
-                    addressZip: Option[String],
-                    cvc: Option[String],
-                    name: Option[String])
-        extends Source
+    case class Card(
+        expMonth: Int,
+        expYear: Int,
+        number: String,
+        addressCountry: Option[String],
+        addressLine1: Option[String],
+        addressLine2: Option[String],
+        addressState: Option[String],
+        addressZip: Option[String],
+        cvc: Option[String],
+        name: Option[String]
+    ) extends Source
         with NumberCardSource
   }
 
@@ -348,20 +354,23 @@ object Subscriptions extends LazyLogging {
     *                              can be provided to end the customer's
     *                              trial immediately.
     */
-  case class SubscriptionInput(plan: String,
-                               applicationFeePercent: Option[BigDecimal] = None,
-                               coupon: Option[String] = None,
-                               source: Option[Source] = None,
-                               quantity: Option[Long] = None,
-                               metadata: Option[Map[String, String]] = None,
-                               taxPercent: Option[BigDecimal] = None,
-                               trialEnd: Option[OffsetDateTime] = None)
+  case class SubscriptionInput(
+      plan: String,
+      applicationFeePercent: Option[BigDecimal] = None,
+      coupon: Option[String] = None,
+      source: Option[Source] = None,
+      quantity: Option[Long] = None,
+      metadata: Option[Map[String, String]] = None,
+      taxPercent: Option[BigDecimal] = None,
+      trialEnd: Option[OffsetDateTime] = None
+  )
 
-  case class SubscriptionList(override val url: String,
-                              override val hasMore: Boolean,
-                              override val data: List[Subscription],
-                              override val totalCount: Option[Long])
-      extends Collections.List[Subscription](url, hasMore, data, totalCount)
+  case class SubscriptionList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[Subscription],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[Subscription](url, hasMore, data, totalCount)
 
   object SubscriptionList extends Collections.ListJsonMappers[Subscription] {
     implicit val couponListDecoder: Decoder[SubscriptionList] =
@@ -376,7 +385,8 @@ object Subscriptions extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Subscription]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Subscription]] = {
 
     val postFormParameters = PostParams.flatten(
       Map(
@@ -386,7 +396,8 @@ object Subscriptions extends LazyLogging {
         "quantity"                -> subscriptionInput.quantity.map(_.toString),
         "tax_percent"             -> subscriptionInput.taxPercent.map(_.toString()),
         "trial_end"               -> subscriptionInput.trialEnd.map(stripeDateTimeParamWrites)
-      )) ++ mapToPostParams(subscriptionInput.metadata, "metadata") ++ {
+      )
+    ) ++ mapToPostParams(subscriptionInput.metadata, "metadata") ++ {
       subscriptionInput.source match {
         case Some(
             Source.Card(
@@ -400,7 +411,8 @@ object Subscriptions extends LazyLogging {
               addressZip,
               cvc,
               name
-            )) =>
+            )
+            ) =>
           val map = PostParams.flatten(
             Map(
               "exp_month"       -> Option(expMonth.toString),
@@ -413,7 +425,8 @@ object Subscriptions extends LazyLogging {
               "address_zip"     -> addressZip,
               "cvc"             -> cvc,
               "name"            -> name
-            ))
+            )
+          )
           mapToPostParams(Option(map), "card")
         case Some(Source.Token(id)) =>
           Map("source" -> id)

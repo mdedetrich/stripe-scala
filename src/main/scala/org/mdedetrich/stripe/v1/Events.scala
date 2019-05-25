@@ -141,11 +141,12 @@ object Events extends LazyLogging {
     "account"
   )(x => Event.unapply(x).get)
 
-  case class EventList(override val url: String,
-                       override val hasMore: Boolean,
-                       override val data: List[Event],
-                       override val totalCount: Option[Long])
-      extends Collections.List[Event](url, hasMore, data, totalCount)
+  case class EventList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[Event],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[Event](url, hasMore, data, totalCount)
 
   object EventList extends Collections.ListJsonMappers[Event] {
     implicit val eventListDecoder: Decoder[EventList] =
@@ -154,11 +155,13 @@ object Events extends LazyLogging {
       listEncoder[EventList]
   }
 
-  def get(id: String, stripeAccount: Option[String] = None)(implicit apiKey: ApiKey,
-                                                            endpoint: Endpoint,
-                                                            client: HttpExt,
-                                                            materializer: Materializer,
-                                                            executionContext: ExecutionContext): Future[Try[Event]] = {
+  def get(id: String, stripeAccount: Option[String] = None)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[Event]] = {
     val finalUrl = endpoint.url + s"/v1/events/$id"
     createRequestGET[Event](finalUrl, logger, stripeAccount)
   }

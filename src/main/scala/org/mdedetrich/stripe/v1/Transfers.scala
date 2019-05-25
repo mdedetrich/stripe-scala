@@ -19,11 +19,12 @@ import scala.util.Try
 
 object Transfers extends LazyLogging {
 
-  case class TransferReversalList(override val url: String,
-                                  override val hasMore: Boolean,
-                                  override val data: List[TransferReversal],
-                                  override val totalCount: Option[Long])
-      extends Collections.List[TransferReversal](
+  case class TransferReversalList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[TransferReversal],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[TransferReversal](
         url,
         hasMore,
         data,
@@ -113,31 +114,32 @@ object Transfers extends LazyLogging {
     implicit val sourceTypeEncoder: Encoder[SourceType] = enumeratum.Circe.encoder(SourceType)
   }
 
-  case class Transfer(id: String,
-                      amount: BigDecimal,
-                      amountReversed: BigDecimal,
-                      applicationFee: Option[BigDecimal],
-                      balanceTransaction: String,
-                      bankAccount: Option[BankAccount],
-                      created: OffsetDateTime,
-                      currency: Currency,
-                      date: OffsetDateTime,
-                      description: Option[String],
-                      destination: String,
-                      destinationPayment: Option[String],
-                      failureCode: Option[FailureCode],
-                      failureMessage: Option[String],
-                      livemode: Boolean,
-                      metadata: Option[Map[String, String]],
-                      recipient: Option[String],
-                      reversals: TransferReversalList,
-                      reversed: Boolean,
-                      sourceTransaction: Option[String],
-                      sourceType: SourceType,
-                      statementDescriptor: Option[String],
-                      status: Status,
-                      `type`: Type)
-      extends StripeObject
+  case class Transfer(
+      id: String,
+      amount: BigDecimal,
+      amountReversed: BigDecimal,
+      applicationFee: Option[BigDecimal],
+      balanceTransaction: String,
+      bankAccount: Option[BankAccount],
+      created: OffsetDateTime,
+      currency: Currency,
+      date: OffsetDateTime,
+      description: Option[String],
+      destination: String,
+      destinationPayment: Option[String],
+      failureCode: Option[FailureCode],
+      failureMessage: Option[String],
+      livemode: Boolean,
+      metadata: Option[Map[String, String]],
+      recipient: Option[String],
+      reversals: TransferReversalList,
+      reversed: Boolean,
+      sourceTransaction: Option[String],
+      sourceType: SourceType,
+      statementDescriptor: Option[String],
+      status: Status,
+      `type`: Type
+  ) extends StripeObject
 
   private val transferDecoderOne = Decoder.forProduct22(
     "id",
@@ -186,42 +188,46 @@ object Transfers extends LazyLogging {
       _: Option[String],
       _: SourceType,
       _: Option[String]
-    ))
+    )
+  )
 
   private val transferDecoderTwo = Decoder.forProduct2("status", "type")(
     Tuple2.apply(
       _: Status,
       _: Type
-    ))
+    )
+  )
 
   implicit val transferDecoder: Decoder[Transfer] = Decoder.instance[Transfer] { c =>
     for {
       one <- transferDecoderOne.apply(c)
       two <- transferDecoderTwo.apply(c)
     } yield {
-      val (id,
-           amount,
-           amountReversed,
-           applicationFee,
-           balanceTransaction,
-           bankAccount,
-           created,
-           currency,
-           date,
-           description,
-           destination,
-           destinationPayment,
-           failureCode,
-           failureMessage,
-           livemode,
-           metadata,
-           recipient,
-           reversals,
-           reversed,
-           sourceTransaction,
-           sourceType,
-           statementDescriptor) = one
-      val (status, type_)       = two
+      val (
+        id,
+        amount,
+        amountReversed,
+        applicationFee,
+        balanceTransaction,
+        bankAccount,
+        created,
+        currency,
+        date,
+        description,
+        destination,
+        destinationPayment,
+        failureCode,
+        failureMessage,
+        livemode,
+        metadata,
+        recipient,
+        reversals,
+        reversed,
+        sourceTransaction,
+        sourceType,
+        statementDescriptor
+      )                   = one
+      val (status, type_) = two
       Transfer(
         id,
         amount,
@@ -276,28 +282,31 @@ object Transfers extends LazyLogging {
     "source_type"
   )(
     x =>
-      (x.id,
-       "transfer",
-       x.amount,
-       x.amountReversed,
-       x.applicationFee,
-       x.balanceTransaction,
-       x.bankAccount,
-       x.created,
-       x.currency,
-       x.date,
-       x.description,
-       x.destination,
-       x.destinationPayment,
-       x.failureCode,
-       x.failureMessage,
-       x.livemode,
-       x.metadata,
-       x.recipient,
-       x.reversals,
-       x.reversed,
-       x.sourceTransaction,
-       x.sourceType))
+      (
+        x.id,
+        "transfer",
+        x.amount,
+        x.amountReversed,
+        x.applicationFee,
+        x.balanceTransaction,
+        x.bankAccount,
+        x.created,
+        x.currency,
+        x.date,
+        x.description,
+        x.destination,
+        x.destinationPayment,
+        x.failureCode,
+        x.failureMessage,
+        x.livemode,
+        x.metadata,
+        x.recipient,
+        x.reversals,
+        x.reversed,
+        x.sourceTransaction,
+        x.sourceType
+      )
+  )
 
   private val transferEncoderTwo: Encoder[Transfer] = Encoder.forProduct3(
     "statement_descriptor",
@@ -343,15 +352,17 @@ object Transfers extends LazyLogging {
     * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
     * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
     */
-  case class TransferInput(amount: BigDecimal,
-                           currency: Currency,
-                           destination: String,
-                           description: Option[String] = None,
-                           metadata: Option[Map[String, String]] = None,
-                           sourceTransaction: Option[String] = None,
-                           statementDescriptor: Option[String] = None,
-                           stripeAccount: Option[String] = None,
-                           sourceType: Option[SourceType] = None) {
+  case class TransferInput(
+      amount: BigDecimal,
+      currency: Currency,
+      destination: String,
+      description: Option[String] = None,
+      metadata: Option[Map[String, String]] = None,
+      sourceTransaction: Option[String] = None,
+      statementDescriptor: Option[String] = None,
+      stripeAccount: Option[String] = None,
+      sourceType: Option[SourceType] = None
+  ) {
     statementDescriptor match {
       case Some(sD) if sD.length > 22 =>
         throw StatementDescriptorTooLong(sD.length)
@@ -372,7 +383,8 @@ object Transfers extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Transfer]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Transfer]] = {
     val postFormParameters = PostParams.flatten(
       Map(
         "amount"               -> Option(transferInput.amount.toString()),
@@ -382,43 +394,51 @@ object Transfers extends LazyLogging {
         "source_transaction"   -> transferInput.sourceTransaction,
         "statement_descriptor" -> transferInput.statementDescriptor,
         "source_type"          -> transferInput.sourceType.map(_.id)
-      )) ++ mapToPostParams(transferInput.metadata, "metadata")
+      )
+    ) ++ mapToPostParams(transferInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
     val finalUrl = endpoint.url + "/v1/transfers"
 
-    createRequestPOST[Transfer](finalUrl,
-                                postFormParameters,
-                                idempotencyKey,
-                                logger,
-                                stripeAccount = transferInput.stripeAccount)
+    createRequestPOST[Transfer](
+      finalUrl,
+      postFormParameters,
+      idempotencyKey,
+      logger,
+      stripeAccount = transferInput.stripeAccount
+    )
   }
 
-  def get(id: String)(implicit apiKey: ApiKey,
-                      endpoint: Endpoint,
-                      client: HttpExt,
-                      materializer: Materializer,
-                      executionContext: ExecutionContext): Future[Try[Transfer]] = {
+  def get(id: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[Transfer]] = {
     val finalUrl = endpoint.url + s"/v1/transfers/$id"
 
     createRequestGET[Transfer](finalUrl, logger)
   }
 
-  case class TransferListInput(created: Option[ListFilterInput] = None,
-                               date: Option[ListFilterInput] = None,
-                               destination: Option[String] = None,
-                               endingBefore: Option[String] = None,
-                               limit: Option[String] = None,
-                               recipient: Option[String] = None,
-                               startingAfter: Option[String] = None,
-                               status: Option[Status] = None)
+  case class TransferListInput(
+      created: Option[ListFilterInput] = None,
+      date: Option[ListFilterInput] = None,
+      destination: Option[String] = None,
+      endingBefore: Option[String] = None,
+      limit: Option[String] = None,
+      recipient: Option[String] = None,
+      startingAfter: Option[String] = None,
+      status: Option[Status] = None
+  )
 
-  case class TransferList(override val url: String,
-                          override val hasMore: Boolean,
-                          override val data: List[Transfers.Transfer],
-                          override val totalCount: Option[Long])
-      extends Collections.List[Transfer](
+  case class TransferList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[Transfers.Transfer],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[Transfer](
         url,
         hasMore,
         data,
@@ -438,7 +458,8 @@ object Transfers extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[TransferList]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[TransferList]] = {
 
     val finalUrl = {
       val totalCountUrl =
@@ -468,7 +489,8 @@ object Transfers extends LazyLogging {
           "recipient"      -> transferListInput.recipient,
           "starting_after" -> transferListInput.startingAfter,
           "status"         -> transferListInput.status.map(_.id)
-        ))
+        )
+      )
 
       val query = queries.foldLeft(created.query())((a, b) => b +: a)
       created.withQuery(query)

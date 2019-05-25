@@ -92,18 +92,19 @@ object Charges extends LazyLogging {
 
     case class Customer(id: String) extends SourceInput
 
-    case class Card(expMonth: Int,
-                    expYear: Int,
-                    number: String,
-                    cvc: Option[String],
-                    addressCity: Option[String],
-                    addressCountry: Option[String],
-                    addressLine1: Option[String],
-                    addressLine2: Option[String],
-                    name: Option[String],
-                    addressState: Option[String],
-                    addressZip: Option[String])
-        extends SourceInput
+    case class Card(
+        expMonth: Int,
+        expYear: Int,
+        number: String,
+        cvc: Option[String],
+        addressCity: Option[String],
+        addressCountry: Option[String],
+        addressLine1: Option[String],
+        addressLine2: Option[String],
+        name: Option[String],
+        addressState: Option[String],
+        addressZip: Option[String]
+    ) extends SourceInput
         with NumberCardSource
 
     case class Token(id: String) extends SourceInput
@@ -161,18 +162,21 @@ object Charges extends LazyLogging {
     "address_zip"
   )(
     x =>
-      (x.expMonth,
-       x.expYear,
-       x.number,
-       "card",
-       x.cvc,
-       x.addressCity,
-       x.addressCountry,
-       x.addressLine1,
-       x.addressLine2,
-       x.name,
-       x.addressState,
-       x.addressCity))
+      (
+        x.expMonth,
+        x.expYear,
+        x.number,
+        "card",
+        x.cvc,
+        x.addressCity,
+        x.addressCountry,
+        x.addressLine1,
+        x.addressLine2,
+        x.name,
+        x.addressState,
+        x.addressCity
+      )
+  )
 
   implicit val chargeSourceInputEncoder: Encoder[SourceInput] = Encoder.instance[SourceInput] {
     case s: SourceInput.Customer => implicitly[Encoder[SourceInput.Customer]].apply(s)
@@ -278,7 +282,8 @@ object Charges extends LazyLogging {
           x.addressState,
           x.addressZip,
           x.brand
-      ))
+        )
+    )
 
     implicit val accountSourceEncoder: Encoder[Account] = Encoder.forProduct3(
       "id",
@@ -290,7 +295,8 @@ object Charges extends LazyLogging {
           x.id,
           "account",
           x.applicationName
-      ))
+        )
+    )
 
   }
 
@@ -376,36 +382,37 @@ object Charges extends LazyLogging {
     * @param status              The status of the payment is either [[Status.Succeeded]],
     *                            [[Status.Pending]], or [[Status.Failed]].
     */
-  case class Charge(id: String,
-                    amount: BigDecimal,
-                    amountRefunded: BigDecimal,
-                    applicationFee: Option[String],
-                    balanceTransaction: Option[String],
-                    captured: Boolean,
-                    created: OffsetDateTime,
-                    currency: Currency,
-                    customer: Option[String],
-                    description: Option[String],
-                    destination: Option[String],
-                    dispute: Option[Dispute],
-                    failureCode: Option[Code],
-                    failureMessage: Option[String],
-                    fraudDetails: Option[FraudDetails],
-                    invoice: Option[String],
-                    livemode: Boolean,
-                    metadata: Option[Map[String, String]],
-                    order: Option[String],
-                    paid: Boolean,
-                    receiptEmail: Option[String],
-                    receiptNumber: Option[String],
-                    refunded: Boolean,
-                    refunds: Option[RefundList],
-                    shipping: Option[Shipping],
-                    source: Source,
-                    sourceTransfer: Option[String],
-                    statementDescriptor: Option[String],
-                    status: Status)
-      extends StripeObject
+  case class Charge(
+      id: String,
+      amount: BigDecimal,
+      amountRefunded: BigDecimal,
+      applicationFee: Option[String],
+      balanceTransaction: Option[String],
+      captured: Boolean,
+      created: OffsetDateTime,
+      currency: Currency,
+      customer: Option[String],
+      description: Option[String],
+      destination: Option[String],
+      dispute: Option[Dispute],
+      failureCode: Option[Code],
+      failureMessage: Option[String],
+      fraudDetails: Option[FraudDetails],
+      invoice: Option[String],
+      livemode: Boolean,
+      metadata: Option[Map[String, String]],
+      order: Option[String],
+      paid: Boolean,
+      receiptEmail: Option[String],
+      receiptNumber: Option[String],
+      refunded: Boolean,
+      refunds: Option[RefundList],
+      shipping: Option[Shipping],
+      source: Source,
+      sourceTransfer: Option[String],
+      statementDescriptor: Option[String],
+      status: Status
+  ) extends StripeObject
 
   private val chargeDecoderOne = Decoder.forProduct22(
     "id",
@@ -454,7 +461,8 @@ object Charges extends LazyLogging {
       _: Boolean,
       _: Option[String],
       _: Option[String]
-    ))
+    )
+  )
 
   private val chargeDecoderTwo = Decoder.forProduct7(
     "refunded",
@@ -473,35 +481,38 @@ object Charges extends LazyLogging {
       _: Option[String],
       _: Option[String],
       _: Status
-    ))
+    )
+  )
 
   implicit val chargeDecoder: Decoder[Charge] = Decoder.instance[Charge] { c =>
     for {
       one <- chargeDecoderOne.apply(c)
       two <- chargeDecoderTwo.apply(c)
     } yield {
-      val (id,
-           amount,
-           amountRefunded,
-           applicationFee,
-           balanceTransaction,
-           captured,
-           created,
-           currency,
-           customer,
-           description,
-           destination,
-           dispute,
-           failureCode,
-           failureMessage,
-           fraudDetails,
-           invoice,
-           livemode,
-           metadata,
-           order,
-           paid,
-           receiptEmail,
-           receiptNumber)                                                                    = one
+      val (
+        id,
+        amount,
+        amountRefunded,
+        applicationFee,
+        balanceTransaction,
+        captured,
+        created,
+        currency,
+        customer,
+        description,
+        destination,
+        dispute,
+        failureCode,
+        failureMessage,
+        fraudDetails,
+        invoice,
+        livemode,
+        metadata,
+        order,
+        paid,
+        receiptEmail,
+        receiptNumber
+      )                                                                                      = one
       val (refunded, refunds, shipping, source, sourceTransfer, statementDescriptor, status) = two
       Charge(
         id,
@@ -585,7 +596,8 @@ object Charges extends LazyLogging {
         x.order,
         x.paid,
         x.receiptEmail
-    ))
+      )
+  )
 
   private val chargeEncoderTwo: Encoder[Charge] = Encoder.forProduct8(
     "receipt_number",
@@ -607,7 +619,8 @@ object Charges extends LazyLogging {
         x.sourceTransfer,
         x.statementDescriptor,
         x.status
-    ))
+      )
+  )
 
   implicit val chargeEncoder: Encoder[Charge] = Encoder.instance[Charge] { x =>
     chargeEncoderOne.apply(x).deepMerge(chargeEncoderTwo.apply(x))
@@ -663,19 +676,20 @@ object Charges extends LazyLogging {
     * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
     * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
     */
-  case class ChargeInput(amount: BigDecimal,
-                         currency: Currency,
-                         capture: Boolean,
-                         applicationFee: Option[BigDecimal] = None,
-                         description: Option[String] = None,
-                         destination: Option[String] = None,
-                         metadata: Map[String, String] = Map.empty,
-                         receiptEmail: Option[String] = None,
-                         shipping: Option[Shipping] = None,
-                         customer: Option[SourceInput.Customer] = None,
-                         source: Option[SourceInput] = None,
-                         statementDescriptor: Option[String] = None)
-      extends StripeObject {
+  case class ChargeInput(
+      amount: BigDecimal,
+      currency: Currency,
+      capture: Boolean,
+      applicationFee: Option[BigDecimal] = None,
+      description: Option[String] = None,
+      destination: Option[String] = None,
+      metadata: Map[String, String] = Map.empty,
+      receiptEmail: Option[String] = None,
+      shipping: Option[Shipping] = None,
+      customer: Option[SourceInput.Customer] = None,
+      source: Option[SourceInput] = None,
+      statementDescriptor: Option[String] = None
+  ) extends StripeObject {
     statementDescriptor match {
       case Some(sD) if sD.length > 22 =>
         throw StatementDescriptorTooLong(sD.length)
@@ -718,7 +732,8 @@ object Charges extends LazyLogging {
         "receipt_email"        -> chargeInput.receiptEmail,
         "customer"             -> chargeInput.customer.map(_.id),
         "statement_descriptor" -> chargeInput.statementDescriptor
-      )) ++
+      )
+    ) ++
       PostParams.toPostParams("metadata", chargeInput.metadata) ++
       PostParams.toPostParams(chargeInput.source)
   }
@@ -730,7 +745,8 @@ object Charges extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Charge]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Charge]] = {
 
     val postFormParameters = PostParams.toPostParams(chargeInput)
 

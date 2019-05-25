@@ -45,14 +45,16 @@ object Tokens extends LazyLogging {
     * @param card        Hash describing the card used to make the charge
     * @param clientIp    IP address of the client that generated the token
     */
-  case class Token(id: String,
-                   created: OffsetDateTime,
-                   livemode: Boolean,
-                   `type`: Type,
-                   used: Boolean,
-                   bankAccount: Option[BankAccounts.BankAccount] = None,
-                   card: Option[Cards.Card] = None,
-                   clientIp: Option[String] = None)
+  case class Token(
+      id: String,
+      created: OffsetDateTime,
+      livemode: Boolean,
+      `type`: Type,
+      used: Boolean,
+      bankAccount: Option[BankAccounts.BankAccount] = None,
+      card: Option[Cards.Card] = None,
+      clientIp: Option[String] = None
+  )
 
   implicit val tokenDecoder: Decoder[Token] = Decoder.forProduct8(
     "id",
@@ -87,7 +89,8 @@ object Tokens extends LazyLogging {
         x.livemode,
         x.`type`,
         x.used
-    ))
+      )
+  )
 
   sealed abstract class TokenData
 
@@ -124,19 +127,20 @@ object Tokens extends LazyLogging {
       *                 always include this value.
       * @param name     Cardholder's full name.
       */
-    case class Card(expMonth: Int,
-                    expYear: Int,
-                    number: String,
-                    addressCity: Option[String] = None,
-                    addressCountry: Option[String] = None,
-                    addressLine1: Option[String] = None,
-                    addressLine2: Option[String] = None,
-                    addressState: Option[String] = None,
-                    addressZip: Option[String] = None,
-                    currency: Option[Currency] = None,
-                    cvc: Option[String] = None,
-                    name: Option[String] = None)
-        extends TokenData
+    case class Card(
+        expMonth: Int,
+        expYear: Int,
+        number: String,
+        addressCity: Option[String] = None,
+        addressCountry: Option[String] = None,
+        addressLine1: Option[String] = None,
+        addressLine2: Option[String] = None,
+        addressState: Option[String] = None,
+        addressZip: Option[String] = None,
+        currency: Option[Currency] = None,
+        cvc: Option[String] = None,
+        name: Option[String] = None
+    ) extends TokenData
 
     implicit val cardDecoder: Decoder[Card] = Decoder.forProduct12(
       "exp_month",
@@ -181,7 +185,8 @@ object Tokens extends LazyLogging {
           x.currency,
           x.cvc,
           x.name
-      ))
+        )
+    )
 
     /** Creates a single use token that wraps the details of a bank account.
       * This token can be used in place of a bank account dictionary with
@@ -210,13 +215,14 @@ object Tokens extends LazyLogging {
       *                          is required when attaching the bank account to
       *                          a customer object.
       */
-    case class BankAccount(accountNumber: String,
-                           country: String,
-                           currency: Currency,
-                           routingNumber: Option[String] = None,
-                           accountHolderName: Option[String] = None,
-                           accountHolderType: Option[BankAccounts.AccountHolderType] = None)
-        extends TokenData
+    case class BankAccount(
+        accountNumber: String,
+        country: String,
+        currency: Currency,
+        routingNumber: Option[String] = None,
+        accountHolderName: Option[String] = None,
+        accountHolderType: Option[BankAccounts.AccountHolderType] = None
+    ) extends TokenData
 
     implicit val bankAccountDecoder: Decoder[BankAccount] = Decoder.forProduct6(
       "account_number",
@@ -262,12 +268,14 @@ object Tokens extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Token]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Token]] = {
     val postFormParameters: Map[String, String] = {
       PostParams.flatten(
         Map(
           "customer" -> tokenInput.customer
-        )) ++ {
+        )
+      ) ++ {
         tokenInput.tokenData match {
           case card: TokenData.Card =>
             val map = PostParams.flatten(
@@ -284,7 +292,8 @@ object Tokens extends LazyLogging {
                 "currency"        -> card.currency.map(_.iso.toLowerCase),
                 "cvc"             -> card.cvc,
                 "name"            -> card.name
-              ))
+              )
+            )
             mapToPostParams(Option(map), "card")
           case bankAccount: TokenData.BankAccount =>
             val map = PostParams.flatten(
@@ -295,14 +304,16 @@ object Tokens extends LazyLogging {
                 "routing_number"      -> bankAccount.routingNumber,
                 "account_holder_name" -> bankAccount.accountHolderName,
                 "account_holder_type" -> bankAccount.accountHolderType.map(_.id)
-              ))
+              )
+            )
             mapToPostParams(Option(map), "bank_account")
           case pii: TokenData.PII =>
             val map = PostParams.flatten(
               Map(
                 "pii"                -> pii.pii,
                 "personal_id_number" -> Option(pii.personalIdNumber)
-              ))
+              )
+            )
             mapToPostParams(Option(map), "pii")
         }
       }
@@ -315,11 +326,13 @@ object Tokens extends LazyLogging {
     createRequestPOST[Token](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey,
-                      endpoint: Endpoint,
-                      client: HttpExt,
-                      materializer: Materializer,
-                      executionContext: ExecutionContext): Future[Try[Token]] = {
+  def get(id: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[Token]] = {
     val finalUrl = endpoint.url + s"/v1/tokens/$id"
 
     createRequestGET[Token](finalUrl, logger)

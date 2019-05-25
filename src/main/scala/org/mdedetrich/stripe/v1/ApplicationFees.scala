@@ -11,13 +11,14 @@ import io.circe.{Decoder, Encoder}
   */
 object ApplicationFees extends LazyLogging {
 
-  case class ApplicationFee(id: String,
-                            amount: BigDecimal,
-                            application: String,
-                            created: OffsetDateTime,
-                            currency: Currency,
-                            originatingTransaction: String)
-      extends StripeObject
+  case class ApplicationFee(
+      id: String,
+      amount: BigDecimal,
+      application: String,
+      created: OffsetDateTime,
+      currency: Currency,
+      originatingTransaction: String
+  ) extends StripeObject
 
   implicit val applicationFeeDecoder: Decoder[ApplicationFee] = Decoder.forProduct6(
     "id",
@@ -46,5 +47,6 @@ object ApplicationFees extends LazyLogging {
         x.created,
         x.currency,
         x.originatingTransaction
-    ))
+      )
+  )
 }

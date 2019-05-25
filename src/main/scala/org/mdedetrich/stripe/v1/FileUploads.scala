@@ -71,14 +71,16 @@ object FileUploads extends LazyLogging {
       apiKey: ApiKey,
       fileUploadChunkTimeout: FileUploadChunkTimeout,
       endpoint: FileUploadEndpoint,
-      executionContext: ExecutionContext): Future[Try[FileUpload]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[FileUpload]] = {
 
     val finalUrl = endpoint.url + s"/v1/files"
 
     val eventualFormData = for {
       fileStream <- HttpEntity(
         MediaTypes.`application/octet-stream`,
-        StreamConverters.fromInputStream(() => inputStream)).toStrict(fileUploadChunkTimeout.duration)
+        StreamConverters.fromInputStream(() => inputStream)
+      ).toStrict(fileUploadChunkTimeout.duration)
     } yield
       Multipart
         .FormData(
@@ -94,10 +96,12 @@ object FileUploads extends LazyLogging {
     val eventualReq = for {
       formData <- eventualFormData
     } yield
-      HttpRequest(uri = finalUrl,
-                  entity = formData,
-                  method = HttpMethods.POST,
-                  headers = List(Authorization(BasicHttpCredentials(apiKey.apiKey, ""))))
+      HttpRequest(
+        uri = finalUrl,
+        entity = formData,
+        method = HttpMethods.POST,
+        headers = List(Authorization(BasicHttpCredentials(apiKey.apiKey, "")))
+      )
 
     for {
       req      <- eventualReq

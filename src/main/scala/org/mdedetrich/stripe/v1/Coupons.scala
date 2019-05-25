@@ -59,20 +59,21 @@ object Coupons extends LazyLogging {
     * @param redeemBy         Date after which the coupon can no longer be redeemed
 
     */
-  case class Coupon(id: String,
-                    created: OffsetDateTime,
-                    duration: Duration,
-                    livemode: Boolean,
-                    timesRedeemed: Long,
-                    valid: Boolean,
-                    amountOff: Option[Long] = None,
-                    currency: Option[Currency] = None,
-                    durationInMonths: Option[Long] = None,
-                    maxRedemptions: Option[Long] = None,
-                    metadata: Option[Map[String, String]] = None,
-                    percentOff: Option[BigDecimal] = None,
-                    redeemBy: Option[OffsetDateTime] = None)
-      extends StripeObject
+  case class Coupon(
+      id: String,
+      created: OffsetDateTime,
+      duration: Duration,
+      livemode: Boolean,
+      timesRedeemed: Long,
+      valid: Boolean,
+      amountOff: Option[Long] = None,
+      currency: Option[Currency] = None,
+      durationInMonths: Option[Long] = None,
+      maxRedemptions: Option[Long] = None,
+      metadata: Option[Map[String, String]] = None,
+      percentOff: Option[BigDecimal] = None,
+      redeemBy: Option[OffsetDateTime] = None
+  ) extends StripeObject
 
   implicit val couponDecoder: Decoder[Coupon] = Decoder.forProduct13(
     "id",
@@ -107,20 +108,23 @@ object Coupons extends LazyLogging {
     "redeem_by"
   )(
     x =>
-      (x.id,
-       "coupon",
-       x.amountOff,
-       x.created,
-       x.currency,
-       x.duration,
-       x.durationInMonths,
-       x.livemode,
-       x.maxRedemptions,
-       x.metadata,
-       x.percentOff,
-       x.redeemBy,
-       x.timesRedeemed,
-       x.valid))
+      (
+        x.id,
+        "coupon",
+        x.amountOff,
+        x.created,
+        x.currency,
+        x.duration,
+        x.durationInMonths,
+        x.livemode,
+        x.maxRedemptions,
+        x.metadata,
+        x.percentOff,
+        x.redeemBy,
+        x.timesRedeemed,
+        x.valid
+      )
+  )
 
   /**
     * @see https://stripe.com/docs/api#create_coupon
@@ -153,15 +157,17 @@ object Coupons extends LazyLogging {
     *                         the coupon can be redeemed. After the [[redeemBy]] date, the
     *                         coupon can no longer be applied to new customers.
     */
-  case class CouponInput(duration: Duration,
-                         id: Option[String] = None,
-                         amountOff: Option[Long] = None,
-                         currency: Option[Currency] = None,
-                         durationInMonths: Option[Long] = None,
-                         maxRedemptions: Option[Long] = None,
-                         metadata: Option[Map[String, String]] = None,
-                         percentOff: Option[BigDecimal] = None,
-                         redeemBy: Option[OffsetDateTime] = None)
+  case class CouponInput(
+      duration: Duration,
+      id: Option[String] = None,
+      amountOff: Option[Long] = None,
+      currency: Option[Currency] = None,
+      durationInMonths: Option[Long] = None,
+      maxRedemptions: Option[Long] = None,
+      metadata: Option[Map[String, String]] = None,
+      percentOff: Option[BigDecimal] = None,
+      redeemBy: Option[OffsetDateTime] = None
+  )
 
   implicit val couponInputDecoder: Decoder[CouponInput] = Decoder.forProduct9(
     "duration",
@@ -192,7 +198,8 @@ object Coupons extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Coupon]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Coupon]] = {
     val postFormParameters = PostParams.flatten(
       Map(
         "id"                 -> couponInput.id,
@@ -203,7 +210,8 @@ object Coupons extends LazyLogging {
         "max_redemptions"    -> couponInput.maxRedemptions.map(_.toString),
         "percent_off"        -> couponInput.percentOff.map(_.toString()),
         "redeemBy"           -> couponInput.redeemBy.map(stripeDateTimeParamWrites)
-      )) ++ mapToPostParams(couponInput.metadata, "metadata")
+      )
+    ) ++ mapToPostParams(couponInput.metadata, "metadata")
 
     logger.debug(s"Generated POST form parameters is $postFormParameters")
 
@@ -212,11 +220,13 @@ object Coupons extends LazyLogging {
     createRequestPOST[Coupon](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey,
-                      endpoint: Endpoint,
-                      client: HttpExt,
-                      materializer: Materializer,
-                      executionContext: ExecutionContext): Future[Try[Coupon]] = {
+  def get(id: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[Coupon]] = {
     val finalUrl = endpoint.url + s"/v1/coupons/$id"
 
     createRequestGET[Coupon](finalUrl, logger)
@@ -227,7 +237,8 @@ object Coupons extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/coupons/$id"
 
     createRequestDELETE(finalUrl, idempotencyKey, logger)
@@ -253,16 +264,19 @@ object Coupons extends LazyLogging {
     *                      subsequent call can include [[startingAfter]]=obj_foo
     *                      in order to fetch the next page of the list.
     */
-  case class CouponListInput(created: Option[ListFilterInput] = None,
-                             endingBefore: Option[String] = None,
-                             limit: Option[Long] = None,
-                             startingAfter: Option[String] = None)
+  case class CouponListInput(
+      created: Option[ListFilterInput] = None,
+      endingBefore: Option[String] = None,
+      limit: Option[Long] = None,
+      startingAfter: Option[String] = None
+  )
 
-  case class CouponList(override val url: String,
-                        override val hasMore: Boolean,
-                        override val data: List[Coupon],
-                        override val totalCount: Option[Long])
-      extends Collections.List[Coupon](url, hasMore, data, totalCount)
+  case class CouponList(
+      override val url: String,
+      override val hasMore: Boolean,
+      override val data: List[Coupon],
+      override val totalCount: Option[Long]
+  ) extends Collections.List[Coupon](url, hasMore, data, totalCount)
 
   object CouponList extends Collections.ListJsonMappers[Coupon] {
     implicit val couponListDecoder: Decoder[CouponList] =
@@ -277,7 +291,8 @@ object Coupons extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[CouponList]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[CouponList]] = {
 
     val finalUrl = {
       val totalCountUrl =
@@ -299,7 +314,8 @@ object Coupons extends LazyLogging {
           "ending_before"  -> couponListInput.endingBefore,
           "limit"          -> couponListInput.limit.map(_.toString),
           "starting_after" -> couponListInput.startingAfter
-        ))
+        )
+      )
 
       val query = queries.foldLeft(created.query())((a, b) => b +: a)
       created.withQuery(query)

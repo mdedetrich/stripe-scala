@@ -37,7 +37,8 @@ object Accounts extends LazyLogging {
       Map(
         "date" -> t.date.map(d => d.toEpochSecond.toString),
         "ip"   -> t.ip
-      ))
+      )
+    )
   }
 
   implicit val tosAcceptanceDecoder: Decoder[TosAcceptance] =
@@ -219,27 +220,29 @@ object Accounts extends LazyLogging {
         Map(
           "interval"       -> transferSchedule.interval.map(_.entryName),
           "monthly_anchor" -> transferSchedule.monthlyAnchor.map(_.toString),
-          "weekly_anchor" -> transferSchedule.weeklyAnchor.map(
-            _.getDisplayName(TextStyle.FULL, Locale.ENGLISH).toLowerCase)
-        ))
+          "weekly_anchor" -> transferSchedule.weeklyAnchor
+            .map(_.getDisplayName(TextStyle.FULL, Locale.ENGLISH).toLowerCase)
+        )
+      )
   }
 
   //
   // Account
   //
-  case class Account(id: String,
-                     metadata: Map[String, String],
-                     chargesEnabled: Boolean,
-                     country: String,
-                     debitNegativeBalances: Boolean,
-                     transfersEnabled: Boolean,
-                     transferSchedule: TransferSchedule,
-                     defaultCurrency: Currency,
-                     detailsSubmitted: Boolean,
-                     externalAccounts: PaymentSourceList,
-                     legalEntity: LegalEntity,
-                     verification: Verification)
-      extends StripeObject
+  case class Account(
+      id: String,
+      metadata: Map[String, String],
+      chargesEnabled: Boolean,
+      country: String,
+      debitNegativeBalances: Boolean,
+      transfersEnabled: Boolean,
+      transferSchedule: TransferSchedule,
+      defaultCurrency: Currency,
+      detailsSubmitted: Boolean,
+      externalAccounts: PaymentSourceList,
+      legalEntity: LegalEntity,
+      verification: Verification
+  ) extends StripeObject
 
   implicit val accountDecoder: Decoder[Account] = Decoder.forProduct12(
     "id",
@@ -272,19 +275,22 @@ object Accounts extends LazyLogging {
     "verification"
   )(
     x =>
-      (x.id,
-       "account",
-       x.metadata,
-       x.chargesEnabled,
-       x.country,
-       x.debitNegativeBalances,
-       x.transfersEnabled,
-       x.transferSchedule,
-       x.defaultCurrency,
-       x.detailsSubmitted,
-       x.externalAccounts,
-       x.legalEntity,
-       x.verification))
+      (
+        x.id,
+        "account",
+        x.metadata,
+        x.chargesEnabled,
+        x.country,
+        x.debitNegativeBalances,
+        x.transfersEnabled,
+        x.transferSchedule,
+        x.defaultCurrency,
+        x.detailsSubmitted,
+        x.externalAccounts,
+        x.legalEntity,
+        x.verification
+      )
+  )
 
   implicit val legalEntityPostParams: PostParams[LegalEntity] = PostParams.params[LegalEntity] { legalEntity =>
     val postParams = Map(
@@ -359,7 +365,8 @@ object Accounts extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Account]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Account]] = {
 
     val postParams: Map[String, String] = PostParams.toPostParams(accountInput)
 
@@ -375,7 +382,8 @@ object Accounts extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[Account]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[Account]] = {
     val finalUrl = endpoint.url + s"/v1/accounts/$id"
 
     val params = PostParams.toPostParams(update)
@@ -383,11 +391,13 @@ object Accounts extends LazyLogging {
     createRequestPOST[Account](finalUrl, params, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey,
-                      endpoint: Endpoint,
-                      client: HttpExt,
-                      materializer: Materializer,
-                      executionContext: ExecutionContext): Future[Try[Account]] = {
+  def get(id: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[Account]] = {
     val finalUrl = endpoint.url + s"/v1/accounts/$id"
 
     createRequestGET[Account](finalUrl, logger)
@@ -398,7 +408,8 @@ object Accounts extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[DeleteResponse]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[DeleteResponse]] = {
     val finalUrl = endpoint.url + s"/v1/accounts/$id"
 
     createRequestDELETE(finalUrl, idempotencyKey, logger)

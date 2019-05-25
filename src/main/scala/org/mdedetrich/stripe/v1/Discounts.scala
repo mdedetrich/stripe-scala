@@ -8,12 +8,13 @@ import org.mdedetrich.stripe.v1.Coupons._
 
 object Discounts {
 
-  case class Discount(coupon: Coupon,
-                      customer: String,
-                      end: OffsetDateTime,
-                      start: OffsetDateTime,
-                      subscription: Option[String])
-      extends StripeObject
+  case class Discount(
+      coupon: Coupon,
+      customer: String,
+      end: OffsetDateTime,
+      start: OffsetDateTime,
+      subscription: Option[String]
+  ) extends StripeObject
 
   implicit val discountDecoder: Decoder[Discount] = Decoder.forProduct5(
     "coupon",

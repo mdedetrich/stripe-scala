@@ -17,10 +17,13 @@ class AccountIT extends IntegrationTest {
       val firstName = "Gaspard"
       val lastName  = "Augé"
       val legalEntity = Option(
-        LegalEntity(`type` = Option(Individual),
-                    firstName = Option(firstName),
-                    lastName = Option(lastName),
-                    dob = Option(dob)))
+        LegalEntity(
+          `type` = Option(Individual),
+          firstName = Option(firstName),
+          lastName = Option(lastName),
+          dob = Option(dob)
+        )
+      )
 
       val accountInput = Accounts.AccountInput(managed = true, legalEntity = legalEntity)
       handleIdempotent(Accounts.create(accountInput)).map({ account =>
@@ -50,10 +53,13 @@ object AccountIT extends DefaultDependencies {
     val dob           = LocalDate.now().minusYears(30)
     val tosAcceptance = Option(TosAcceptance(Option(OffsetDateTime.now()), Option("62.96.204.171")))
     val legalEntity = Option(
-      LegalEntity(`type` = Option(Individual),
-                  firstName = Option("Horst"),
-                  lastName = Option("Kasuppke"),
-                  dob = Option(dob)))
+      LegalEntity(
+        `type` = Option(Individual),
+        firstName = Option("Horst"),
+        lastName = Option("Kasuppke"),
+        dob = Option(dob)
+      )
+    )
 
     val transferSchedule = Option(TransferSchedule(Option(TransferInterval.Manual), None, None))
 

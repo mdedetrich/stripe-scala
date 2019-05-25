@@ -18,13 +18,15 @@ import scala.util.Try
   */
 object ApplicationFeeRefunds extends LazyLogging {
 
-  case class ApplicationFeeRefund(id: String,
-                                  amount: BigDecimal,
-                                  metadata: Option[Map[String, String]],
-                                  created: OffsetDateTime,
-                                  currency: Currency,
-                                  fee: String,
-                                  balanceTransaction: Option[String])
+  case class ApplicationFeeRefund(
+      id: String,
+      amount: BigDecimal,
+      metadata: Option[Map[String, String]],
+      created: OffsetDateTime,
+      currency: Currency,
+      fee: String,
+      balanceTransaction: Option[String]
+  )
 
   implicit val applicationFeeRefundDecoder: Decoder[ApplicationFeeRefund] = Decoder.forProduct7(
     "id",
@@ -47,9 +49,11 @@ object ApplicationFeeRefunds extends LazyLogging {
     "balance_transaction"
   )(x => (x.id, "fee_refund", x.amount, x.metadata, x.created, x.currency, x.fee, x.balanceTransaction))
 
-  case class ApplicationFeeRefundInput(id: String,
-                                       amount: Option[BigDecimal] = None,
-                                       metadata: Map[String, String] = Map.empty)
+  case class ApplicationFeeRefundInput(
+      id: String,
+      amount: Option[BigDecimal] = None,
+      metadata: Map[String, String] = Map.empty
+  )
 
   implicit val refundInputPostParams = PostParams.params[ApplicationFeeRefundInput] { refundInput =>
     val optional = Map(
@@ -63,7 +67,8 @@ object ApplicationFeeRefunds extends LazyLogging {
       endpoint: Endpoint,
       client: HttpExt,
       materializer: Materializer,
-      executionContext: ExecutionContext): Future[Try[ApplicationFeeRefund]] = {
+      executionContext: ExecutionContext
+  ): Future[Try[ApplicationFeeRefund]] = {
 
     val postFormParameters = toPostParams(refundInput)
     logger.debug(s"Generated POST form parameters is $postFormParameters")
@@ -73,11 +78,13 @@ object ApplicationFeeRefunds extends LazyLogging {
     createRequestPOST[ApplicationFeeRefund](finalUrl, postFormParameters, idempotencyKey, logger)
   }
 
-  def get(id: String)(implicit apiKey: ApiKey,
-                      endpoint: Endpoint,
-                      client: HttpExt,
-                      materializer: Materializer,
-                      executionContext: ExecutionContext): Future[Try[ApplicationFeeRefund]] = {
+  def get(id: String)(
+      implicit apiKey: ApiKey,
+      endpoint: Endpoint,
+      client: HttpExt,
+      materializer: Materializer,
+      executionContext: ExecutionContext
+  ): Future[Try[ApplicationFeeRefund]] = {
     val finalUrl = s"${endpoint.url}/v1/application_fees/$id/refunds"
 
     createRequestGET[ApplicationFeeRefund](finalUrl, logger)
