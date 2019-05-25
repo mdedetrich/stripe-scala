@@ -24,7 +24,7 @@ import scala.util.Try
 
 object Charges extends LazyLogging {
 
-  case class FraudDetails(
+  final case class FraudDetails(
       userReport: Option[UserReport],
       stripeReport: Option[StripeReport]
   )
@@ -90,9 +90,9 @@ object Charges extends LazyLogging {
 
   object SourceInput {
 
-    case class Customer(id: String) extends SourceInput
+    final case class Customer(id: String) extends SourceInput
 
-    case class Card(
+    final case class Card(
         expMonth: Int,
         expYear: Int,
         number: String,
@@ -107,7 +107,7 @@ object Charges extends LazyLogging {
     ) extends SourceInput
         with NumberCardSource
 
-    case class Token(id: String) extends SourceInput
+    final case class Token(id: String) extends SourceInput
   }
 
   implicit val sourceInputCustomerDecoder: Decoder[SourceInput.Customer] = Decoder[String].map(SourceInput.Customer)
@@ -214,7 +214,7 @@ object Charges extends LazyLogging {
   object Source {
 
     // Masked card
-    case class MaskedCard(
+    final case class MaskedCard(
         id: String,
         last4: String,
         expMonth: Int,
@@ -230,7 +230,7 @@ object Charges extends LazyLogging {
     ) extends Source
         with MaskedCardSource
 
-    case class Account(id: String, applicationName: Option[String]) extends Source
+    final case class Account(id: String, applicationName: Option[String]) extends Source
 
     implicit val maskedCardSourceDecoder: Decoder[MaskedCard] = Decoder.forProduct12(
       "id",
@@ -382,7 +382,7 @@ object Charges extends LazyLogging {
     * @param status              The status of the payment is either [[Status.Succeeded]],
     *                            [[Status.Pending]], or [[Status.Failed]].
     */
-  case class Charge(
+  final case class Charge(
       id: String,
       amount: BigDecimal,
       amountRefunded: BigDecimal,
@@ -676,7 +676,7 @@ object Charges extends LazyLogging {
     * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
     * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
     */
-  case class ChargeInput(
+  final case class ChargeInput(
       amount: BigDecimal,
       currency: Currency,
       capture: Boolean,

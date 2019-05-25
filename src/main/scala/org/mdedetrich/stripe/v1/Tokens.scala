@@ -45,7 +45,7 @@ object Tokens extends LazyLogging {
     * @param card        Hash describing the card used to make the charge
     * @param clientIp    IP address of the client that generated the token
     */
-  case class Token(
+  final case class Token(
       id: String,
       created: OffsetDateTime,
       livemode: Boolean,
@@ -127,7 +127,7 @@ object Tokens extends LazyLogging {
       *                 always include this value.
       * @param name     Cardholder's full name.
       */
-    case class Card(
+    final case class Card(
         expMonth: Int,
         expYear: Int,
         number: String,
@@ -215,7 +215,7 @@ object Tokens extends LazyLogging {
       *                          is required when attaching the bank account to
       *                          a customer object.
       */
-    case class BankAccount(
+    final case class BankAccount(
         accountNumber: String,
         country: String,
         currency: Currency,
@@ -252,7 +252,7 @@ object Tokens extends LazyLogging {
       *                         in string form.
       * @param pii              The PII this token will represent.
       */
-    case class PII(personalIdNumber: String, pii: Option[String]) extends TokenData
+    final case class PII(personalIdNumber: String, pii: Option[String]) extends TokenData
 
     implicit val PIIDecoder: Decoder[PII] =
       Decoder.forProduct2("personal_id_number", "pii")(PII.apply)
@@ -261,7 +261,7 @@ object Tokens extends LazyLogging {
       Encoder.forProduct2("personal_id_number", "pii")(x => PII.unapply(x).get)
   }
 
-  case class TokenInput(tokenData: TokenData, customer: Option[String] = None)
+  final case class TokenInput(tokenData: TokenData, customer: Option[String] = None)
 
   def create(tokenInput: TokenInput)(idempotencyKey: Option[IdempotencyKey] = None)(
       implicit apiKey: ApiKey,

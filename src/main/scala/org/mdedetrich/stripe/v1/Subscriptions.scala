@@ -108,7 +108,7 @@ object Subscriptions extends LazyLogging {
     * @param trialStart            If the subscription has a trial,
     *                              the beginning of that trial.
     */
-  case class Subscription(
+  final case class Subscription(
       id: String,
       cancelAtPeriodEnd: Boolean,
       currentPeriodEnd: OffsetDateTime,
@@ -195,7 +195,7 @@ object Subscriptions extends LazyLogging {
 
   object Source {
 
-    case class Token(id: String) extends Source
+    final case class Token(id: String) extends Source
 
     /**
       * @see https://stripe.com/docs/api#create_subscription-source
@@ -217,7 +217,7 @@ object Subscriptions extends LazyLogging {
       *                 this value.
       * @param name     Cardholder's full name.
       */
-    case class Card(
+    final case class Card(
         expMonth: Int,
         expYear: Int,
         number: String,
@@ -354,7 +354,7 @@ object Subscriptions extends LazyLogging {
     *                              can be provided to end the customer's
     *                              trial immediately.
     */
-  case class SubscriptionInput(
+  final case class SubscriptionInput(
       plan: String,
       applicationFeePercent: Option[BigDecimal] = None,
       coupon: Option[String] = None,
@@ -365,7 +365,7 @@ object Subscriptions extends LazyLogging {
       trialEnd: Option[OffsetDateTime] = None
   )
 
-  case class SubscriptionList(
+  final case class SubscriptionList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[Subscription],

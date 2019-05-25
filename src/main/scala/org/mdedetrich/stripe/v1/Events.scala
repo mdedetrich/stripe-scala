@@ -96,13 +96,13 @@ object Events extends LazyLogging {
     implicit val eventTypeEncoder: Encoder[Type] = enumeratum.Circe.encoder(Type)
   }
 
-  case class Data(`object`: StripeObject, previousAttributes: Option[JsonObject])
+  final case class Data(`object`: StripeObject, previousAttributes: Option[JsonObject])
 
   implicit val eventDataDecoder: Decoder[Data] = Decoder.forProduct2("object", "previous_attributes")(Data.apply)
   implicit val eventDataEncoder: Encoder[Data] =
     Encoder.forProduct2("object", "previous_attributes")(x => Data.unapply(x).get)
 
-  case class Event(
+  final case class Event(
       id: String,
       apiVersion: String,
       created: OffsetDateTime,
@@ -141,7 +141,7 @@ object Events extends LazyLogging {
     "account"
   )(x => Event.unapply(x).get)
 
-  case class EventList(
+  final case class EventList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[Event],

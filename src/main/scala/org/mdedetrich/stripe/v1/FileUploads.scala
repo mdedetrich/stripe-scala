@@ -41,7 +41,7 @@ object FileUploads extends LazyLogging {
 
   // FileUpload
 
-  case class FileUpload(
+  final case class FileUpload(
       id: String,
       created: OffsetDateTime,
       purpose: Purpose,

@@ -2,7 +2,7 @@ package org.mdedetrich.stripe.v1
 
 import io.circe.{Decoder, Encoder}
 
-case class DeleteResponse(id: String, deleted: Boolean)
+final case class DeleteResponse(id: String, deleted: Boolean)
 
 object DeleteResponse {
 

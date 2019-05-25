@@ -48,7 +48,7 @@ object PaymentSource extends LazyLogging {
   }
 }
 
-case class PaymentSourceList(
+final case class PaymentSourceList(
     override val url: String,
     override val hasMore: Boolean,
     override val data: List[PaymentSource],
@@ -192,7 +192,7 @@ object Cards extends LazyLogging {
     *                           that was used. Can be [[TokenizationMethod.ApplePay]]
     *                           or [[TokenizationMethod.AndroidPay]].
     */
-  case class Card(
+  final case class Card(
       id: String,
       brand: Brand,
       expMonth: Int,
@@ -447,7 +447,7 @@ object Cards extends LazyLogging {
         *                 structured format.
         * @param name     Cardholder's full name.
         */
-      case class Object(
+      final case class Object(
           expMonth: Int,
           expYear: Int,
           number: String,
@@ -510,7 +510,7 @@ object Cards extends LazyLogging {
           )
       )
 
-      case class Token(id: String) extends Source
+      final case class Token(id: String) extends Source
 
       implicit val sourceTokenDecoder: Decoder[Token] = Decoder[String].map(Token)
       implicit val sourceTokenEncoder: Encoder[Token] = Encoder.instance[Token](_.id.asJson)
@@ -553,7 +553,7 @@ object Cards extends LazyLogging {
         *                           card in a structured format.
         * @param name               Cardholder's full name.
         */
-      case class Object(
+      final case class Object(
           expMonth: Int,
           expYear: Int,
           number: String,
@@ -625,7 +625,7 @@ object Cards extends LazyLogging {
           )
       )
 
-      case class Token(id: String) extends ExternalAccount
+      final case class Token(id: String) extends ExternalAccount
 
       implicit val externalAccountTokenDecoder: Decoder[Token] = Decoder[String].map(Token)
       implicit val externalAccountTokenEncoder: Encoder[Token] = Encoder.instance[Token](_.id.asJson)
@@ -655,7 +655,7 @@ object Cards extends LazyLogging {
     *                           information about the card in a structured format.
     * @param defaultForCurrency Only applicable on accounts (not customers or recipients). If you set this to true (or if this is the first external account being added in this currency) this card will become the default external account for its currency.
     */
-  case class CardInput(
+  final case class CardInput(
       cardData: CardData,
       metadata: Option[Map[String, String]] = None,
       defaultForCurrency: Option[Boolean] = None
@@ -824,13 +824,13 @@ object Cards extends LazyLogging {
     *                      ending with obj_foo, your subsequent call can include [[startingAfter]]=obj_foo
     *                      in order to fetch the next page of the list.
     */
-  case class CardListInput(
+  final case class CardListInput(
       endingBefore: Option[String] = None,
       limit: Option[Long] = None,
       startingAfter: Option[String] = None
   )
 
-  case class CardList(
+  final case class CardList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[Card],
@@ -879,7 +879,7 @@ object Cards extends LazyLogging {
 }
 
 object BankAccountsPaymentSource extends LazyLogging {
-  case class BankAccount(
+  final case class BankAccount(
       id: String,
       accountHolderName: Option[String],
       last4: String,
@@ -923,7 +923,7 @@ object BitcoinReceivers extends LazyLogging {
     * @param receiver      The receiver to which this
     *                      transaction was sent.
     */
-  case class Transaction(
+  final case class Transaction(
       id: String,
       amount: BigDecimal,
       bitcoinAmount: BigDecimal,
@@ -951,7 +951,7 @@ object BitcoinReceivers extends LazyLogging {
     "receiver"
   )(x => (x.id, "list", x.amount, x.bitcoinAmount, x.created, x.currency, x.receiver))
 
-  case class TransactionList(
+  final case class TransactionList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[Transaction],
@@ -1016,7 +1016,7 @@ object BitcoinReceivers extends LazyLogging {
     *                              customer sent bitcoin to the receiver. Hidden when
     *                              viewing the receiver with a publishable key.
     */
-  case class BitcoinReceiver(
+  final case class BitcoinReceiver(
       id: String,
       active: Boolean,
       amount: BigDecimal,
@@ -1135,7 +1135,7 @@ object BitcoinReceivers extends LazyLogging {
     *                          refunds for any mispayments to the
     *                          receiver.
     */
-  case class BitcoinReceiverInput(
+  final case class BitcoinReceiverInput(
       amount: BigDecimal,
       currency: Currency,
       email: String,
@@ -1219,7 +1219,7 @@ object BitcoinReceivers extends LazyLogging {
     *                        next page of the list.
     * @param uncapturedFunds Filter for receivers with uncaptured funds.
     */
-  case class BitcoinReceiverListInput(
+  final case class BitcoinReceiverListInput(
       active: Option[Boolean] = None,
       endingBefore: Option[String] = None,
       filled: Option[Boolean] = None,
@@ -1228,7 +1228,7 @@ object BitcoinReceivers extends LazyLogging {
       uncapturedFunds: Option[Boolean] = None
   )
 
-  case class BitcoinReceiverList(
+  final case class BitcoinReceiverList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[BitcoinReceiver],

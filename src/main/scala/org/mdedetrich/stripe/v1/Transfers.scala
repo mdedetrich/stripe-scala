@@ -19,7 +19,7 @@ import scala.util.Try
 
 object Transfers extends LazyLogging {
 
-  case class TransferReversalList(
+  final case class TransferReversalList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[TransferReversal],
@@ -114,7 +114,7 @@ object Transfers extends LazyLogging {
     implicit val sourceTypeEncoder: Encoder[SourceType] = enumeratum.Circe.encoder(SourceType)
   }
 
-  case class Transfer(
+  final case class Transfer(
       id: String,
       amount: BigDecimal,
       amountReversed: BigDecimal,
@@ -352,7 +352,7 @@ object Transfers extends LazyLogging {
     * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
     * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
     */
-  case class TransferInput(
+  final case class TransferInput(
       amount: BigDecimal,
       currency: Currency,
       destination: String,
@@ -422,7 +422,7 @@ object Transfers extends LazyLogging {
     createRequestGET[Transfer](finalUrl, logger)
   }
 
-  case class TransferListInput(
+  final case class TransferListInput(
       created: Option[ListFilterInput] = None,
       date: Option[ListFilterInput] = None,
       destination: Option[String] = None,
@@ -433,7 +433,7 @@ object Transfers extends LazyLogging {
       status: Option[Status] = None
   )
 
-  case class TransferList(
+  final case class TransferList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[Transfers.Transfer],

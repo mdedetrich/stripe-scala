@@ -32,7 +32,7 @@ object TransferReversals extends LazyLogging {
     *                           additional information in a structured format.
     * @param transfer           ID of the transfer that was reversed.
     */
-  case class TransferReversal(
+  final case class TransferReversal(
       id: String,
       amount: BigDecimal,
       balanceTransaction: String,
@@ -94,7 +94,7 @@ object TransferReversals extends LazyLogging {
     *                             will be refunded with an amount proportional
     *                             to the amount of the transfer reversed.
     */
-  case class TransferReversalInput(
+  final case class TransferReversalInput(
       id: String,
       amount: Option[BigDecimal] = None,
       description: Option[String] = None,
@@ -173,14 +173,14 @@ object TransferReversals extends LazyLogging {
     *                      your subsequent call can include [[startingAfter]]=obj_foo
     *                      in order to fetch the next page of the list.
     */
-  case class TransferReversalListInput(
+  final case class TransferReversalListInput(
       id: String,
       endingBefore: Option[String] = None,
       limit: Option[Long] = None,
       startingAfter: Option[String] = None
   )
 
-  case class TransferReversalList(
+  final case class TransferReversalList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[TransferReversal],

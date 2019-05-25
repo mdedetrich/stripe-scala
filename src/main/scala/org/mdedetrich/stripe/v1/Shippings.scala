@@ -13,7 +13,7 @@ object Shippings {
     * @param postalCode Zip/Postal Code
     * @param state      State/Province/County
     */
-  case class Address(
+  final case class Address(
       city: Option[String] = None,
       country: Option[String] = None,
       line1: Option[String] = None,
@@ -63,7 +63,7 @@ object Shippings {
     *                       were generated for this purchase, please
     *                       separate them with commas.
     */
-  case class Shipping(
+  final case class Shipping(
       address: Option[Address],
       carrier: Option[String],
       name: Option[String],

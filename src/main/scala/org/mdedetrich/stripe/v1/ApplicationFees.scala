@@ -11,7 +11,7 @@ import io.circe.{Decoder, Encoder}
   */
 object ApplicationFees extends LazyLogging {
 
-  case class ApplicationFee(
+  final case class ApplicationFee(
       id: String,
       amount: BigDecimal,
       application: String,

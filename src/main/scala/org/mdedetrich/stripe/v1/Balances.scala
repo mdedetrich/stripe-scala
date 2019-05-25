@@ -34,7 +34,7 @@ object Balances extends LazyLogging {
     implicit val feeTypeEncoder: Encoder[FeeType] = enumeratum.Circe.encoder(FeeType)
   }
 
-  case class FeeDetails(
+  final case class FeeDetails(
       amount: BigDecimal,
       application: String,
       currency: Currency,
@@ -110,7 +110,7 @@ object Balances extends LazyLogging {
     *                         Either [[Status.Available]] or [[Status.Pending]].
     * @param `type`           Transaction type: [[Type]]
     */
-  case class BalanceTransaction(
+  final case class BalanceTransaction(
       id: String,
       amount: BigDecimal,
       availableOn: OffsetDateTime,
@@ -177,7 +177,11 @@ object Balances extends LazyLogging {
       )
   )
 
-  case class SourceTypes(card: Option[BigDecimal], bankAccount: Option[BigDecimal], bitcoinReceiver: Option[BigDecimal])
+  final case class SourceTypes(
+      card: Option[BigDecimal],
+      bankAccount: Option[BigDecimal],
+      bitcoinReceiver: Option[BigDecimal]
+  )
 
   implicit val sourceTypesDecoder: Decoder[SourceTypes] = Decoder.forProduct3(
     "card",
@@ -191,7 +195,7 @@ object Balances extends LazyLogging {
     "bitcoin_receiver"
   )(x => SourceTypes.unapply(x).get)
 
-  case class BalanceFund(currency: Currency, amount: BigDecimal, sourceTypes: SourceTypes)
+  final case class BalanceFund(currency: Currency, amount: BigDecimal, sourceTypes: SourceTypes)
 
   implicit val balanceFundDecoder: Decoder[BalanceFund] = Decoder.forProduct3(
     "currency",
@@ -213,7 +217,8 @@ object Balances extends LazyLogging {
     * @param pending   Funds that are not available in the balance yet, due to the 7-day rolling pay cycle.
     *                  The pending balance for each currency and payment type can be found in the sourceTypes property
     */
-  case class Balance(available: List[BalanceFund], livemode: Boolean, pending: List[BalanceFund]) extends StripeObject
+  final case class Balance(available: List[BalanceFund], livemode: Boolean, pending: List[BalanceFund])
+      extends StripeObject
 
   implicit val balanceDecoder: Decoder[Balance] = Decoder.forProduct3(
     "available",
@@ -294,7 +299,7 @@ object Balances extends LazyLogging {
     *                      One of: [[Type.Charge]], [[Type.Adjustment]], [[Type.ApplicationFee]],
     *                      [[Type.ApplicationFeeRefund]], [[Type.Transfer]], or [[Type.TransferFailure]]
     */
-  case class BalanceHistoryListInput(
+  final case class BalanceHistoryListInput(
       availableOn: Option[ListFilterInput] = None,
       created: Option[ListFilterInput] = None,
       currency: Option[Currency] = None,
@@ -306,7 +311,7 @@ object Balances extends LazyLogging {
       `type`: Option[Type] = None
   )
 
-  case class BalanceTransactionList(
+  final case class BalanceTransactionList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[BalanceTransaction],

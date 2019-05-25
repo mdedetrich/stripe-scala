@@ -13,9 +13,9 @@ sealed abstract class ListFilterInput
 
 object ListFilterInput {
 
-  case class Timestamp(timestamp: OffsetDateTime) extends ListFilterInput
+  final case class Timestamp(timestamp: OffsetDateTime) extends ListFilterInput
 
-  case class Object(
+  final case class Object(
       gt: Option[OffsetDateTime] = None,
       gte: Option[OffsetDateTime] = None,
       lt: Option[OffsetDateTime] = None,

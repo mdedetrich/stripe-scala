@@ -55,7 +55,7 @@ object Refunds extends LazyLogging {
     * @param receiptNumber      This is the transaction number that appears on
     *                           email receipts sent for this refund.
     */
-  case class Refund(
+  final case class Refund(
       id: String,
       amount: BigDecimal,
       balanceTransaction: String,
@@ -142,7 +142,7 @@ object Refunds extends LazyLogging {
     *                             A transfer can only be reversed by the application
     *                             that created the charge.
     */
-  case class RefundInput(
+  final case class RefundInput(
       charge: String,
       reason: Reason,
       amount: Option[BigDecimal] = None,
@@ -230,14 +230,14 @@ object Refunds extends LazyLogging {
     *                      [[startingAfter]]=obj_foo in order to fetch the
     *                      next page of the list.
     */
-  case class RefundListInput(
+  final case class RefundListInput(
       charge: Option[String] = None,
       endingBefore: Option[String] = None,
       limit: Option[Long] = None,
       startingAfter: Option[String] = None
   )
 
-  case class RefundList(
+  final case class RefundList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[Refund],

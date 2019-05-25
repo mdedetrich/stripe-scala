@@ -18,7 +18,7 @@ import scala.util.Try
 
 object Disputes extends LazyLogging {
 
-  case class DisputeEvidence(
+  final case class DisputeEvidence(
       accessActivityLog: Option[String],
       billingAddress: Option[String],
       cancellationPolicy: Option[String],
@@ -248,7 +248,7 @@ object Disputes extends LazyLogging {
   implicit val disputeEvidenceEncoder: Encoder[DisputeEvidence] =
     Encoder.instance[DisputeEvidence](x => disputeEvidenceEncoderOne(x).deepMerge(disputeEvidenceEncoderTwo(x)))
 
-  case class EvidenceDetails(dueBy: OffsetDateTime, hasEvidence: Boolean, pastDue: Boolean, submissionCount: Long)
+  final case class EvidenceDetails(dueBy: OffsetDateTime, hasEvidence: Boolean, pastDue: Boolean, submissionCount: Long)
 
   implicit val evidenceDetailsDecoder: Decoder[EvidenceDetails] = Decoder.forProduct4(
     "due_by",
@@ -309,7 +309,7 @@ object Disputes extends LazyLogging {
     implicit val disputeStatusEncoder: Encoder[Status] = enumeratum.Circe.encoder(Status)
   }
 
-  case class Dispute(
+  final case class Dispute(
       id: String,
       amount: BigDecimal,
       balanceTransactions: List[BalanceTransaction],
@@ -400,14 +400,14 @@ object Disputes extends LazyLogging {
     createRequestPOST[Dispute](finalUrl, Map.empty, idempotencyKey, logger)
   }
 
-  case class DisputeListInput(
+  final case class DisputeListInput(
       created: Option[ListFilterInput] = None,
       endingBefore: Option[String] = None,
       limit: Option[String] = None,
       startingAfter: Option[String] = None
   )
 
-  case class DisputeList(
+  final case class DisputeList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[Dispute],

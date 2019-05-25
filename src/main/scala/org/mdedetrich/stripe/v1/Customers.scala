@@ -22,7 +22,7 @@ import scala.util.Try
 
 object Customers extends LazyLogging {
 
-  case class Customer(
+  final case class Customer(
       id: String,
       accountBalance: BigDecimal,
       created: OffsetDateTime,
@@ -97,9 +97,9 @@ object Customers extends LazyLogging {
 
   object Source {
 
-    case class Token(id: String) extends Source
+    final case class Token(id: String) extends Source
 
-    case class Card(
+    final case class Card(
         expMonth: Int,
         expYear: Int,
         number: String,
@@ -165,7 +165,7 @@ object Customers extends LazyLogging {
       encoder.apply(card)
   }
 
-  case class CustomerInput(
+  final case class CustomerInput(
       accountBalance: Option[BigDecimal] = None,
       coupon: Option[String] = None,
       description: Option[String] = None,
@@ -207,7 +207,7 @@ object Customers extends LazyLogging {
     "trial_end"
   )(x => CustomerInput.unapply(x).get)
 
-  case class CustomerUpdate(
+  final case class CustomerUpdate(
       paymentSource: Option[Token] = None,
       defaultSource: Option[String] = None
   )
@@ -356,14 +356,14 @@ object Customers extends LazyLogging {
     createRequestDELETE(finalUrl, idempotencyKey, logger)
   }
 
-  case class CustomerListInput(
+  final case class CustomerListInput(
       created: Option[ListFilterInput] = None,
       endingBefore: Option[String] = None,
       limit: Option[Long] = None,
       startingAfter: Option[String] = None
   )
 
-  case class CustomerList(
+  final case class CustomerList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[Customer],

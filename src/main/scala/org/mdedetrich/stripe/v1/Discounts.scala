@@ -8,7 +8,7 @@ import org.mdedetrich.stripe.v1.Coupons._
 
 object Discounts {
 
-  case class Discount(
+  final case class Discount(
       coupon: Coupon,
       customer: String,
       end: OffsetDateTime,

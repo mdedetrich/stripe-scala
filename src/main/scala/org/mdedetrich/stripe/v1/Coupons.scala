@@ -59,7 +59,7 @@ object Coupons extends LazyLogging {
     * @param redeemBy         Date after which the coupon can no longer be redeemed
 
     */
-  case class Coupon(
+  final case class Coupon(
       id: String,
       created: OffsetDateTime,
       duration: Duration,
@@ -157,7 +157,7 @@ object Coupons extends LazyLogging {
     *                         the coupon can be redeemed. After the [[redeemBy]] date, the
     *                         coupon can no longer be applied to new customers.
     */
-  case class CouponInput(
+  final case class CouponInput(
       duration: Duration,
       id: Option[String] = None,
       amountOff: Option[Long] = None,
@@ -264,14 +264,14 @@ object Coupons extends LazyLogging {
     *                      subsequent call can include [[startingAfter]]=obj_foo
     *                      in order to fetch the next page of the list.
     */
-  case class CouponListInput(
+  final case class CouponListInput(
       created: Option[ListFilterInput] = None,
       endingBefore: Option[String] = None,
       limit: Option[Long] = None,
       startingAfter: Option[String] = None
   )
 
-  case class CouponList(
+  final case class CouponList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[Coupon],

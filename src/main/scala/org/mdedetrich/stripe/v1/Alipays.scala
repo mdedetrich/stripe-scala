@@ -31,7 +31,7 @@ object Alipays {
     *                        the exact currency that you can create a charge for.
     *                        has ever been used for a payment.
     */
-  case class AliPay(
+  final case class AliPay(
       id: String,
       created: OffsetDateTime,
       livemode: Boolean,

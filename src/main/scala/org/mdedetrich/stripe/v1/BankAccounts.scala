@@ -72,7 +72,7 @@ object BankAccounts extends LazyLogging {
     *                           If a transfer sent to this bank account fails, we’ll set the status to errored and will
     *                           not continue to send transfers until the bank details are updated.
     */
-  case class BankAccount(
+  final case class BankAccount(
       id: String,
       account: Option[String],
       accountHolderName: Option[String],
@@ -165,7 +165,7 @@ object BankAccounts extends LazyLogging {
         *                          For US bank accounts, this is required and should be the ACH routing number, not the wire
         *                          routing number. If you are providing an IBAN for [[accountNumber]], this field is not required.
         */
-      case class Object(
+      final case class Object(
           accountNumber: String,
           country: String,
           currency: Currency,
@@ -201,7 +201,7 @@ object BankAccounts extends LazyLogging {
         )
       }
 
-      case class Token(id: String) extends Source
+      final case class Token(id: String) extends Source
 
       implicit val sourceTokenDecoder: Decoder[Token] = Decoder[String].map(Token)
       implicit val sourceTokenEncoder: Encoder[Token] = Encoder.instance[Token](_.id.asJson)
@@ -222,7 +222,7 @@ object BankAccounts extends LazyLogging {
         *                          For US bank accounts, this is required and should be the ACH routing number, not the wire
         *                          routing number. If you are providing an IBAN for [[accountNumber]], this field is not required.
         */
-      case class Object(
+      final case class Object(
           accountNumber: String,
           country: String,
           currency: Currency,
@@ -249,7 +249,7 @@ object BankAccounts extends LazyLogging {
         "routing_number"
       )(x => Object.unapply(x).get)
 
-      case class Token(id: String) extends ExternalAccount
+      final case class Token(id: String) extends ExternalAccount
 
       implicit val externalAccountTokenDecoder: Decoder[Token] = Decoder[String].map(Token)
       implicit val externalAccountTokenEncoder: Encoder[Token] = Encoder.instance[Token](_.id.asJson)
@@ -276,7 +276,7 @@ object BankAccounts extends LazyLogging {
     *                           object. It can be useful for storing additional information about the
     *                           external account in a structured format.
     */
-  case class BankAccountInput(
+  final case class BankAccountInput(
       bankAccountData: BankAccountData,
       defaultForCurrency: Option[Currency],
       metadata: Option[Map[String, String]]
@@ -374,13 +374,13 @@ object BankAccounts extends LazyLogging {
     *                      subsequent call can include [[startingAfter]]=obj_foo in order
     *                      to fetch the next page of the list.
     */
-  case class BankAccountListInput(
+  final case class BankAccountListInput(
       endingBefore: Option[String] = None,
       limit: Option[Long] = None,
       startingAfter: Option[String] = None
   )
 
-  case class BankAccountList(
+  final case class BankAccountList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[BankAccount],

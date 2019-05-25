@@ -27,7 +27,7 @@ import scala.util.Try
   */
 object Accounts extends LazyLogging {
 
-  case class TosAcceptance(
+  final case class TosAcceptance(
       date: Option[OffsetDateTime],
       ip: Option[String]
   )
@@ -113,7 +113,7 @@ object Accounts extends LazyLogging {
   }
 
   // Legal entity
-  case class LegalEntity(
+  final case class LegalEntity(
       address: Address = Address(),
       `type`: Option[LegalEntityType] = None,
       businessName: Option[String] = None,
@@ -146,7 +146,7 @@ object Accounts extends LazyLogging {
   //
   // Verification
   //
-  case class Verification(
+  final case class Verification(
       disabledReason: Option[String],
       dueBy: Option[OffsetDateTime],
       fieldsNeeded: Seq[String]
@@ -183,7 +183,7 @@ object Accounts extends LazyLogging {
     implicit val transferIntervalDecoder: Decoder[TransferInterval] = enumeratum.Circe.decoder(TransferInterval)
   }
 
-  case class TransferSchedule(
+  final case class TransferSchedule(
       interval: Option[TransferInterval],
       monthlyAnchor: Option[Int],
       weeklyAnchor: Option[DayOfWeek]
@@ -229,7 +229,7 @@ object Accounts extends LazyLogging {
   //
   // Account
   //
-  case class Account(
+  final case class Account(
       id: String,
       metadata: Map[String, String],
       chargesEnabled: Boolean,
@@ -312,7 +312,7 @@ object Accounts extends LazyLogging {
   //
   // Account input
   //
-  case class AccountInput(
+  final case class AccountInput(
       managed: Boolean = false,
       metadata: Map[String, String] = Map.empty,
       legalEntity: Option[LegalEntity] = None,
@@ -333,7 +333,7 @@ object Accounts extends LazyLogging {
   //
   // Account update
   //
-  case class AccountUpdate(
+  final case class AccountUpdate(
       legalEntity: Option[LegalEntity] = None,
       externalAccount: Option[BankAccountData.Source] = None,
       defaultCurrency: Option[Currency] = None,

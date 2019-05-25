@@ -82,35 +82,35 @@ object Errors {
 
   object Error {
 
-    case class BadRequest(
+    final case class BadRequest(
         override val `type`: Type,
         override val code: Option[Code],
         override val message: Option[String],
         override val param: Option[String]
     ) extends Error(400, `type`, code, message, param)
 
-    case class Unauthorized(
+    final case class Unauthorized(
         override val `type`: Type,
         override val code: Option[Code],
         override val message: Option[String],
         override val param: Option[String]
     ) extends Error(401, `type`, code, message, param)
 
-    case class RequestFailed(
+    final case class RequestFailed(
         override val `type`: Type,
         override val code: Option[Code],
         override val message: Option[String],
         override val param: Option[String]
     ) extends Error(402, `type`, code, message, param)
 
-    case class NotFound(
+    final case class NotFound(
         override val `type`: Type,
         override val code: Option[Code],
         override val message: Option[String],
         override val param: Option[String]
     ) extends Error(404, `type`, code, message, param)
 
-    case class TooManyRequests(
+    final case class TooManyRequests(
         override val `type`: Type,
         override val code: Option[Code],
         override val message: Option[String],
@@ -179,12 +179,12 @@ object Errors {
     *
     * @param httpResponse
     */
-  case class StripeServerError(httpResponse: HttpResponse) extends Exception {
+  final case class StripeServerError(httpResponse: HttpResponse) extends Exception {
     override def getMessage =
       s"Stripe server error, status code is ${httpResponse.status.intValue()}"
   }
 
-  case class UnhandledServerError(httpResponse: HttpResponse) extends Exception {
+  final case class UnhandledServerError(httpResponse: HttpResponse) extends Exception {
     override def getMessage =
       s"Unhandled server error, status code is ${httpResponse.status.intValue()}"
   }

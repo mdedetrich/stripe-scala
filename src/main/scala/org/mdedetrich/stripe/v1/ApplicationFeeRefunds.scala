@@ -18,7 +18,7 @@ import scala.util.Try
   */
 object ApplicationFeeRefunds extends LazyLogging {
 
-  case class ApplicationFeeRefund(
+  final case class ApplicationFeeRefund(
       id: String,
       amount: BigDecimal,
       metadata: Option[Map[String, String]],
@@ -49,7 +49,7 @@ object ApplicationFeeRefunds extends LazyLogging {
     "balance_transaction"
   )(x => (x.id, "fee_refund", x.amount, x.metadata, x.created, x.currency, x.fee, x.balanceTransaction))
 
-  case class ApplicationFeeRefundInput(
+  final case class ApplicationFeeRefundInput(
       id: String,
       amount: Option[BigDecimal] = None,
       metadata: Map[String, String] = Map.empty

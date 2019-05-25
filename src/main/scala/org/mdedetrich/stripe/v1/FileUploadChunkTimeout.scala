@@ -6,4 +6,4 @@ import scala.concurrent.duration.FiniteDuration
   * Timeout used when chunking file uploads
   * @param duration
   */
-case class FileUploadChunkTimeout(duration: FiniteDuration) extends AnyVal
+final case class FileUploadChunkTimeout(duration: FiniteDuration) extends AnyVal

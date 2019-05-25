@@ -8,4 +8,4 @@ package org.mdedetrich.stripe
   *
   * @param key
   */
-case class IdempotencyKey(key: String) extends AnyVal
+final case class IdempotencyKey(key: String) extends AnyVal

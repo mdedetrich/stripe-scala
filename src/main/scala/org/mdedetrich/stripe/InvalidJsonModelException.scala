@@ -12,7 +12,7 @@ import io.circe.{DecodingFailure, Json}
   * @param jsonResponse   The original json response
   * @param error          The error as reported from circe
   */
-case class InvalidJsonModelException(
+final case class InvalidJsonModelException(
     httpStatusCode: Long,
     url: Uri,
     postParameters: Option[Map[String, String]],

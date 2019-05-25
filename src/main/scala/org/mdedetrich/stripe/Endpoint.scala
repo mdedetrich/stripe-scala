@@ -6,7 +6,7 @@ package org.mdedetrich.stripe
   *
   * @param url
   */
-case class Endpoint(url: String) extends AnyVal
+final case class Endpoint(url: String) extends AnyVal
 
 /**
   * The stripe file Upload API endpoint. Make sure you leave out any
@@ -14,4 +14,4 @@ case class Endpoint(url: String) extends AnyVal
   *
   * @param url
   */
-case class FileUploadEndpoint(url: String) extends AnyVal
+final case class FileUploadEndpoint(url: String) extends AnyVal

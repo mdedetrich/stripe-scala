@@ -74,7 +74,7 @@ object Plans extends LazyLogging {
     *                            subscribing a customer to this plan.
     *                            [[scala.None]] if the plan has no trial period.
     */
-  case class Plan(
+  final case class Plan(
       id: String,
       amount: BigDecimal,
       created: OffsetDateTime,
@@ -172,7 +172,7 @@ object Plans extends LazyLogging {
     * @throws StatementDescriptorTooLong          - If [[statementDescriptor]] is longer than 22 characters
     * @throws StatementDescriptorInvalidCharacter - If [[statementDescriptor]] has an invalid character
     */
-  case class PlanInput(
+  final case class PlanInput(
       id: String,
       amount: BigDecimal,
       currency: Currency,
@@ -294,14 +294,14 @@ object Plans extends LazyLogging {
     *                      can include [[startingAfter]]=obj_foo in order to
     *                      fetch the next page of the list.
     */
-  case class PlanListInput(
+  final case class PlanListInput(
       created: Option[ListFilterInput] = None,
       endingBefore: Option[String] = None,
       limit: Option[Long] = None,
       startingAfter: Option[String] = None
   )
 
-  case class PlanList(
+  final case class PlanList(
       override val url: String,
       override val hasMore: Boolean,
       override val data: List[Plan],
