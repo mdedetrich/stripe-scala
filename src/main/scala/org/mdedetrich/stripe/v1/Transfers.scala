@@ -387,9 +387,9 @@ object Transfers extends LazyLogging {
   ): Future[Try[Transfer]] = {
     val postFormParameters = PostParams.flatten(
       Map(
-        "amount"               -> Option(transferInput.amount.toString()),
-        "currency"             -> Option(transferInput.currency.iso.toLowerCase()),
-        "destination"          -> Option(transferInput.destination),
+        "amount"               -> Some(transferInput.amount.toString()),
+        "currency"             -> Some(transferInput.currency.iso.toLowerCase()),
+        "destination"          -> Some(transferInput.destination),
         "description"          -> transferInput.description,
         "source_transaction"   -> transferInput.sourceTransaction,
         "statement_descriptor" -> transferInput.statementDescriptor,

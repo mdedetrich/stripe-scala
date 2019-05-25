@@ -42,13 +42,13 @@ object CustomerIT {
       cardNumber: String = defaultTestCard
   )(implicit client: HttpExt, materializer: Materializer, executionContext: ExecutionContext): Future[Customer] = {
     val in2years   = OffsetDateTime.now.plusYears(2)
-    val cardData   = TokenData.Card(in2years.getMonthValue, in2years.getYear, cardNumber).copy(cvc = Option("123"))
+    val cardData   = TokenData.Card(in2years.getMonthValue, in2years.getYear, cardNumber).copy(cvc = Some("123"))
     val tokenInput = TokenInput(cardData)
 
     for {
       token       <- handle(Tokens.create(tokenInput)())
       newCustomer <- handle(Customers.create(CustomerInput())())
-      updated     <- handle(Customers.update(newCustomer.id, CustomerUpdate(paymentSource = Option(Token(token.id))))())
+      updated     <- handle(Customers.update(newCustomer.id, CustomerUpdate(paymentSource = Some(Token(token.id))))())
     } yield updated
 
   }

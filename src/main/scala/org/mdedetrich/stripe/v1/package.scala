@@ -143,7 +143,7 @@ package object v1 {
     for {
       response <- client.singleRequest(req)
       _ = logger.debug(s"Received response $response")
-      parsed <- parseStripeServerError[M](response, finalUrl, Option(postFormParameters), None, logger)
+      parsed <- parseStripeServerError[M](response, finalUrl, Some(postFormParameters), None, logger)
       result = parsed match {
         case Right(triedValue) =>
           util.Success(triedValue.get)
@@ -207,7 +207,7 @@ package object v1 {
       numberOfRetries: Int = Config.numberOfRetries
   )(implicit executionContext: ExecutionContext): Future[T] = {
 
-    val idempotencyKey = Option(IdempotencyKey(java.util.UUID.randomUUID.toString))
+    val idempotencyKey = Some(IdempotencyKey(java.util.UUID.randomUUID.toString))
 
     handle(request(idempotencyKey), numberOfRetries)
   }

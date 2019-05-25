@@ -303,27 +303,27 @@ object BankAccounts extends LazyLogging {
           case externalAccount: BankAccountData.ExternalAccount.Object =>
             val map = PostParams.flatten(
               Map(
-                "account_number"      -> Option(externalAccount.accountNumber),
-                "country"             -> Option(externalAccount.country),
-                "currency"            -> Option(externalAccount.currency.iso.toLowerCase),
+                "account_number"      -> Some(externalAccount.accountNumber),
+                "country"             -> Some(externalAccount.country),
+                "currency"            -> Some(externalAccount.currency.iso.toLowerCase),
                 "account_holder_name" -> externalAccount.accountHolderName,
                 "account_holder_type" -> externalAccount.accountHolderType.map(_.id),
                 "routing_number"      -> externalAccount.routingNumber
               )
             )
-            mapToPostParams(Option(map), "external_account")
+            mapToPostParams(Some(map), "external_account")
           case source: BankAccountData.Source.Object =>
             val map = PostParams.flatten(
               Map(
-                "account_number"      -> Option(source.accountNumber),
-                "country"             -> Option(source.country),
-                "currency"            -> Option(source.currency.iso.toLowerCase),
+                "account_number"      -> Some(source.accountNumber),
+                "country"             -> Some(source.country),
+                "currency"            -> Some(source.currency.iso.toLowerCase),
                 "account_holder_name" -> source.accountHolderName,
                 "account_holder_type" -> source.accountHolderType.map(_.id),
                 "routing_number"      -> source.routingNumber
               )
             )
-            mapToPostParams(Option(map), "source")
+            mapToPostParams(Some(map), "source")
         }
       } ++ mapToPostParams(bankAccountInput.metadata, "metadata")
 
@@ -413,7 +413,7 @@ object BankAccounts extends LazyLogging {
 
       val queries = PostParams.flatten(
         Map(
-          "object"         -> Option("bank_account"),
+          "object"         -> Some("bank_account"),
           "ending_before"  -> bankAccountListInput.endingBefore,
           "limit"          -> bankAccountListInput.limit.map(_.toString),
           "starting_after" -> bankAccountListInput.startingAfter

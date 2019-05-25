@@ -13,7 +13,7 @@ class ChargesSpec extends WordSpec with Matchers {
       val charge = jsonToCharge("/charge.json")
 
       charge.id should be("ch_194UQpJ4y4jIjvHhJji6ElAp")
-      charge.applicationFee should be(Option("fee_9OKMRHcB2CcVPD"))
+      charge.applicationFee should be(Some("fee_9OKMRHcB2CcVPD"))
       val source = charge.source.asInstanceOf[Source.MaskedCard]
       source.expYear should be(2018)
     }
@@ -46,7 +46,7 @@ class ChargesSpec extends WordSpec with Matchers {
         amount = BigDecimal(100),
         Currency.`Euro`,
         capture = true,
-        customer = Option(customerSource)
+        customer = Some(customerSource)
       )
       val params = PostParams.toPostParams(input)
 
@@ -60,7 +60,7 @@ class ChargesSpec extends WordSpec with Matchers {
       val tokenSource = Charges.SourceInput.Token(token)
 
       val input =
-        Charges.ChargeInput(amount = BigDecimal(100), Currency.`Euro`, capture = true, source = Option(tokenSource))
+        Charges.ChargeInput(amount = BigDecimal(100), Currency.`Euro`, capture = true, source = Some(tokenSource))
       val params = PostParams.toPostParams(input)
 
       params("source") should be(token)
@@ -85,7 +85,7 @@ class ChargesSpec extends WordSpec with Matchers {
       )
 
       val input =
-        Charges.ChargeInput(amount = BigDecimal(100), Currency.`Euro`, capture = true, source = Option(tokenSource))
+        Charges.ChargeInput(amount = BigDecimal(100), Currency.`Euro`, capture = true, source = Some(tokenSource))
       val params = PostParams.toPostParams(input)
 
       params("source") should be(token)

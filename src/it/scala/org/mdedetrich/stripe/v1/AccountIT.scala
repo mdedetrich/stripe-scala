@@ -16,12 +16,12 @@ class AccountIT extends IntegrationTest {
       val dob       = LocalDate.now().minusYears(30)
       val firstName = "Gaspard"
       val lastName  = "Augé"
-      val legalEntity = Option(
+      val legalEntity = Some(
         LegalEntity(
-          `type` = Option(Individual),
-          firstName = Option(firstName),
-          lastName = Option(lastName),
-          dob = Option(dob)
+          `type` = Some(Individual),
+          firstName = Some(firstName),
+          lastName = Some(lastName),
+          dob = Some(dob)
         )
       )
 
@@ -51,21 +51,21 @@ object AccountIT extends DefaultDependencies {
 
   def createManagedAccountWithBankAccount: Future[Account] = {
     val dob           = LocalDate.now().minusYears(30)
-    val tosAcceptance = Option(TosAcceptance(Option(OffsetDateTime.now()), Option("62.96.204.171")))
-    val legalEntity = Option(
+    val tosAcceptance = Some(TosAcceptance(Some(OffsetDateTime.now()), Some("62.96.204.171")))
+    val legalEntity = Some(
       LegalEntity(
-        `type` = Option(Individual),
-        firstName = Option("Horst"),
-        lastName = Option("Kasuppke"),
-        dob = Option(dob)
+        `type` = Some(Individual),
+        firstName = Some("Horst"),
+        lastName = Some("Kasuppke"),
+        dob = Some(dob)
       )
     )
 
-    val transferSchedule = Option(TransferSchedule(Option(TransferInterval.Manual), None, None))
+    val transferSchedule = Some(TransferSchedule(Some(TransferInterval.Manual), None, None))
 
     // weirdly, this needs to be here in order for the following line not to throw a NullPointerException
     Currency.lowerCaseNamesToValuesMap
-    val ba = Option(BankAccountData.Source.Object("DE89370400440532013000", "DE", Currency.`Euro`))
+    val ba = Some(BankAccountData.Source.Object("DE89370400440532013000", "DE", Currency.`Euro`))
 
     val accountInput =
       Accounts.AccountInput(managed = true, metadata = meta, transferSchedule = transferSchedule)

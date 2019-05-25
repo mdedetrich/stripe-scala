@@ -739,10 +739,10 @@ object Cards extends LazyLogging {
         case externalAccount: CardData.ExternalAccount.Object =>
           val map = PostParams.flatten(
             Map(
-              "object"               -> Option("card"),
-              "exp_month"            -> Option(externalAccount.expMonth.toString),
-              "exp_year"             -> Option(externalAccount.expYear.toString),
-              "number"               -> Option(externalAccount.number),
+              "object"               -> Some("card"),
+              "exp_month"            -> Some(externalAccount.expMonth.toString),
+              "exp_year"             -> Some(externalAccount.expYear.toString),
+              "number"               -> Some(externalAccount.number),
               "address_city"         -> externalAccount.addressCity,
               "address_country"      -> externalAccount.addressCountry,
               "address_line1"        -> externalAccount.addressLine1,
@@ -755,14 +755,14 @@ object Cards extends LazyLogging {
               "name"                 -> externalAccount.name
             )
           )
-          mapToPostParams(Option(map), "external_account")
+          mapToPostParams(Some(map), "external_account")
         case source: CardData.Source.Object =>
           val map = PostParams.flatten(
             Map(
-              "object"          -> Option("card"),
-              "exp_month"       -> Option(source.expMonth.toString),
-              "exp_year"        -> Option(source.expYear.toString),
-              "number"          -> Option(source.number),
+              "object"          -> Some("card"),
+              "exp_month"       -> Some(source.expMonth.toString),
+              "exp_year"        -> Some(source.expYear.toString),
+              "number"          -> Some(source.number),
               "address_city"    -> source.addressCity,
               "address_country" -> source.addressCountry,
               "address_line1"   -> source.addressLine1,
@@ -773,7 +773,7 @@ object Cards extends LazyLogging {
               "name"            -> source.name
             )
           )
-          mapToPostParams(Option(map), "source")
+          mapToPostParams(Some(map), "source")
       }
     } ++ mapToPostParams(cardInput.metadata, "metadata")
 
@@ -864,7 +864,7 @@ object Cards extends LazyLogging {
 
       val queries = PostParams.flatten(
         Map(
-          "object"         -> Option("card"),
+          "object"         -> Some("card"),
           "ending_before"  -> cardListInput.endingBefore,
           "limit"          -> cardListInput.limit.map(_.toString),
           "starting_after" -> cardListInput.startingAfter
@@ -1172,11 +1172,11 @@ object BitcoinReceivers extends LazyLogging {
 
     val postFormParameters = PostParams.flatten(
       Map(
-        "amount"             -> Option(bitcoinReceiverInput.amount.toString()),
-        "currency"           -> Option(bitcoinReceiverInput.currency.iso.toLowerCase()),
-        "email"              -> Option(bitcoinReceiverInput.email),
+        "amount"             -> Some(bitcoinReceiverInput.amount.toString()),
+        "currency"           -> Some(bitcoinReceiverInput.currency.iso.toLowerCase()),
+        "email"              -> Some(bitcoinReceiverInput.email),
         "description"        -> bitcoinReceiverInput.description,
-        "refund_mispayments" -> Option(bitcoinReceiverInput.refundMispayments.toString)
+        "refund_mispayments" -> Some(bitcoinReceiverInput.refundMispayments.toString)
       )
     ) ++ mapToPostParams(bitcoinReceiverInput.metadata, "metadata")
 

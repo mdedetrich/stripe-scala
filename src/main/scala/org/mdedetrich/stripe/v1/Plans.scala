@@ -231,11 +231,11 @@ object Plans extends LazyLogging {
   ): Future[Try[Plan]] = {
     val postFormParameters = PostParams.flatten(
       Map(
-        "id"                   -> Option(planInput.id.toString),
-        "amount"               -> Option(planInput.amount.toString()),
-        "currency"             -> Option(planInput.currency.iso.toLowerCase),
-        "interval"             -> Option(planInput.interval.id.toString),
-        "name"                 -> Option(planInput.name),
+        "id"                   -> Some(planInput.id.toString),
+        "amount"               -> Some(planInput.amount.toString()),
+        "currency"             -> Some(planInput.currency.iso.toLowerCase),
+        "interval"             -> Some(planInput.interval.id.toString),
+        "name"                 -> Some(planInput.name),
         "interval_count"       -> planInput.intervalCount.map(_.toString),
         "statement_descriptor" -> planInput.statementDescriptor,
         "trial_period_days"    -> planInput.trialPeriodDays.map(_.toString)

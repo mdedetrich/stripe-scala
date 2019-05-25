@@ -16,7 +16,7 @@ class ChargeIT extends IntegrationTest {
 
       val cardNumber = "4242424242424242"
       val in2years   = OffsetDateTime.now.plusYears(2)
-      val cardData   = TokenData.Card(in2years.getMonthValue, in2years.getYear, cardNumber).copy(cvc = Option("123"))
+      val cardData   = TokenData.Card(in2years.getMonthValue, in2years.getYear, cardNumber).copy(cvc = Some("123"))
       val tokenInput = TokenInput(cardData)
 
       val chargeF = for {
@@ -67,14 +67,14 @@ class ChargeIT extends IntegrationTest {
 
 object ChargeIT {
   def chargeInput(customer: Customer): ChargeInput                      = chargeInput(None, customer).copy(applicationFee = None)
-  def chargeInput(destination: String, customer: Customer): ChargeInput = chargeInput(Option(destination), customer)
+  def chargeInput(destination: String, customer: Customer): ChargeInput = chargeInput(Some(destination), customer)
   def chargeInput(destination: Option[String], customer: Customer): ChargeInput =
     Charges.ChargeInput(
       amount = BigDecimal(1500),
       Currency.`Euro`,
       capture = true,
-      customer = Option(customer),
-      applicationFee = Option(BigDecimal(100)),
+      customer = Some(customer),
+      applicationFee = Some(BigDecimal(100)),
       destination = destination
     )
 }

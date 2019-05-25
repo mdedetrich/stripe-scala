@@ -19,7 +19,7 @@ class TransferIT extends IntegrationTest {
         _              <- handleIdempotent(Charges.create(ChargeIT.chargeInput(managedAccount.id, Customer(customer.id))))
         transfer <- handleIdempotent(
           Transfers.create(
-            TransferInput(1400, Currency.`Euro`, "default_for_currency", stripeAccount = Option(managedAccount.id))
+            TransferInput(1400, Currency.`Euro`, "default_for_currency", stripeAccount = Some(managedAccount.id))
           )
         )
       } yield (transfer, managedAccount)

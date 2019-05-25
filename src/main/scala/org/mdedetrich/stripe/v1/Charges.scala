@@ -723,9 +723,9 @@ object Charges extends LazyLogging {
   implicit val chargeInputPostParams: PostParams[ChargeInput] = PostParams.params[ChargeInput] { chargeInput =>
     flatten(
       Map(
-        "amount"               -> Option(chargeInput.amount.toString),
-        "currency"             -> Option(chargeInput.currency.iso.toLowerCase),
-        "capture"              -> Option(chargeInput.capture.toString),
+        "amount"               -> Some(chargeInput.amount.toString),
+        "currency"             -> Some(chargeInput.currency.iso.toLowerCase),
+        "capture"              -> Some(chargeInput.capture.toString),
         "application_fee"      -> chargeInput.applicationFee.map(_.toString),
         "description"          -> chargeInput.description,
         "destination"          -> chargeInput.destination,

@@ -268,9 +268,9 @@ object Customers extends LazyLogging {
 
           val map = PostParams.flatten(
             Map(
-              "exp_month"            -> Option(expMonth.toString),
-              "exp_year"             -> Option(expYear.toString),
-              "number"               -> Option(number),
+              "exp_month"            -> Some(expMonth.toString),
+              "exp_year"             -> Some(expYear.toString),
+              "number"               -> Some(number),
               "address_city"         -> addressCity,
               "address_country"      -> addressCountry,
               "address_line1"        -> addressLine1,
@@ -283,7 +283,7 @@ object Customers extends LazyLogging {
               "name"                 -> name
             )
           )
-          mapToPostParams(Option(map), "card")
+          mapToPostParams(Some(map), "card")
 
         case Some(Source.Token(id)) =>
           Map("source" -> id)

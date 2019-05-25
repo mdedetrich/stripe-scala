@@ -203,7 +203,7 @@ object Coupons extends LazyLogging {
     val postFormParameters = PostParams.flatten(
       Map(
         "id"                 -> couponInput.id,
-        "duration"           -> Option(couponInput.duration.entryName),
+        "duration"           -> Some(couponInput.duration.entryName),
         "amount_off"         -> couponInput.amountOff.map(_.toString),
         "currency"           -> couponInput.currency.map(_.iso.toLowerCase),
         "duration_in_months" -> couponInput.durationInMonths.map(_.toString),

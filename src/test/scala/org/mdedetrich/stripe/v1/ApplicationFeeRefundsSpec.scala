@@ -16,7 +16,7 @@ class ApplicationFeeRefundsSpec extends WordSpec with Matchers {
       val applicationFeeRefund = json.flatMap(_.as[ApplicationFeeRefund].toOption).get
 
       applicationFeeRefund.id should be("fr_7iEwuXNLaHBGdZ")
-      applicationFeeRefund.balanceTransaction should be(Option("123"))
+      applicationFeeRefund.balanceTransaction should be(Some("123"))
     }
   }
 

@@ -392,7 +392,7 @@ object Subscriptions extends LazyLogging {
       Map(
         "application_fee_percent" -> subscriptionInput.applicationFeePercent.map(_.toString()),
         "coupon"                  -> subscriptionInput.coupon,
-        "plan"                    -> Option(subscriptionInput.plan),
+        "plan"                    -> Some(subscriptionInput.plan),
         "quantity"                -> subscriptionInput.quantity.map(_.toString),
         "tax_percent"             -> subscriptionInput.taxPercent.map(_.toString()),
         "trial_end"               -> subscriptionInput.trialEnd.map(stripeDateTimeParamWrites)
@@ -415,9 +415,9 @@ object Subscriptions extends LazyLogging {
             ) =>
           val map = PostParams.flatten(
             Map(
-              "exp_month"       -> Option(expMonth.toString),
-              "exp_year"        -> Option(expYear.toString),
-              "number"          -> Option(number),
+              "exp_month"       -> Some(expMonth.toString),
+              "exp_year"        -> Some(expYear.toString),
+              "number"          -> Some(number),
               "address_country" -> addressCountry,
               "address_line1"   -> addressLine1,
               "address_line2"   -> addressLine2,
@@ -427,7 +427,7 @@ object Subscriptions extends LazyLogging {
               "name"            -> name
             )
           )
-          mapToPostParams(Option(map), "card")
+          mapToPostParams(Some(map), "card")
         case Some(Source.Token(id)) =>
           Map("source" -> id)
         case None =>
