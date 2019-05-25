@@ -367,14 +367,14 @@ package object v1 {
                     }
 
                     jsResult.fold(
-                      error => {
+                      decodingFailure => {
                         throw InvalidJsonModelException(
                           httpCode,
                           finalUrl,
                           postFormParameters,
                           postJsonParameters,
                           jsValue,
-                          error
+                          decodingFailure
                         )
                       },
                       error => error
@@ -409,7 +409,7 @@ package object v1 {
             s"$parentKey[$key]" -> value
         }
       case None =>
-        Map.empty
+        Map.empty[String, String]
     }
   }
 }
